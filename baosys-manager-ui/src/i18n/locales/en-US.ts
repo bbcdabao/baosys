@@ -1,0 +1,107 @@
+export default {
+  common: {
+    query: 'Search',
+    reset: 'Reset',
+    create: 'Create',
+    edit: 'Edit',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    save: 'Save',
+    actions: 'Actions',
+    confirm: 'Confirm',
+    success: 'Operation completed',
+    loadFailed: 'Failed to load data',
+    serviceUnavailable: 'Service is temporarily unavailable',
+    light: 'Light mode',
+    dark: 'Dark mode',
+    logout: 'Sign out',
+    language: 'Language',
+    status: 'Status',
+    online: 'Online',
+    offline: 'Offline'
+  },
+  app: {
+    name: 'BaoSys Admin',
+    shortName: 'OA',
+    currentUser: 'Current user'
+  },
+  menu: {
+    user: 'Users',
+    userManagement: 'User Management',
+    loginManagement: 'Login Management',
+    system: 'System',
+    systemConfig: 'System Configuration'
+  },
+  login: {
+    title: 'Welcome back',
+    subtitle: 'BaoSys Unified Administration',
+    username: 'Username',
+    password: 'Password',
+    rememberUsername: 'Remember username',
+    submit: 'Sign in',
+    success: 'Signed in successfully',
+    failed: 'Sign-in failed',
+    usernameRequired: 'Please enter a username',
+    passwordRequired: 'Please enter a password'
+  },
+  user: {
+    title: 'User Management',
+    description: 'Manage platform users, permissions, and online status',
+    name: 'Username',
+    namePlaceholder: 'Enter a username',
+    systemType: 'Platform',
+    allPlatforms: 'All platforms',
+    permissions: 'Permissions',
+    password: 'Password',
+    passwordPlaceholder: 'Enter at least 8 characters',
+    editPasswordPlaceholder: 'Leave blank to keep the current password',
+    createTitle: 'Create User',
+    editTitle: 'Edit User',
+    loginManagement: 'Login Management',
+    deleteConfirm: 'Delete this user?',
+    created: 'User created',
+    updated: 'User updated',
+    deleted: 'User deleted',
+    nameRequired: 'Please enter a username',
+    passwordRequired: 'Password must contain at least 8 characters',
+    systemTypeRequired: 'Please select a platform',
+    permissionsRequired: 'Select at least one permission'
+  },
+  session: {
+    title: 'Login Management',
+    description: 'Find and manage login sessions that are still active',
+    userName: 'Username',
+    userNamePlaceholder: 'Enter a username',
+    client: 'Client',
+    loginAt: 'Signed in at',
+    expiresAt: 'Expires at',
+    kick: 'Sign out',
+    kickConfirm: 'Sign out this session?',
+    kickAll: 'Sign out all for this user',
+    kickAllConfirm: 'Sign out every session for this user?',
+    kicked: 'Session signed out',
+    kickedAll: 'All user sessions signed out'
+  },
+  system: {
+    title: 'System Configuration',
+    building: 'Under construction...',
+    description: 'System-wide configuration is being planned.'
+  },
+  platform: {
+    manager: 'Administration',
+    simulation: 'Simulation',
+    simulators: 'Test Range'
+  },
+  permission: {
+    manager: {
+      list: 'View users',
+      add: 'Create users',
+      update: 'Update users',
+      delete: 'Delete users',
+      sessionList: 'View login sessions',
+      sessionKick: 'Sign out sessions'
+    },
+    simulation: {},
+    simulators: {}
+  }
+}

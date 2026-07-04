@@ -1,0 +1,107 @@
+export default {
+  common: {
+    query: '查询',
+    reset: '重置',
+    create: '新建',
+    edit: '编辑',
+    delete: '删除',
+    cancel: '取消',
+    save: '保存',
+    actions: '操作',
+    confirm: '确认',
+    success: '操作成功',
+    loadFailed: '数据加载失败',
+    serviceUnavailable: '服务暂不可用',
+    light: '亮色模式',
+    dark: '暗黑模式',
+    logout: '退出登录',
+    language: '语言',
+    status: '状态',
+    online: '在线',
+    offline: '离线'
+  },
+  app: {
+    name: '海洋声学管理平台',
+    shortName: 'OA',
+    currentUser: '当前用户'
+  },
+  menu: {
+    user: '用户',
+    userManagement: '用户管理',
+    loginManagement: '登录管理',
+    system: '系统',
+    systemConfig: '系统配置'
+  },
+  login: {
+    title: '欢迎登录',
+    subtitle: '海洋声学统一管理平台',
+    username: '用户名',
+    password: '密码',
+    rememberUsername: '记住用户名',
+    submit: '登录',
+    success: '登录成功',
+    failed: '登录失败',
+    usernameRequired: '请输入用户名',
+    passwordRequired: '请输入密码'
+  },
+  user: {
+    title: '用户管理',
+    description: '管理平台用户、权限及在线状态',
+    name: '用户名称',
+    namePlaceholder: '请输入用户名称',
+    systemType: '平台类型',
+    allPlatforms: '全部平台',
+    permissions: '权限',
+    password: '密码',
+    passwordPlaceholder: '请输入至少 8 位密码',
+    editPasswordPlaceholder: '留空表示不修改密码',
+    createTitle: '新建用户',
+    editTitle: '编辑用户',
+    loginManagement: '登录管理',
+    deleteConfirm: '确定删除该用户吗？',
+    created: '用户创建成功',
+    updated: '用户更新成功',
+    deleted: '用户删除成功',
+    nameRequired: '请输入用户名称',
+    passwordRequired: '请输入至少 8 位密码',
+    systemTypeRequired: '请选择平台类型',
+    permissionsRequired: '请至少选择一项权限'
+  },
+  session: {
+    title: '登录管理',
+    description: '查询并管理当前仍然有效的登录状态',
+    userName: '用户名称',
+    userNamePlaceholder: '请输入用户名称',
+    client: '登录客户端',
+    loginAt: '登录时间',
+    expiresAt: '过期时间',
+    kick: '踢出',
+    kickConfirm: '确定踢出该登录状态吗？',
+    kickAll: '该用户全部下线',
+    kickAllConfirm: '确定让该用户的全部客户端下线吗？',
+    kicked: '登录状态已踢出',
+    kickedAll: '该用户已全部下线'
+  },
+  system: {
+    title: '系统配置',
+    building: '建设中...',
+    description: '系统级配置能力正在规划建设。'
+  },
+  platform: {
+    manager: '后台管理',
+    simulation: '仿真平台',
+    simulators: '试验场平台'
+  },
+  permission: {
+    manager: {
+      list: '查看用户',
+      add: '新增用户',
+      update: '修改用户',
+      delete: '删除用户',
+      sessionList: '查看登录状态',
+      sessionKick: '踢出登录状态'
+    },
+    simulation: {},
+    simulators: {}
+  }
+}

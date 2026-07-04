@@ -1,0 +1,3 @@
+szs.baosys.common.autoconfigure.PasswordAutoConfiguration
+szs.baosys.common.security.config.SzsJwtDecoderConfiguration
+szs.baosys.common.security.config.SzsJwtEncoderConfiguration

@@ -1,0 +1,252 @@
+package szs.baosys.manager.app.services.impl;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import szs.baosys.common.api.PageResponse;
+import szs.baosys.common.security.password.PasswordHasher;
+import szs.baosys.manager.app.assembler.UserAssembler;
+import szs.baosys.manager.app.error.BusinessException;
+import szs.baosys.manager.app.model.PermissionCode;
+import szs.baosys.manager.app.services.UserAppService;
+import szs.baosys.manager.api.dto.CurrentUserResponse;
+import szs.baosys.manager.api.dto.LoginClientResponse;
+import szs.baosys.manager.api.dto.UserCreateRequest;
+import szs.baosys.manager.api.dto.UserResponse;
+import szs.baosys.manager.api.dto.UserUpdateRequest;
+import szs.baosys.manager.api.enums.SystemType;
+import szs.baosys.manager.infra.database.converter.PermissionPersistenceConverter;
+import szs.baosys.manager.infra.database.entity.UserInfoEntity;
+import szs.baosys.manager.infra.database.mapper.UserInfoMapper;
+import szs.baosys.manager.infra.database.mapper.UserLoginMapper;
+
+@Service
+public class UserAppServiceImpl implements UserAppService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserAppServiceImpl.class);
+
+    private final UserInfoMapper userMapper;
+    private final UserLoginMapper loginMapper;
+    private final PasswordHasher passwordHasher;
+
+    public UserAppServiceImpl(
+            UserInfoMapper userMapper,
+            UserLoginMapper loginMapper,
+            PasswordHasher passwordHasher) {
+        this.userMapper = userMapper;
+        this.loginMapper = loginMapper;
+        this.passwordHasher = passwordHasher;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CurrentUserResponse currentUser(long userId) {
+        // 令牌只负责提供用户标识；系统归属和权限以数据库当前配置为准。
+        UserInfoEntity user = requireUser(userId);
+        List<String> permissions = PermissionPersistenceConverter
+                .decode(user.getUserPermissions())
+                .stream()
+                .sorted()
+                .toList();
+        return new CurrentUserResponse(
+                user.getId(),
+                user.getUserName(),
+                user.getUserName(),
+                user.getSystemType(),
+                permissions);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<UserResponse> list(
+            String name,
+            SystemType systemType,
+            int page,
+            int size) {
+        var result = userMapper.selectPageByNameAndSystemType(
+                name,
+                systemType,
+                page,
+                size);
+        // 一次查询整页账户的在线集合，避免逐个账户统计登录记录造成 N+1 查询。
+        Set<Long> onlineUserIds = loginMapper.selectActiveUserIds(
+                result.getRecords().stream().map(UserInfoEntity::getId).toList(),
+                now());
+        List<UserResponse> items = result.getRecords().stream()
+                .map(user -> UserAssembler.toResponse(
+                        user,
+                        onlineUserIds.contains(user.getId())))
+                .toList();
+        return new PageResponse<>(
+                items,
+                result.getTotal(),
+                page,
+                size,
+                Math.toIntExact(result.getPages()));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse create(UserCreateRequest request) {
+        String username = normalizeName(request.name());
+        Set<String> permissions = validatePermissions(
+                request.systemType(),
+                request.permissions());
+        if (userMapper.existsByUserNameAndSystemType(username, request.systemType())) {
+            throw new BusinessException("USER_409_001", HttpStatus.CONFLICT, "账户名称已存在");
+        }
+
+        UserInfoEntity user = new UserInfoEntity();
+        user.setUserName(username);
+        user.setSystemType(request.systemType());
+        user.setUserPass(passwordHasher.hash(request.pass()));
+        user.setUserPermissions(PermissionPersistenceConverter.encode(permissions));
+        userMapper.insert(user);
+        LOGGER.info(
+                "module=user action=create userId={} username={} result=success",
+                user.getId(),
+                username);
+        return UserAssembler.toResponse(user, false);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse update(UserUpdateRequest request) {
+        UserInfoEntity user = requireUser(request.id());
+        String username = normalizeName(request.name());
+        Set<String> permissions = validatePermissions(
+                request.systemType(),
+                request.permissions());
+        if (userMapper.existsByUserNameAndSystemTypeExcludingId(
+                username,
+                request.systemType(),
+                request.id())) {
+            throw new BusinessException("USER_409_001", HttpStatus.CONFLICT, "账户名称已存在");
+        }
+
+        boolean systemTypeChanged = user.getSystemType() != request.systemType();
+        user.setUserName(username);
+        user.setSystemType(request.systemType());
+        // 密码或所属系统变化会让既有会话的认证前提失效，因此强制撤销刷新会话。
+        if (request.pass() != null && !request.pass().isBlank()) {
+            if (request.pass().length() < 8 || request.pass().length() > 128) {
+                throw new BusinessException(
+                        "USER_400_003",
+                        HttpStatus.BAD_REQUEST,
+                        "密码长度必须为 8 到 128 个字符");
+            }
+            user.setUserPass(passwordHasher.hash(request.pass()));
+            loginMapper.deleteByUserId(user.getId());
+        } else if (systemTypeChanged) {
+            loginMapper.deleteByUserId(user.getId());
+        }
+        user.setUserPermissions(PermissionPersistenceConverter.encode(permissions));
+        userMapper.updateById(user);
+        LOGGER.info(
+                "module=user action=update userId={} username={} result=success",
+                user.getId(),
+                username);
+        return UserAssembler.toResponse(
+                user,
+                loginMapper.countActiveByUserId(user.getId(), now()) > 0);
+    }
+
+    @Override
+    @Transactional
+    public void delete(long id) {
+        UserInfoEntity user = requireUser(id);
+        userMapper.deleteById(id);
+        LOGGER.info(
+                "module=user action=delete userId={} username={} result=success",
+                id,
+                user.getUserName());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LoginClientResponse> loginClients(long userId) {
+        requireUser(userId);
+        return loginMapper.selectActiveByUserId(userId, now()).stream()
+                .map(login -> new LoginClientResponse(
+                        login.getId(),
+                        login.getLoginClient(),
+                        login.getCreatedAt()))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void kickClient(long userId, long loginId) {
+        requireUser(userId);
+        var login = loginMapper.findActiveByIdAndUserId(loginId, userId, now())
+                .orElseThrow(() -> new BusinessException(
+                        "LOGIN_404_001",
+                        HttpStatus.NOT_FOUND,
+                        "登录客户端不存在"));
+        loginMapper.deleteById(login.getId());
+        LOGGER.info(
+                "module=user action=kick-client userId={} loginId={} result=success",
+                userId,
+                loginId);
+    }
+
+    @Override
+    @Transactional
+    public void kickAllClients(long userId) {
+        requireUser(userId);
+        long count = loginMapper.deleteByUserId(userId);
+        LOGGER.info(
+                "module=user action=kick-all userId={} count={} result=success",
+                userId,
+                count);
+    }
+
+    private UserInfoEntity requireUser(long id) {
+        return userMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(
+                        "USER_404_001",
+                        HttpStatus.NOT_FOUND,
+                        "账户不存在"));
+    }
+
+    private static Set<String> validatePermissions(
+            SystemType systemType,
+            Set<String> permissions) {
+        Set<String> availablePermissions = PermissionCode.codes(systemType);
+        // 已配置权限目录的系统至少选一项；尚未开放权限目录的系统允许空集合。
+        if (systemType == null
+                || permissions == null
+                || (!availablePermissions.isEmpty() && permissions.isEmpty())
+                || permissions.stream().anyMatch(
+                        permission -> !PermissionCode.isValid(systemType, permission))) {
+            throw new BusinessException(
+                    "USER_400_002",
+                    HttpStatus.BAD_REQUEST,
+                    "权限配置错误");
+        }
+        return Set.copyOf(permissions);
+    }
+
+    private static String normalizeName(String name) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.isEmpty()) {
+            throw new BusinessException(
+                    "USER_400_001",
+                    HttpStatus.BAD_REQUEST,
+                    "账户名称不能为空");
+        }
+        return normalized;
+    }
+
+    private static OffsetDateTime now() {
+        return OffsetDateTime.now(ZoneOffset.UTC);
+    }
+}

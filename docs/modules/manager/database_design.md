@@ -1,0 +1,298 @@
+# Manager 数据库设计
+
+## 1. 范围
+
+Manager 当前使用 PostgreSQL，数据库结构由 Flyway 管理。首个迁移：
+
+```text
+baosys-manager/baosys-manager-service/src/main/resources/db/migration/
+└── V20260621_001__create_user_auth_tables.sql
+```
+
+当前包含 `user_info` 和 `user_login` 两张表。
+
+## 2. 实体关系
+
+```mermaid
+erDiagram
+    USER_INFO ||--o{ USER_LOGIN : "has sessions"
+
+    USER_INFO {
+        bigint id PK
+        varchar user_name
+        varchar system_type
+        varchar user_pass
+        varchar user_permissions
+        timestamptz created_at
+        timestamptz updated_at
+        varchar created_by
+        varchar updated_by
+    }
+
+    USER_LOGIN {
+        bigint id PK
+        bigint user_info_id FK
+        varchar login_client
+        varchar refresh_token_hash
+        timestamptz expires_at
+        timestamptz created_at
+        timestamptz updated_at
+        varchar created_by
+        varchar updated_by
+    }
+```
+
+一个用户可以有零到多个登录会话。删除用户时，数据库通过外键级联删除其会话。
+
+## 3. `user_info`
+
+用途：保存系统账户、密码摘要和直接配置的权限集合。
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `id` | BIGINT | PK、IDENTITY | 用户主键 |
+| `user_name` | VARCHAR(128) | NOT NULL | 用户名 |
+| `system_type` | VARCHAR(32) | NOT NULL、CHECK | 所属系统 |
+| `user_pass` | VARCHAR(512) | NOT NULL | BCrypt 密码摘要 |
+| `user_permissions` | VARCHAR(1024) | NOT NULL | 逗号分隔权限编码 |
+| `created_at` | TIMESTAMPTZ | NOT NULL | 创建时间 |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | 修改时间 |
+| `created_by` | VARCHAR(128) | NOT NULL | 创建人 |
+| `updated_by` | VARCHAR(128) | NOT NULL | 修改人 |
+
+约束：
+
+```text
+ck_user_info_system_type
+  system_type IN ('MANAGER', 'SIMULATION', 'SIMULATORS')
+
+uk_user_info_user_name_system_type
+  UNIQUE (user_name, system_type)
+```
+
+同一用户名允许在不同系统中存在，但同一系统中必须唯一。
+
+## 4. `user_login`
+
+用途：保存登录客户端和 Refresh Token 的服务端状态。
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `id` | BIGINT | PK、IDENTITY | 登录会话主键 |
+| `user_info_id` | BIGINT | FK、NOT NULL | 所属用户 |
+| `login_client` | VARCHAR(512) | NOT NULL | 客户端描述 |
+| `refresh_token_hash` | VARCHAR(64) | UNIQUE、NOT NULL | Refresh Token SHA-256 十六进制摘要 |
+| `expires_at` | TIMESTAMPTZ | NOT NULL | 绝对过期时间 |
+| `created_at` | TIMESTAMPTZ | NOT NULL | 登录时间 |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | 最近更新时间 |
+| `created_by` | VARCHAR(128) | NOT NULL | 创建人 |
+| `updated_by` | VARCHAR(128) | NOT NULL | 修改人 |
+
+外键：
+
+```text
+fk_user_login_user_info
+  user_info_id → user_info.id
+  ON DELETE CASCADE
+```
+
+索引：
+
+```text
+idx_user_login_user_info_id(user_info_id)
+idx_user_login_expires_at(expires_at)
+```
+
+## 5. Java 映射
+
+| 数据库 | Java |
+|---|---|
+| `user_info` | `UserInfoEntity` |
+| `user_login` | `UserLoginEntity` |
+| 联表会话查询结果 | `LoginSessionRow` |
+| 用户数据访问 | `UserInfoMapper` |
+| 会话数据访问 | `UserLoginMapper` |
+
+MyBatis Plus 开启：
+
+```yaml
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+因此 `user_info_id` 自动映射到 `userInfoId`。
+
+## 6. 权限持久化
+
+权限集合通过 `PermissionPersistenceConverter` 转换。
+
+写入：
+
+```text
+Set<String>
+  → 按 PermissionCode 顺序排序
+  → 逗号连接
+  → user_permissions
+```
+
+读取：
+
+```text
+user_permissions
+  → 按逗号拆分
+  → trim
+  → 去空和去重
+  → Set<String>
+```
+
+示例：
+
+```text
+user:list,user:add,user:update
+```
+
+该格式是当前第一阶段实现。角色权限演进参见 [权限模型](permission_model.md)。
+
+## 7. 会话生命周期
+
+### 7.1 创建
+
+登录成功时：
+
+1. 生成随机 Refresh Token。
+2. 计算 SHA-256 摘要。
+3. 插入 `user_login`。
+4. `expires_at = 当前 UTC 时间 + REFRESH_TOKEN_EXPIRE_DAYS`。
+
+### 7.2 刷新
+
+根据 `refresh_token_hash` 和 `expires_at > now` 查询有效会话，成功后覆盖为新摘要。
+
+### 7.3 注销与下线
+
+- 当前客户端注销：按 Refresh Token 摘要删除。
+- 指定客户端下线：按 `id + user_info_id` 删除。
+- 全部客户端下线：按 `user_info_id` 删除。
+- 删除用户：外键级联删除。
+
+### 7.4 在线状态
+
+用户“在线”不是 `user_info` 的持久化字段，而是：
+
+```text
+存在 user_login.expires_at > now 的记录
+```
+
+用户分页查询会一次获取当前页全部在线用户 ID，避免 N+1。
+
+## 8. 主要查询
+
+### 8.1 用户登录查询
+
+```text
+user_name = ?
+AND system_type = ?
+```
+
+由唯一约束保证最多一条记录。
+
+### 8.2 用户分页
+
+可选条件：
+
+```text
+user_name LIKE %name%
+system_type = ?
+```
+
+按 `id ASC` 排序，页码由外部 0 基转换为 MyBatis Plus 1 基。
+
+### 8.3 登录会话分页
+
+`user_login` 与 `user_info` 联表：
+
+```text
+expires_at > now
+AND userId 精确条件（优先）
+或 userName 模糊条件
+ORDER BY created_at DESC
+```
+
+## 9. 审计字段
+
+`MybatisPlusAuditHandler` 自动填充：
+
+```text
+createdAt
+updatedAt
+createdBy
+updatedBy
+```
+
+当前默认操作者是 `system`。登录会话创建时，业务代码显式设置 `createdBy` 为用户名。
+
+时间统一使用：
+
+```java
+OffsetDateTime.now(ZoneOffset.UTC)
+```
+
+数据库使用 `TIMESTAMP WITH TIME ZONE`。
+
+## 10. Flyway 规则
+
+后续迁移命名：
+
+```text
+V{yyyyMMdd}_{sequence}__{description}.sql
+```
+
+例如：
+
+```text
+V20260710_001__add_user_status.sql
+V20260710_002__create_role_tables.sql
+```
+
+要求：
+
+1. 已执行迁移禁止修改。
+2. 新字段需要明确默认值、可空性和历史数据处理。
+3. 数据修复与结构变更按执行顺序拆分。
+4. 索引名称、约束名称保持可读。
+5. 测试必须能在空 PostgreSQL 中执行全部迁移。
+
+## 11. 数据模型演进
+
+建议按功能需要逐步增加：
+
+### 11.1 账户状态
+
+可在 `user_info` 增加：
+
+```text
+enabled
+locked
+password_changed_at
+deleted_at（如采用逻辑删除）
+```
+
+### 11.2 角色权限
+
+建议新增独立表：
+
+```text
+role
+permission
+user_role
+role_permission
+```
+
+不要继续扩大 `user_permissions` 字符串承担角色、组织和数据权限。
+
+### 11.3 操作审计
+
+建议创建独立审计表，记录操作者、动作、业务对象、结果、Trace ID 和时间，不与 Entity 基础审计字段混为一谈。
+
+所有演进必须通过新 Flyway 迁移完成。
