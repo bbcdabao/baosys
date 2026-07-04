@@ -1,0 +1,7 @@
+**/target/
+**/node_modules/
+**/dist/
+baosys-manager-ui/node/
+*.log
+.idea/
+.vscode/
