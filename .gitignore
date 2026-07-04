@@ -1,7 +1,10 @@
 **/target/
+**/node/
 **/node_modules/
 **/dist/
-baosys-manager-ui/node/
 *.log
 .idea/
 .vscode/
+.agents/
+.codex-run/
+.run/
