@@ -40,7 +40,8 @@ Access Token 适合短期、无状态校验；Refresh Token 对应数据库中�
 | `exp` | 到期时间 |
 | `username` | 用户名，供日志和展示 |
 | `displayName` | 当前与用户名一致 |
-| `permissions` | 权限编码及系统类型基础权限 |
+| `systemType` | 用户登录的子系统类型 |
+| `permissions` | 功能权限编码 |
 
 示意：
 
@@ -50,8 +51,8 @@ Access Token 适合短期、无状态校验；Refresh Token 对应数据库中�
   "sub": "1",
   "username": "admin",
   "displayName": "admin",
+  "systemType": "MANAGER",
   "permissions": [
-    "MANAGER",
     "user:list",
     "user:add"
   ]
@@ -134,7 +135,7 @@ sequenceDiagram
     GW->>API: 转发请求
     API->>S: refresh(refreshToken)
     S->>S: SHA-256(refreshToken)
-    S->>DB: 查询摘要匹配且未过期的 user_login
+    S->>DB: 按摘要查询 user_login
     DB-->>S: 登录会话
     S->>DB: 查询 user_info
     S->>S: 生成新的 Refresh Token
@@ -151,7 +152,10 @@ sequenceDiagram
 新摘要 → 覆盖数据库旧摘要
 ```
 
-缺失、未知或已过期的 Refresh Token 返回 `AUTH_403_001`。
+缺失或未知的 Refresh Token 返回 `AUTH_403_001`。刷新是否可用以
+`user_login` 记录存在为准；每次刷新会轮换摘要并更新 `updated_at`。
+
+`expires_at` 当前是为后续绝对有效期功能保留的数据，不参与 Refresh 资格判断。现阶段会话是否继续有效由最近续租时间 `updated_at` 和“一天未更新即清理”的数据库任务控制。
 
 ## 7. 注销和客户端下线
 
@@ -175,6 +179,11 @@ DELETE /v1/users/{userId}/login-clients
 ### 7.3 当前会话语义
 
 “在线”表示数据库中存在未过期的 `user_login`。删除登录会话会阻止后续刷新，但已经签发的 Access Token 是无状态 JWT，在自身到期前仍可能通过签名校验。
+
+部署环境需要通过项目提供的 `pg_cron` 脚本、云数据库调度或外部 DBA 调度，在每天
+00:00 调用 `cleanup_inactive_user_login_sessions()`，清理
+`updated_at` 超过 1 天未更新的 `user_login`。因此持续刷新会续租会话；
+1 天不刷新则会在数据库清理任务执行后失去刷新资格。
 
 该语义是当前实现事实；若后续要求即时失效，需要增加会话版本、JTI 校验或撤销列表。
 
@@ -240,11 +249,13 @@ created_at / updated_at
 created_by / updated_by
 ```
 
-登录时间使用 `created_at`。有效会话判断条件：
+登录时间使用 `created_at`。Refresh Token 刷新判断条件：
 
 ```sql
-expires_at > current UTC time
+refresh_token_hash = ?
 ```
+
+在线会话列表仍使用 `expires_at > current UTC time` 展示未过期会话。
 
 数据库细节参见 [数据库设计](database_design.md)。
 
@@ -254,6 +265,7 @@ expires_at > current UTC time
 
 ```text
 SZS_JWT_ISSUER
+SZS_SYSTEM_TYPE
 SZS_ACCESS_TOKEN_EXPIRE_SECONDS
 AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS
 AUTH_REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS

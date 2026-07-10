@@ -16,6 +16,9 @@ import szs.baosys.common.security.config.SzsUltraViresCheckConfiguration;
  * <p>用于认证中心或后续受保护的业务服务。开启后服务会按资源服务器方式解析 JWT，
  * 并把 token 中的 {@code permissions} claim 转换成 Spring Security 权限，
  * 从而支持 {@code @PreAuthorize("hasAuthority('user:list')")} 这类方法级鉴权。</p>
+ *
+ * <p>该注解适合放在 Servlet 业务服务启动类上。启用后需要配置
+ * {@code szs.security.jwt.public-key}、可信 issuer 以及必要的公开路径白名单。</p>
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

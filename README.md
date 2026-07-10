@@ -162,7 +162,9 @@ http://localhost:5173
 mvn test "-Dskip.frontend=true"
 ```
 
-数据库集成测试由 Testcontainers 启动 PostgreSQL，需要本机 Docker 可用。
+根 POM 默认排除使用 Testcontainers 的 `*IntegrationTest`，因此该命令只运行
+非集成测试，不需要 Docker。数据库集成测试需要通过专用测试配置执行，并要求
+本机 Docker 可用。
 
 前端类型检查与生产构建：
 
@@ -183,6 +185,8 @@ mvn clean package
 baosys-manager/baosys-manager-service/target/baosys-manager.jar
 baosys-manager-web/target/baosys-manager-web.jar
 ```
+
+执行 `mvn verify` 后，这两个可启动 Jar 还会复制到仓库根目录的 `out` 目录。
 
 ## 文档导航
 

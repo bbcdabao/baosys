@@ -66,7 +66,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception exception) {
-        // 详细堆栈只进入服务端日志，响应保持稳定且不暴露内部实现。
         LOGGER.error("module=auth action=request result=failed errorCode=SYS_500_001", exception);
         return ResponseEntity.internalServerError()
                 .body(ApiResponse.failure("SYS_500_001", "系统内部错误", TraceIds.current()));

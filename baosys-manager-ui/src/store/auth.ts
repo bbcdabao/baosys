@@ -10,7 +10,6 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const currentUser = ref<CurrentUser | null>(null)
   const isAuthenticated = computed(() => currentUser.value !== null)
-  // 路由和页面初始化可能并发恢复会话，共享请求可避免重复访问 /users/me。
   let restorePromise: Promise<CurrentUser> | null = null
 
   const updateSession = (user: CurrentUser): void => {
@@ -59,7 +58,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await logoutApi()
     } finally {
-      // 即使网络注销失败也清理内存态，避免界面继续展示受保护内容。
       clearSession()
     }
   }

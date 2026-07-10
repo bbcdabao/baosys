@@ -108,6 +108,7 @@ class GatewaySecurityIntegrationTest {
                     .issuedAt(now)
                     .expiresAt(now.plusSeconds(300))
                     .claim("username", "test-user")
+                    .claim("systemType", "MANAGER")
                     .claim("permissions", List.of("user:list"))
                     .build();
         }

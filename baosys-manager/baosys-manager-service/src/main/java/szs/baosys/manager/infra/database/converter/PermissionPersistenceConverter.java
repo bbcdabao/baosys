@@ -7,12 +7,6 @@ import java.util.stream.Collectors;
 
 import szs.baosys.manager.app.model.PermissionCode;
 
-/**
- * 在领域权限集合与数据库逗号分隔格式之间转换。
- *
- * <p>写入时按权限目录顺序固定编码，减少无意义的数据变更；读取时去重，
- * 兼容历史数据中重复或带空白的权限项。</p>
- */
 public final class PermissionPersistenceConverter {
 
     private PermissionPersistenceConverter() {

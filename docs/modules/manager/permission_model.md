@@ -9,12 +9,13 @@ flowchart LR
     User["UserInfo"]
     System["SystemType"]
     Permissions["Set&lt;PermissionCode&gt;"]
+    JwtSystem["JWT systemType claim"]
     JWT["JWT permissions claim"]
     Authority["GrantedAuthority"]
 
     User --> System
     User --> Permissions
-    System --> JWT
+    System --> JwtSystem
     Permissions --> JWT
     JWT --> Authority
 ```
@@ -102,22 +103,20 @@ VARCHAR(1024) → decode → Set<String>
 
 Controller、前端和其他模块不直接解析该数据库格式。
 
-## 6. JWT 权限
+## 6. JWT 子系统与权限
 
-登录和刷新时，服务合并：
+登录和刷新时，服务会把用户所属系统写入独立 claim：
 
 ```text
-用户权限集合
-    +
-SystemType 名称
+systemType = SystemType 名称
 ```
 
-例如：
+功能权限只写入 `permissions` claim：
 
 ```json
 {
+  "systemType": "MANAGER",
   "permissions": [
-    "MANAGER",
     "user:list",
     "user:add"
   ]
@@ -130,7 +129,7 @@ SystemType 名称
 @PreAuthorize("hasAuthority('user:add')")
 ```
 
-系统类型权限用于标识用户可进入的子系统；细粒度权限控制具体操作。
+系统类型由网关根据 `systemType` claim 和自身配置校验；功能权限只控制具体操作。
 
 ## 7. 服务端授权矩阵
 

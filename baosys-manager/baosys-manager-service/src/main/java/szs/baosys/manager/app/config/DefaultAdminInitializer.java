@@ -15,12 +15,6 @@ import szs.baosys.manager.infra.database.converter.PermissionPersistenceConverte
 import szs.baosys.manager.infra.database.entity.UserInfoEntity;
 import szs.baosys.manager.infra.database.mapper.UserInfoMapper;
 
-/**
- * 在显式启用时幂等创建管理端初始账户。
- *
- * <p>配置不完整时让应用启动失败，避免部署出一个看似健康却无法登录的环境。
- * 已存在同名管理账户时不会覆盖密码或权限。</p>
- */
 @Component
 @ConditionalOnProperty(
         prefix = "szs.auth",

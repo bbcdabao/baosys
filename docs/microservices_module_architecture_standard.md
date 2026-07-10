@@ -723,6 +723,10 @@ XxxTest                  # 单元或切片测试
 XxxIntegrationTest       # 需要完整上下文或外部容器
 ```
 
+根 POM 的 Surefire 默认排除 `*IntegrationTest`，常规 `mvn test` 和
+`mvn verify` 只运行非集成测试。需要数据库或完整网关集成验证时，应通过专用测试
+配置执行，或在后续引入 Maven Failsafe 阶段。
+
 ## 15. Maven 与构建规范
 
 根 `pom.xml` 统一管理：
@@ -733,6 +737,8 @@ XxxIntegrationTest       # 需要完整上下文或外部容器
 - MyBatis Plus 等公共依赖版本。
 - 内部模块版本。
 - 编译和源码 Jar 插件。
+- 单元测试与集成测试的命名边界。
+- 可启动应用 Jar 的统一输出目录。
 
 模块要求：
 

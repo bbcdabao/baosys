@@ -39,6 +39,7 @@ class SzsJwtTokenServiceTest {
         String token = service.generateAccessToken(
                 "1001",
                 "admin",
+                "MANAGER",
                 List.of("user:list", "user:add"),
                 Map.of("displayName", "System Admin"));
 
@@ -47,6 +48,7 @@ class SzsJwtTokenServiceTest {
         assertThat(jwt.getSubject()).isEqualTo("1001");
         assertThat(jwt.getClaimAsString("iss")).isEqualTo("szs-auth-server");
         assertThat(jwt.getClaimAsString("username")).isEqualTo("admin");
+        assertThat(jwt.getClaimAsString("systemType")).isEqualTo("MANAGER");
         assertThat(jwt.getClaimAsString("displayName")).isEqualTo("System Admin");
         assertThat(jwt.getClaimAsStringList("permissions"))
                 .containsExactly("user:list", "user:add");

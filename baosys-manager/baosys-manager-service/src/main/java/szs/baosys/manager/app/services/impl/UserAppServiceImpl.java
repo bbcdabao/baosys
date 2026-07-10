@@ -76,7 +76,6 @@ public class UserAppServiceImpl implements UserAppService {
                 systemType,
                 page,
                 size);
-        // 一次查询整页账户的在线集合，避免逐个账户统计登录记录造成 N+1 查询。
         Set<Long> onlineUserIds = loginMapper.selectActiveUserIds(
                 result.getRecords().stream().map(UserInfoEntity::getId).toList(),
                 now());
@@ -135,7 +134,6 @@ public class UserAppServiceImpl implements UserAppService {
         boolean systemTypeChanged = user.getSystemType() != request.systemType();
         user.setUserName(username);
         user.setSystemType(request.systemType());
-        // 密码或所属系统变化会让既有会话的认证前提失效，因此强制撤销刷新会话。
         if (request.pass() != null && !request.pass().isBlank()) {
             if (request.pass().length() < 8 || request.pass().length() > 128) {
                 throw new BusinessException(
@@ -221,7 +219,6 @@ public class UserAppServiceImpl implements UserAppService {
             SystemType systemType,
             Set<String> permissions) {
         Set<String> availablePermissions = PermissionCode.codes(systemType);
-        // 已配置权限目录的系统至少选一项；尚未开放权限目录的系统允许空集合。
         if (systemType == null
                 || permissions == null
                 || (!availablePermissions.isEmpty() && permissions.isEmpty())

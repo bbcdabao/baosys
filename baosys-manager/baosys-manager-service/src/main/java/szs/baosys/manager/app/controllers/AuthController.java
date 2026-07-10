@@ -60,7 +60,6 @@ public class AuthController implements AuthApi {
     }
 
     private void writeCookies(HttpServletResponse response, LoginResult result) {
-        // access_token 作用于全站 API；refresh_token 只发送到认证路径，缩小暴露面。
         ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from(
                         securityProperties.getAccessTokenCookieName(),
                         result.accessToken())
@@ -91,7 +90,6 @@ public class AuthController implements AuthApi {
         if (!securityProperties.getGateway().getCsrf().isEnabled()) {
             return;
         }
-        // 双提交 Cookie：前端读取非 HttpOnly Cookie 后放入请求头，网关比较两者。
         response.setHeader(AuthApi.CSRF_TOKEN_HEADER_NAME, result.csrfToken());
         ResponseCookie csrfCookie = ResponseCookie.from(
                         securityProperties.getGateway().getCsrf().getCookieName(),
@@ -108,7 +106,6 @@ public class AuthController implements AuthApi {
     private static void applyMaxAge(
             ResponseCookie.ResponseCookieBuilder builder,
             long maxAgeSeconds) {
-        // 配置值 0 表示会话 Cookie；Spring 用负数 Max-Age 表达“不持久化”。
         builder.maxAge(Duration.ofSeconds(
                 maxAgeSeconds == 0 ? -1 : maxAgeSeconds));
     }

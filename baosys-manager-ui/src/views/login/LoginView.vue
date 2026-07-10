@@ -12,7 +12,7 @@
     </div>
 
     <section class="login-intro">
-      <div class="brand-mark"><icon-sound /></div>
+      <div class="ocean-mark"><icon-sound /></div>
       <p class="eyebrow">BAOSYS</p>
       <h1>{{ t('app.name') }}</h1>
       <p>{{ t('login.subtitle') }}</p>
@@ -100,7 +100,6 @@ const submit = async (): Promise<void> => {
       && route.query.redirect.startsWith('/')
       ? route.query.redirect
       : '/users-management'
-    // 只接受站内绝对路径，防止登录完成后被导向外部站点。
     await router.replace(redirect)
     Message.success(t('login.success'))
   } catch (error) {
@@ -133,7 +132,7 @@ onMounted(() => {
 .login-tools { position: absolute; top: 24px; right: 28px; display: flex; gap: 10px; }
 .login-tools :deep(.arco-select-view) { width: 105px; }
 .login-intro { max-width: 620px; color: var(--color-text-1); }
-.brand-mark { font-size: 56px; color: rgb(var(--primary-6)); }
+.ocean-mark { font-size: 56px; color: rgb(var(--primary-6)); }
 .eyebrow { letter-spacing: .28em; color: rgb(var(--primary-6)); font-weight: 700; }
 .login-intro h1 { margin: 8px 0 14px; font-size: clamp(36px, 5vw, 64px); }
 .login-intro > p:last-of-type { color: var(--color-text-2); font-size: 18px; }

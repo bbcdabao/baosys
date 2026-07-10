@@ -8,11 +8,6 @@ import szs.baosys.common.api.ApiResponse;
 import szs.baosys.common.api.PageResponse;
 import szs.baosys.manager.api.dto.LoginSessionResponse;
 
-/**
- * 管理端登录会话查询契约。
- *
- * <p>{@code userId} 用于从账户页跳转后的精确查询；未提供时可按用户名模糊筛选。</p>
- */
 public interface LoginSessionApi {
 
     String PREFIX = "/v1/login-sessions";

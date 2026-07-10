@@ -18,7 +18,8 @@ import szs.baosys.common.security.gateway.GatewaySecurityConfig;
  * 网关认证检查组合配置。
  *
  * <p>由 {@code @SzsEnableAuthenticationCheck} 引入，负责装配 JWT 解码器、网关安全过滤链、
- * 可选 CSRF 校验过滤器，以及 Cookie 到 Authorization 请求头的转换过滤器。</p>
+ * 可选 CSRF 校验过滤器，以及 Cookie 到 Authorization 请求头的转换过滤器。网关服务
+ * 只需要启用该注解并配置公钥，就能获得统一的入口认证能力。</p>
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SzsSecurityProperties.class)
@@ -27,6 +28,9 @@ public class SzsAuthenticationCheckConfiguration {
 
     /**
      * 将 access token Cookie 转换为下游服务可识别的 Bearer 请求头。
+     *
+     * <p>该过滤器只在 Spring Cloud Gateway 环境存在时注册，避免普通 Servlet 资源服务
+     * 引入无意义的 WebFlux 过滤器 Bean。</p>
      */
     @Bean
     @ConditionalOnClass(GlobalFilter.class)
@@ -37,6 +41,9 @@ public class SzsAuthenticationCheckConfiguration {
 
     /**
      * 创建网关 CSRF 校验过滤器。
+     *
+     * <p>CSRF 默认关闭，只有部署方显式配置
+     * {@code szs.security.gateway.csrf.enabled=true} 时才启用。</p>
      */
     @Bean
     @ConditionalOnClass(GlobalFilter.class)

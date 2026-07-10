@@ -34,14 +34,12 @@ const refreshClient = axios.create({
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' }
 })
-// 并发请求同时收到 401 时共享一次刷新，避免令牌轮换互相覆盖。
 let refreshPromise: Promise<void> | null = null
 
 client.interceptors.request.use(config => {
   const method = config.method?.toUpperCase()
   if (method && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     const csrfToken = sessionStorage.getItem(CSRF_TOKEN_STORAGE_KEY)
-    // 只有可能改变服务端状态的方法需要双提交 CSRF 请求头。
     if (csrfToken) config.headers.set(CSRF_TOKEN_HEADER_NAME, csrfToken)
   }
   return config
@@ -51,21 +49,25 @@ client.interceptors.response.use(
   response => response,
   async (error: AxiosError<ApiResult<unknown>>) => {
     const original = error.config
-    if (
-      error.response?.status === 401
-      && original
-      && !original._retry
-      && !original.skipAuthRefresh
-    ) {
-      original._retry = true
-      try {
-        await refreshAccessToken()
-        return client(original)
-      } catch {
-        emitter.emit('go-login')
-      }
+
+    if (error.response?.status !== 401 || !original || original.skipAuthRefresh) {
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
+
+    if (original._retry) {
+      emitter.emit('go-login')
+      return Promise.reject(error)
+    }
+
+    original._retry = true
+
+    try {
+      await refreshAccessToken()
+      return await client(original)
+    } catch (refreshOrRetryError) {
+      emitter.emit('go-login')
+      return Promise.reject(refreshOrRetryError)
+    }
   }
 )
 
@@ -107,7 +109,6 @@ const perform = async <T>(config: AxiosRequestConfig): Promise<T> => {
     }
     return response.data.data
   } catch (error) {
-    // 统一抹平 Axios 细节，页面层只处理可展示的业务错误文本。
     if (!(error instanceof AxiosError)) throw error
     const message = error.response?.data?.message
       || (error.code === 'ECONNABORTED'

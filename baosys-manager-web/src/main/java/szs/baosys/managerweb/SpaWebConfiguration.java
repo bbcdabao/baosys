@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.config.ResourceHandlerRegistry;
@@ -12,7 +13,6 @@ import org.springframework.web.reactive.config.WebFluxConfigurer;
 import org.springframework.web.reactive.resource.PathResourceResolver;
 import org.springframework.web.reactive.resource.ResourceResolverChain;
 import org.springframework.web.server.ServerWebExchange;
-
 import reactor.core.publisher.Mono;
 
 /**
@@ -56,11 +56,17 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
                 ServerWebExchange exchange,
                 String requestPath) {
             String path = StringUtils.trimLeadingCharacter(requestPath, '/');
-            // API、运维端点和带扩展名的静态资源失败时应保留 404，不能伪装成 SPA 页面。
-            return acceptsHtml(exchange)
+
+            return isSafeMethod(exchange)
+                    && acceptsHtml(exchange)
                     && !isPathUnder(path, "api")
                     && !isPathUnder(path, "actuator")
                     && !StringUtils.hasText(StringUtils.getFilenameExtension(path));
+        }
+
+        private static boolean isSafeMethod(ServerWebExchange exchange) {
+            HttpMethod method = exchange.getRequest().getMethod();
+            return method == HttpMethod.GET || method == HttpMethod.HEAD;
         }
 
         private static boolean acceptsHtml(ServerWebExchange exchange) {

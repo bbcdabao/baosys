@@ -115,7 +115,7 @@ mvn install -DskipTests "-Dskip.frontend=true"
 
 ```shell
 cd baosys-manager-ui
-npm ci
+npm install --no-audit --no-fund
 cd ..
 ```
 
@@ -227,13 +227,15 @@ Manager Web 可以先启动，但在 Manager Service 可用前，请求会返回
 mvn compile "-Dskip.frontend=true"
 ```
 
-### 8.2 后端完整测试
+### 8.2 默认后端测试
 
 ```shell
 mvn test "-Dskip.frontend=true"
 ```
 
-该命令会运行 Testcontainers 集成测试，需要 Docker。
+根 POM 默认排除使用 Testcontainers 的 `*IntegrationTest`，因此该命令只运行
+非集成测试，不需要 Docker。数据库和网关集成测试需通过 IDE、专用 Maven 参数
+或后续配置的 Failsafe 阶段执行。
 
 ### 8.3 只测试 Common
 
@@ -273,7 +275,7 @@ mvn clean package
 Manager Web 会：
 
 1. 下载工程指定的 Node/npm。
-2. 执行 `npm ci`。
+2. 执行 `npm install --no-audit --no-fund`。
 3. 执行 `npm run build`。
 4. 把 UI `dist` 复制到 `target/classes/static`。
 5. 生成可启动 Jar。
@@ -284,6 +286,8 @@ Manager Web 会：
 baosys-manager/baosys-manager-service/target/baosys-manager.jar
 baosys-manager-web/target/baosys-manager-web.jar
 ```
+
+执行 `mvn verify` 后，可启动应用 Jar 还会复制到仓库根目录的 `out` 目录。
 
 启动：
 

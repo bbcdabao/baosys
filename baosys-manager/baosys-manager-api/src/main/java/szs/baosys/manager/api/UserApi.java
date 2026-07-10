@@ -23,11 +23,6 @@ import szs.baosys.manager.api.dto.UserResponse;
 import szs.baosys.manager.api.dto.UserUpdateRequest;
 import szs.baosys.manager.api.enums.SystemType;
 
-/**
- * 账户管理与账户登录客户端管理的公开 HTTP 契约。
- *
- * <p>授权规则由服务实现层施加，契约模块只描述稳定的路径、参数和响应结构。</p>
- */
 public interface UserApi {
 
     String SERVICE_NAME = "baosys-manager";

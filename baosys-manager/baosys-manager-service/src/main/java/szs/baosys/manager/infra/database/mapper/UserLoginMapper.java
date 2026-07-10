@@ -68,12 +68,9 @@ public interface UserLoginMapper extends BaseMapper<UserLoginEntity> {
                 .gt(UserLoginEntity::getExpiresAt, now)));
     }
 
-    default Optional<UserLoginEntity> findActiveByRefreshTokenHash(
-            String refreshTokenHash,
-            OffsetDateTime now) {
+    default Optional<UserLoginEntity> findByRefreshTokenHash(String refreshTokenHash) {
         return Optional.ofNullable(selectOne(Wrappers.<UserLoginEntity>lambdaQuery()
-                .eq(UserLoginEntity::getRefreshTokenHash, refreshTokenHash)
-                .gt(UserLoginEntity::getExpiresAt, now)));
+                .eq(UserLoginEntity::getRefreshTokenHash, refreshTokenHash)));
     }
 
     default Set<Long> selectActiveUserIds(

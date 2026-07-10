@@ -153,7 +153,7 @@ sequenceDiagram
     G-->>B: 登录成功
 
     B->>G: GET /api/baosys-manager/v1/users
-    G->>G: 校验 access_token
+    G->>G: 校验 access_token 的签名、issuer 和 systemType=MANAGER
     G->>M: Authorization: Bearer ...
     M->>M: 再次校验 JWT 与方法权限
     M->>D: 查询用户数据

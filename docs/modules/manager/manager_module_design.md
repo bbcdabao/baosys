@@ -300,6 +300,9 @@ server.servlet.context-path = /baosys-manager
 - 网关认证与路由集成测试。
 
 数据库集成测试继承 `PostgreSqlIntegrationTest`，使用 `postgres:17-alpine`，并由 Flyway 初始化空库。
+根 POM 当前会在默认 Surefire 阶段排除 `*IntegrationTest`，因此常规 `mvn test` 和
+`mvn verify` 只执行非集成测试；数据库和网关集成测试需要通过专用测试配置或后续增加的
+Failsafe 阶段执行。
 
 当前待补：
 

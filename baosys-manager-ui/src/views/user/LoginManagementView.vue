@@ -152,8 +152,6 @@ const syncFromRoute = async (): Promise<void> => {
 
 const search = async (): Promise<void> => {
   const normalized = filters.userName.trim()
-  // 只有筛选值仍等于路由带入的账户名时才保留精确 userId；
-  // 用户手工修改名称后降级为模糊查询，避免界面条件与实际查询不一致。
   const keepExactUser = exactUserId.value
     && normalized === exactUserName.value
   await router.replace({

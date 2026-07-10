@@ -58,7 +58,8 @@ $env:DB_PASSWORD="postgres123456"
 
 初始化器只在指定 Manager 用户不存在时创建，不会覆盖已有密码或权限。
 
-注意：当前运行配置默认开启管理员初始化；旧模块 README 中“默认关闭”的描述不再作为事实依据。
+当前运行配置默认开启管理员初始化；生产环境必须通过环境变量设置安全密码，
+或在完成首次初始化后关闭该功能。
 
 ### 2.4 Cookie 与会话
 
@@ -68,11 +69,15 @@ $env:DB_PASSWORD="postgres123456"
 | `AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS` | `7200` | Access Cookie 持久时间 |
 | `AUTH_REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS` | `2592000` | Refresh Cookie 持久时间 |
 | `AUTH_REFRESH_TOKEN_COOKIE_PATH` | `/api/baosys-manager/v1/auth` | Refresh Cookie Path |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | `30` | 数据库会话绝对过期天数 |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | `30` | 写入 `expiresAt` 的预留绝对有效期 |
 
 Max-Age 配置为 `0` 时，应用写出会话 Cookie。
 
 `AUTH_REFRESH_TOKEN_COOKIE_PATH` 面向浏览器经过网关的外部路径，不是 Manager Service 内部 `/v1/auth`。
+
+当前 Refresh 资格只以 `user_login` 记录是否存在为准；`expiresAt` 尚未参与
+Refresh 判定。会话通过 `updatedAt` 表示最近续租时间，超过 1 天未更新的记录由
+数据库清理任务删除。
 
 ### 2.5 JWT
 
@@ -124,6 +129,7 @@ baosys-manager-web/src/main/resources/application.yml
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
 | `SZS_JWT_ISSUER` | `szs-auth-server` | 必须与签发端一致 |
+| `SZS_SYSTEM_TYPE` | `MANAGER` | Manager 网关只接受该子系统的 JWT |
 | `GATEWAY_CSRF_ENABLED` | `false` | 是否启用网关 CSRF Filter |
 
 网关公钥当前位于：

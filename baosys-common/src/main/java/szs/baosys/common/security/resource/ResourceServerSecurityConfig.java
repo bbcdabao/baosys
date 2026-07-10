@@ -22,11 +22,17 @@ import szs.baosys.common.security.config.SzsSecurityProperties;
  * <p>认证中心和后续业务服务使用该配置保护 API。默认所有请求都必须携带有效 JWT；
  * 需要公开的路径由各服务通过配置声明。具体按钮级或接口级权限由方法上的
  * {@code @PreAuthorize} 继续判断。</p>
+ *
+ * <p>该配置保持无状态：服务端不创建 HTTP Session，每个请求都通过 Bearer token
+ * 独立完成身份解析，便于网关、认证中心和业务服务横向扩展。</p>
  */
 public class ResourceServerSecurityConfig {
 
     /**
      * 创建无状态资源服务器过滤链。
+     *
+     * <p>认证失败和权限不足都会写出平台统一的 {@code ApiResponse} 结构，前端无需区分
+     * 错误来自网关还是下游资源服务。</p>
      */
     @Bean
     @ConditionalOnMissingBean
@@ -59,6 +65,9 @@ public class ResourceServerSecurityConfig {
 
     /**
      * 写出统一 JSON 错误响应。
+     *
+     * <p>Servlet 安全异常发生时请求通常还没有进入控制器，因此这里直接写响应体，
+     * 保持与业务异常处理器一致的错误格式。</p>
      */
     private static void write(
             ObjectMapper objectMapper,

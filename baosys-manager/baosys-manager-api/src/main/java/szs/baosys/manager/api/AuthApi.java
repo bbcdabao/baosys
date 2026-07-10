@@ -8,11 +8,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import szs.baosys.common.api.ApiResponse;
 import szs.baosys.manager.api.dto.LoginRequest;
 
-/**
- * 认证服务的公开 HTTP 契约。
- *
- * <p>接口响应不返回令牌正文；实现层通过安全 Cookie 交付访问令牌和刷新令牌。</p>
- */
 public interface AuthApi {
 
     String SERVICE_NAME = "baosys-manager";

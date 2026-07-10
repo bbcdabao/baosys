@@ -233,7 +233,6 @@ const formRules = computed(() => ({
   name: [{ required: true, message: t('user.nameRequired') }],
   pass: editingId.value === null
     ? [{ required: true, minLength: 8, message: t('user.passwordRequired') }]
-    // 编辑时空密码表示保持原密码，因此只校验实际输入的新密码。
     : [{ minLength: 8, message: t('user.passwordRequired') }],
   systemType: [{ required: true, message: t('user.systemTypeRequired') }],
   permissions: currentPermissionOptions.value.length > 0

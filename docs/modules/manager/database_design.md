@@ -82,7 +82,7 @@ uk_user_info_user_name_system_type
 | `user_info_id` | BIGINT | FK、NOT NULL | 所属用户 |
 | `login_client` | VARCHAR(512) | NOT NULL | 客户端描述 |
 | `refresh_token_hash` | VARCHAR(64) | UNIQUE、NOT NULL | Refresh Token SHA-256 十六进制摘要 |
-| `expires_at` | TIMESTAMPTZ | NOT NULL | 绝对过期时间 |
+| `expires_at` | TIMESTAMPTZ | NOT NULL | 预留的绝对过期时间；当前不参与 Refresh 资格判断 |
 | `created_at` | TIMESTAMPTZ | NOT NULL | 登录时间 |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | 最近更新时间 |
 | `created_by` | VARCHAR(128) | NOT NULL | 创建人 |
@@ -163,11 +163,14 @@ user:list,user:add,user:update
 1. 生成随机 Refresh Token。
 2. 计算 SHA-256 摘要。
 3. 插入 `user_login`。
-4. `expires_at = 当前 UTC 时间 + REFRESH_TOKEN_EXPIRE_DAYS`。
+4. `expires_at = 当前 UTC 时间 + REFRESH_TOKEN_EXPIRE_DAYS`，作为后续绝对有效期功能的预留数据。
 
 ### 7.2 刷新
 
-根据 `refresh_token_hash` 和 `expires_at > now` 查询有效会话，成功后覆盖为新摘要。
+根据 `refresh_token_hash` 查询登录会话。记录存在即允许刷新，成功后覆盖为新摘要；
+`updated_at` 由 MyBatis Plus 自动更新，用于表示最近一次续租时间。
+
+当前实现不会在刷新时校验 `expires_at`；会话有效性的现行规则是记录存在，且数据库清理任务尚未因超过一天未续租而删除该记录。
 
 ### 7.3 注销与下线
 
@@ -176,15 +179,38 @@ user:list,user:add,user:update
 - 全部客户端下线：按 `user_info_id` 删除。
 - 删除用户：外键级联删除。
 
-### 7.4 在线状态
+### 7.4 空闲清理
 
-用户“在线”不是 `user_info` 的持久化字段，而是：
+初始化迁移会创建数据库函数：
+
+```sql
+cleanup_inactive_user_login_sessions()
+```
+
+数据库调度每天 00:00 执行一次清理：
+
+```text
+updated_at < 当前 UTC 时间 - 1 天
+```
+
+满足条件的 `user_login` 会被删除。只要客户端持续刷新 Refresh Token，
+`updated_at` 会持续更新，会话就能续租。
+
+PostgreSQL 可使用项目内的 `db/scheduler/pg_cron_user_login_cleanup.sql`
+注册 `pg_cron` 任务；若部署环境使用云数据库调度、pgAgent 或外部 DBA 调度，
+只需要按日调用该清理函数即可。
+
+### 7.5 在线状态
+
+用户“在线”不是 `user_info` 的持久化字段。当前列表与会话查询仍按以下条件展示：
 
 ```text
 存在 user_login.expires_at > now 的记录
 ```
 
 用户分页查询会一次获取当前页全部在线用户 ID，避免 N+1。
+
+该展示条件与 Refresh 资格不是同一个概念：`expires_at` 当前用于列表过滤和后续功能预留，Refresh 资格仍以 `user_login` 记录是否存在为准。
 
 ## 8. 主要查询
 

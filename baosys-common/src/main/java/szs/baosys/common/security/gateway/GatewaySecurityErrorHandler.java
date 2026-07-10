@@ -19,12 +19,20 @@ import szs.baosys.common.api.ApiResponse;
 
 /**
  * 网关统一安全错误响应处理器。
+ *
+ * <p>Spring Security WebFlux 的认证失败和权限不足默认响应格式不符合平台
+ * {@link ApiResponse} 约定，因此这里统一转换为前端可直接处理的 JSON 结构。</p>
  */
 public final class GatewaySecurityErrorHandler
         implements ServerAuthenticationEntryPoint, ServerAccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * 创建错误处理器。
+     *
+     * @param objectMapper 用于序列化平台统一错误响应
+     */
     public GatewaySecurityErrorHandler(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
@@ -55,6 +63,7 @@ public final class GatewaySecurityErrorHandler
         try {
             body = objectMapper.writeValueAsBytes(ApiResponse.failure(code, message, traceId));
         } catch (JsonProcessingException exception) {
+            // 安全异常处理不能再向外抛序列化异常，兜底写出最小 JSON 便于前端识别错误。
             body = ("{\"code\":\"" + code + "\",\"message\":\"" + message + "\"}")
                     .getBytes(StandardCharsets.UTF_8);
         }

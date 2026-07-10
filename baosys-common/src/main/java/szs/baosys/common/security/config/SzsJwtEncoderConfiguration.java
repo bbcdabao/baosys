@@ -24,7 +24,8 @@ import szs.baosys.common.security.jwt.SzsJwtTokenServiceImpl;
  * JWT 编码器自动配置。
  *
  * <p>只在认证中心配置 {@code szs.security.jwt.private-key} 后启用。其他网关或资源服务
- * 只需要公钥校验 token，不应该具备签发 token 的能力。</p>
+ * 只需要公钥校验 token，不应该具备签发 token 的能力。这个约束可以降低私钥泄露面，
+ * 也让“谁能签发 token”在部署配置上清晰可见。</p>
  */
 @AutoConfiguration(after = SzsJwtDecoderConfiguration.class)
 @ConditionalOnClass(JwtEncoder.class)
@@ -34,6 +35,9 @@ public class SzsJwtEncoderConfiguration {
 
     /**
      * 使用 RSA 公私钥创建 Nimbus JWT 编码器。
+     *
+     * <p>Nimbus 编码器需要同时拿到公钥和私钥来构造 RSA JWK；真正用于签名的是
+     * 私钥，公钥会成为密钥描述的一部分，便于编码器完成算法选择。</p>
      */
     @Bean
     @ConditionalOnMissingBean
@@ -46,6 +50,9 @@ public class SzsJwtEncoderConfiguration {
 
     /**
      * 平台访问令牌签发服务。
+     *
+     * <p>业务侧不直接操作 {@link JwtEncoder}，统一通过
+     * {@link SzsJwtTokenService} 写入平台约定的 issuer、subject、权限 claim 和过期时间。</p>
      */
     @Bean
     @ConditionalOnMissingBean

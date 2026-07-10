@@ -39,3 +39,21 @@ COMMENT ON COLUMN user_info.user_pass IS 'BCrypt 密码摘要';
 COMMENT ON COLUMN user_info.user_permissions IS '英文逗号分隔的权限编码';
 COMMENT ON TABLE user_login IS '账户登录客户端与刷新令牌状态';
 COMMENT ON COLUMN user_login.refresh_token_hash IS '刷新令牌 SHA-256 摘要';
+
+CREATE OR REPLACE FUNCTION cleanup_inactive_user_login_sessions()
+RETURNS integer
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    deleted_count integer;
+BEGIN
+    DELETE FROM user_login
+     WHERE updated_at < CURRENT_TIMESTAMP - INTERVAL '1 day';
+
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$;
+
+COMMENT ON FUNCTION cleanup_inactive_user_login_sessions()
+    IS 'Delete user_login rows whose updated_at has not changed for more than one day.';

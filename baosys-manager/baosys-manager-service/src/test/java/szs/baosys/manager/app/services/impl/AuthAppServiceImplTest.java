@@ -58,6 +58,7 @@ class AuthAppServiceImplTest {
         when(tokenService.generateAccessToken(
                         anyString(),
                         anyString(),
+                        anyString(),
                         anyList(),
                         anyMap()))
                 .thenReturn("test-token");
@@ -83,7 +84,8 @@ class AuthAppServiceImplTest {
         verify(tokenService).generateAccessToken(
                 "1001",
                 "admin",
-                List.of("MANAGER", "user:add", "user:list"),
+                "MANAGER",
+                List.of("user:add", "user:list"),
                 Map.of("displayName", "admin"));
     }
 
@@ -112,14 +114,35 @@ class AuthAppServiceImplTest {
     }
 
     @Test
-    void shouldRejectExpiredRefreshToken() {
-        when(refreshTokenProvider.hash("expired-token")).thenReturn("expired-hash");
-        when(loginMapper.findActiveByRefreshTokenHash(
-                        org.mockito.ArgumentMatchers.eq("expired-hash"),
-                        any()))
+    void shouldRefreshWhenLoginRecordExists() {
+        UserLoginEntity login = new UserLoginEntity();
+        login.setId(2001L);
+        login.setUserInfoId(1001L);
+        when(refreshTokenProvider.hash("current-refresh-token")).thenReturn("current-refresh-hash");
+        when(refreshTokenProvider.issue())
+                .thenReturn(
+                        new IssuedRefreshToken("next-refresh-token", "next-refresh-hash"),
+                        new IssuedRefreshToken("csrf-token", "csrf-hash"));
+        when(loginMapper.findByRefreshTokenHash("current-refresh-hash"))
+                .thenReturn(Optional.of(login));
+        when(userMapper.findById(1001L)).thenReturn(Optional.of(user()));
+
+        LoginResult result = authAppService.refresh("current-refresh-token");
+
+        assertThat(result.refreshToken()).isEqualTo("next-refresh-token");
+        assertThat(result.csrfToken()).isEqualTo("csrf-token");
+        assertThat(result.accessToken()).isEqualTo("test-token");
+        assertThat(login.getRefreshTokenHash()).isEqualTo("next-refresh-hash");
+        verify(loginMapper).updateById(login);
+    }
+
+    @Test
+    void shouldRejectMissingRefreshLogin() {
+        when(refreshTokenProvider.hash("missing-token")).thenReturn("missing-hash");
+        when(loginMapper.findByRefreshTokenHash("missing-hash"))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authAppService.refresh("expired-token"))
+        assertThatThrownBy(() -> authAppService.refresh("missing-token"))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("登录状态已失效，请重新登录");
     }

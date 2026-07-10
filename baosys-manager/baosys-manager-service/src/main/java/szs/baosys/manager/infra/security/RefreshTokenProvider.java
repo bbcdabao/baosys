@@ -10,10 +10,8 @@ import java.util.HexFormat;
 import org.springframework.stereotype.Component;
 
 /**
- * 生成高熵刷新令牌，并提供仅保存摘要所需的单向哈希。
- *
- * <p>令牌明文只返回给浏览器；数据库保存 SHA-256 摘要。数据库泄露时，
- * 攻击者不能直接把摘要当作刷新令牌使用。</p>
+ * 用于产生 Refresh Token
+ * RefreshTokenProvider
  */
 @Component
 public class RefreshTokenProvider {
@@ -28,10 +26,9 @@ public class RefreshTokenProvider {
     }
 
     /**
-     * 计算刷新令牌的稳定摘要，用于持久化和等值查找。
-     *
-     * @param token 刷新令牌明文
-     * @return 小写十六进制 SHA-256 摘要
+     * 不可逆HASH
+     * @param token
+     * @return
      */
     public String hash(String token) {
         try {

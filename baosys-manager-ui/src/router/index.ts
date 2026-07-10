@@ -8,7 +8,6 @@ import { useAuthStore } from '@/store/auth'
 
 const loginRedirect = (redirect: string): RouteLocationRaw => ({
   name: 'login',
-  // 默认页无需携带冗余 redirect，保持登录 URL 简洁且可复用。
   query: redirect === '/users-management' ? {} : { redirect },
   replace: true
 })
@@ -70,7 +69,6 @@ router.beforeEach(async to => {
   const authStore = useAuthStore()
 
   if (to.meta.public) {
-    // 已登录用户不再停留于登录页，避免重复提交凭据。
     return authStore.isAuthenticated
       ? { name: 'user-management', replace: true }
       : true
