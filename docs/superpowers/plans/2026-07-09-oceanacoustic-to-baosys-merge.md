@@ -1,5 +1,7 @@
 # OceanAcoustic to BaoSys Merge Implementation Plan
 
+> 历史实施计划：下文的任务、文件名和命令反映迁移时的状态，不是当前待执行清单。当前实现与部署入口请查阅 [文档目录](../../README.md)。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 将 OceanAcoustic 中五个对应模块的最新 Common/Manager 行为、测试和文档合并到 BaoSys，同时保留 BaoSys 命名及目标侧独有文件。

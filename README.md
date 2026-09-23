@@ -116,6 +116,8 @@ mvn install -DskipTests "-Dskip.frontend=true"
 
 ### 4. 启动 Manager 服务
 
+首次启动由 Flyway `V1__init_manager.sql` 创建用户、会话、授权审计表和清理函数，默认使用 `manager` schema（可用 `MANAGER_DB_SCHEMA` 覆盖）。管理员初始化默认关闭；首次需要管理员时，先在启动终端设置 `DEFAULT_ADMIN_ENABLED=true` 和至少 12 位的 `DEFAULT_ADMIN_PASSWORD`，用户名默认 `admin`。配置示例见 [本地开发指南](docs/deployment/local_development.md#51-终端一manager-service)。
+
 ```shell
 mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 ```
@@ -156,15 +158,17 @@ http://localhost:5173
 
 ## 构建与测试
 
-后端完整测试：
+后端默认测试（不含 `*IntegrationTest`）：
 
 ```shell
 mvn test "-Dskip.frontend=true"
 ```
 
-根 POM 默认排除使用 Testcontainers 的 `*IntegrationTest`，因此该命令只运行
-非集成测试，不需要 Docker。数据库集成测试需要通过专用测试配置执行，并要求
-本机 Docker 可用。
+根 POM 的 Surefire 默认排除所有 `*IntegrationTest`，因此该命令不需要 Docker。完整后端测试通过已配置的 Failsafe profile 执行，数据库集成测试要求 Docker 可用：
+
+```shell
+mvn -Pintegration-tests verify "-Dskip.frontend=true"
+```
 
 前端类型检查与生产构建：
 
@@ -190,10 +194,13 @@ baosys-manager-web/target/baosys-manager-web.jar
 
 ## 文档导航
 
+完整分类和阅读顺序见 [文档目录](docs/README.md)。
+
 ### 核心文档
 
 - [系统总体架构](docs/architecture/system_architecture.md)
 - [微服务模块架构规范](docs/microservices_module_architecture_standard.md)
+- [Common 模块说明](baosys-common/README.md)
 - [Manager 模块设计](docs/modules/manager/manager_module_design.md)
 - [认证与会话设计](docs/modules/manager/auth_and_session.md)
 - [权限模型](docs/modules/manager/permission_model.md)
@@ -203,7 +210,7 @@ baosys-manager-web/target/baosys-manager-web.jar
 
 ### 补充资料
 
-- [文档模板](templates)
+- [文档模板](templates/README.md)
 
 ## 当前边界
 
@@ -216,9 +223,3 @@ baosys-manager-web/target/baosys-manager-web.jar
 - 已具备账号授权与启停审计；暂无组织机构、多租户、记录级数据权限、通用业务审计和动态菜单管理。
 
 新增功能前应先明确归属服务，再按模块架构规范创建契约、实现、迁移和测试。
-
-## 首版数据库与管理员
-
-Flyway 从 `V1__init_manager.sql` 初始化完整模型，默认使用独立的 `manager` schema（可用 `MANAGER_DB_SCHEMA` 覆盖）。首次创建管理员需在启动 Manager 前显式设置 `DEFAULT_ADMIN_ENABLED=true` 和至少 12 位的 `DEFAULT_ADMIN_PASSWORD`；默认关闭自动初始化。
-
-数据库集成测试需 Docker，可在仓库根目录执行 `mvn -Pintegration-tests -pl :baosys-manager-service -am verify "-Dskip.frontend=true"`。

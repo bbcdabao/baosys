@@ -41,9 +41,21 @@ erDiagram
         varchar created_by
         varchar updated_by
     }
+
+    PERMISSION_CHANGE_AUDIT {
+        bigint id PK
+        bigint operator_user_id
+        bigint target_user_id
+        varchar before_permissions
+        varchar after_permissions
+        boolean before_enabled
+        boolean after_enabled
+        varchar trace_id
+        timestamptz occurred_at
+    }
 ```
 
-一个用户可以有零到多个登录会话。删除用户时，数据库通过外键级联删除其会话。
+一个用户可以有零到多个登录会话。删除用户时，数据库通过外键级联删除其会话。授权审计表记录操作者及目标 ID，但不设置用户外键，确保删除账户后仍保留历史。
 
 ## 3. `user_info`
 
@@ -111,9 +123,11 @@ idx_user_login_expires_at(expires_at)
 |---|---|
 | `user_info` | `UserInfoEntity` |
 | `user_login` | `UserLoginEntity` |
+| `permission_change_audit` | `PermissionChangeAuditEntity` |
 | 联表会话查询结果 | `LoginSessionRow` |
 | 用户数据访问 | `UserInfoMapper` |
 | 会话数据访问 | `UserLoginMapper` |
+| 授权审计数据访问 | `PermissionChangeAuditMapper` |
 
 MyBatis Plus 开启：
 
@@ -186,14 +200,13 @@ user:list,user:add,user:update
 cleanup_inactive_user_login_sessions()
 ```
 
-数据库调度每天 00:00 执行一次清理：
+部署方需配置数据库调度，每天 00:00 执行一次清理；Flyway 仅创建函数，不会自动启用调度：
 
 ```text
 updated_at < 当前 UTC 时间 - 1 天
 ```
 
-满足条件的 `user_login` 会被删除。只要客户端持续刷新 Refresh Token，
-`updated_at` 会持续更新，会话就能续租。
+满足条件的 `user_login` 会被删除。持续刷新会更新 `updated_at`、避免空闲清理，但不会延长登录时确定的 `expires_at`。
 
 PostgreSQL 可使用项目内的 `db/scheduler/pg_cron_user_login_cleanup.sql`
 注册 `pg_cron` 任务；若部署环境使用云数据库调度、pgAgent 或外部 DBA 调度，
@@ -209,7 +222,7 @@ PostgreSQL 可使用项目内的 `db/scheduler/pg_cron_user_login_cleanup.sql`
 
 用户分页查询会一次获取当前页全部在线用户 ID，避免 N+1。
 
-该展示条件与 Refresh 资格不是同一个概念：`expires_at` 当前用于列表过滤和后续功能预留，Refresh 资格仍以 `user_login` 记录是否存在为准。
+`expires_at` 同时用于列表过滤与刷新资格校验。列表展示不是实时连接探测；刷新还必须满足账号启用、会话仍存在及旧令牌摘要匹配。
 
 ## 8. 主要查询
 
@@ -264,6 +277,22 @@ OffsetDateTime.now(ZoneOffset.UTC)
 ```
 
 数据库使用 `TIMESTAMP WITH TIME ZONE`。
+
+### 9.1 授权变更记录
+
+`permission_change_audit` 与 Entity 的基础审计字段分别维护：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | BIGINT IDENTITY | 主键 |
+| `operator_user_id` | BIGINT | 操作者 ID |
+| `target_user_id` | BIGINT | 目标用户 ID |
+| `before_permissions` / `after_permissions` | VARCHAR(1024) | 稳定顺序编码的变更前后权限 |
+| `before_enabled` / `after_enabled` | BOOLEAN | 变更前后启停状态 |
+| `trace_id` | VARCHAR(128) | 请求追踪标识 |
+| `occurred_at` | TIMESTAMPTZ | 发生时间 |
+
+全部字段非空，索引为 `(target_user_id, occurred_at DESC)`。创建、删除及权限/启停变化记录审计，默认管理员初始化也写入审计；账号修改和审计处于同一事务。
 
 ## 10. Flyway 规则
 
@@ -320,7 +349,3 @@ role_permission
 首版已实现 permission_change_audit 授权审计；更广泛的业务操作审计可按需扩展，与 Entity 基础审计字段区分。
 
 所有演进必须通过新 Flyway 迁移完成。
-
-## 授权审计
-
-`permission_change_audit` 保存 `operator_user_id`、`target_user_id`、前后权限和 enabled、`trace_id`、`occurred_at`，使用 identity 主键以及 `(target_user_id, occurred_at DESC)` 索引。账号删除后审计保留，不设置级联删除外键。默认管理员初始化也写审计。

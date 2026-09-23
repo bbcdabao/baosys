@@ -7,6 +7,7 @@
 - 用户身份认证。
 - Access Token 和 Refresh Token 管理。
 - 用户账户与权限配置。
+- 账号启停及授权变更审计。
 - 当前登录用户查询。
 - 在线登录会话查询。
 - 单客户端或全部客户端下线。
@@ -19,6 +20,7 @@ Manager 是独立可启动业务服务，不承担网关路由和前端静态资
 - [权限模型](permission_model.md)
 - [数据库设计](database_design.md)
 - [系统总体架构](../../architecture/system_architecture.md)
+- [Common 模块说明](../../../baosys-common/README.md)
 
 ## 2. Maven 模块
 
@@ -188,15 +190,15 @@ logout(String refreshToken)
 ```text
 currentUser(long userId)
 list(name, systemType, page, size)
-create(UserCreateRequest)
-update(UserUpdateRequest)
-delete(long id)
+create(UserCreateRequest, long operatorUserId)
+update(UserUpdateRequest, long operatorUserId)
+delete(long id, long operatorUserId)
 loginClients(long userId)
 kickClient(long userId, long loginId)
 kickAllClients(long userId)
 ```
 
-负责用户生命周期和指定用户的会话管理。
+负责用户生命周期和指定用户的会话管理。创建、更新、删除操作的操作者 ID 由 Controller 从认证 Principal 获取，不由请求体指定。
 
 ### 5.3 `LoginSessionAppService`
 
@@ -214,10 +216,12 @@ list(userId, userName, page, size)
 2. 同一 `systemType` 下用户名必须唯一。
 3. 新增用户密码长度为 8～128。
 4. 修改时密码为空表示不修改密码。
-5. 修改密码或系统类型时删除该用户全部刷新会话。
+5. 权限、启停状态、密码或系统类型变化时删除该用户全部刷新会话。
 6. 删除用户时数据库级联删除登录会话。
 7. Manager 系统用户至少配置一个有效权限。
 8. 用户列表中的 `status` 当前表示是否存在未过期登录会话，不是账户启停状态。
+9. `enabled` 表示账号启停，创建时省略默认为 `true`，更新时省略保留原值；禁用账号不能登录或刷新。
+10. 创建、删除及权限/启停变更写入 `permission_change_audit`，审计与用户修改处于同一事务；删除用户后保留审计。
 
 ### 6.2 当前用户
 
@@ -229,6 +233,8 @@ JWT 的 `sub` 保存用户 ID。`/users/me` 根据该 ID 重新查询数据库�
 2. 用户列表一次查询整页在线用户 ID，避免逐用户 N+1 查询。
 3. 单客户端下线必须同时匹配 `loginId` 和 `userId`。
 4. 注销接口保持幂等；缺少刷新 Cookie 时仍可完成本地退出。
+5. 刷新先锁用户再锁会话，校验账号启用、原摘要和到期时间，轮换摘要但不延长绝对到期时间。
+6. 撤销刷新会话不立即撤销已签发 JWT，Manager 的 Access Token 默认有效期为 1800 秒。
 
 ## 7. 事务边界
 
@@ -300,22 +306,26 @@ server.servlet.context-path = /baosys-manager
 - 网关认证与路由集成测试。
 
 数据库集成测试继承 `PostgreSqlIntegrationTest`，使用 `postgres:17-alpine`，并由 Flyway 初始化空库。
-根 POM 当前会在默认 Surefire 阶段排除 `*IntegrationTest`，因此常规 `mvn test` 和
-`mvn verify` 只执行非集成测试；数据库和网关集成测试需要通过专用测试配置或后续增加的
-Failsafe 阶段执行。
+根 POM 的 Surefire 默认排除 `*IntegrationTest`。已配置的 `integration-tests` profile 使用 Failsafe 运行集成测试；在仓库根目录执行：
+
+```shell
+mvn -Pintegration-tests -pl :baosys-manager-service -am verify "-Dskip.frontend=true"
+```
+
+`AccountLifecycleIntegrationTest` 覆盖 V1 初始化及删除后审计保留、并发刷新只能成功一次、禁用与刷新竞争后的会话撤销。
 
 当前待补：
 
 - `LoginSessionController` 独立测试。
-- 默认管理员初始化测试。
-- 并发刷新和唯一约束竞争测试。
+- 默认管理员初始化的更多异常分支。
+- 用户名唯一约束竞争测试。
 - 审计字段和异常码完整性测试。
 
 ## 11. 下一阶段建议
 
 优先演进：
 
-1. 增加账户启用、禁用和锁定状态。
+1. 在已有账户启停基础上增加锁定状态。
 2. 将 `UserResponse.status` 明确改名为 `online`。
 3. 增加修改密码和管理员重置密码。
 4. 从用户直配权限演进到角色权限。
@@ -323,7 +333,3 @@ Failsafe 阶段执行。
 6. 形成系统配置后端闭环。
 
 这些能力尚未实现，不应在调用方中预设其接口。
-
-## 首版账号管理补充
-
-用户创建/更新支持 enabled，创建默认 true、更新省略时保留原值；响应分别返回 enabled（启停）和 status（在线）。Controller 从认证 Principal 取操作者 ID，创建、删除、权限及启停变更写审计。登录和刷新检查 enabled，刷新检查 expires_at 并通过事务行锁防止旧令牌并发复用。数据库由 V1__init_manager.sql 一次初始化。

@@ -7,7 +7,7 @@
 ## 3. 请求方法与路径
 
 ```text
-GET /api/module/resources
+GET /api/{service-name}/v1/{resources}
 ```
 
 ## 4. 权限码

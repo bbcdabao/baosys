@@ -15,6 +15,8 @@ Jar 内 application.yml 默认值
 
 本文只描述当前代码已经使用或已经预留的配置。不同进程需要分别设置自己的环境变量。
 
+Common 配置类的完整属性及默认值见 [Common 模块说明](../../baosys-common/README.md#5-配置默认值)。本文表格列出的是应用 YAML 的实际默认值，例如 Manager 的 Access Token 有效期为 1800 秒，而 Common 类默认值为 7200 秒。
+
 ## 2. Manager Service
 
 配置文件：
@@ -39,6 +41,7 @@ baosys-manager/baosys-manager-service/src/main/resources/application.yml
 | `DB_URL` | `jdbc:postgresql://localhost:5432/app_db` | JDBC URL |
 | `DB_USERNAME` | `postgres` | 数据库用户 |
 | `DB_PASSWORD` | `postgres123456` | 数据库密码 |
+| `MANAGER_DB_SCHEMA` | `manager` | Hikari 默认 schema 与 Flyway 管理的 schema |
 
 示例：
 

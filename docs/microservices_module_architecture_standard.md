@@ -468,6 +468,8 @@ baosys.common.api
 
 ### 8.2 `baosys-common`
 
+现有能力、启用注解、条件装配和配置示例见 [Common 模块说明](../baosys-common/README.md)。
+
 负责可复用的技术能力和 Spring 自动配置。新增公共能力时建议采用：
 
 ```text
@@ -590,8 +592,10 @@ PageResponse<T>(
 
 ```text
 src/main/resources/db/migration
-└── V{yyyyMMdd}_{sequence}__{description}.sql
+└── V{version}__{description}.sql
 ```
+
+当前 Manager 从 `V1__init_manager.sql` 开始，后续使用递增版本，例如 `V2__add_user_lock.sql`。
 
 要求：
 
@@ -723,9 +727,13 @@ XxxTest                  # 单元或切片测试
 XxxIntegrationTest       # 需要完整上下文或外部容器
 ```
 
-根 POM 的 Surefire 默认排除 `*IntegrationTest`，常规 `mvn test` 和
-`mvn verify` 只运行非集成测试。需要数据库或完整网关集成验证时，应通过专用测试
-配置执行，或在后续引入 Maven Failsafe 阶段。
+根 POM 的 Surefire 默认排除 `*IntegrationTest`，常规 `mvn test` 和 `mvn verify` 只运行非集成测试。根 POM 已通过 `integration-tests` profile 配置 Maven Failsafe，在 `integration-test` / `verify` 阶段执行集成测试：
+
+```shell
+mvn -Pintegration-tests verify "-Dskip.frontend=true"
+```
+
+数据库集成测试需要 Docker；仅执行 Manager Web 的网关集成测试无需数据库。按模块运行的命令见 [本地开发指南](deployment/local_development.md#8-常用开发命令)。
 
 ## 15. Maven 与构建规范
 
@@ -839,7 +847,7 @@ XxxIntegrationTest       # 需要完整上下文或外部容器
 | 简单业务分层示例 | `UserAppServiceImpl`、`UserInfoMapper` |
 | 网关与 SPA 宿主 | `baosys-manager-web` |
 | 前端工程 | `baosys-manager-ui` |
-| 数据库迁移 | `db/migration/V20260621_001__create_user_auth_tables.sql` |
+| 数据库迁移 | `db/migration/V1__init_manager.sql` |
 | 数据库集成测试 | `PostgreSqlIntegrationTest` 及 Controller Integration Test |
 
 新增模块应优先复用这些已经落地的模式；当规范与代码发生长期偏差时，应同步修正规范或通过架构测试固化新的约定。

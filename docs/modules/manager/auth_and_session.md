@@ -4,6 +4,8 @@
 
 本文描述当前 Manager 的登录、JWT、刷新令牌、Cookie、前端会话恢复和客户端下线机制。
 
+公共 JWT 与安全组件的接入说明见 [Common 模块说明](../../../baosys-common/README.md)。
+
 实现入口：
 
 ```text
@@ -132,15 +134,16 @@ sequenceDiagram
     participant S as AuthAppService
     participant DB as PostgreSQL
 
-    UI->>GW: POST /v1/auth/refresh + refresh_token Cookie
+    UI->>GW: POST /api/baosys-manager/v1/auth/refresh + refresh_token Cookie
     GW->>API: 转发请求
     API->>S: refresh(refreshToken)
     S->>S: SHA-256(refreshToken)
     S->>DB: 按摘要查询 user_login
     DB-->>S: 登录会话
-    S->>DB: 查询 user_info
+    S->>DB: 锁定 user_info，再锁定 user_login
+    S->>S: 校验 enabled、expires_at 和旧摘要
     S->>S: 生成新的 Refresh Token
-    S->>DB: 覆盖旧 refresh_token_hash
+    S->>DB: 覆盖旧摘要和 updated_at，保持 expires_at
     S->>S: 使用当前用户权限签发新 Access Token
     API-->>UI: 覆盖 Access/Refresh Cookie
 ```
@@ -153,7 +156,7 @@ sequenceDiagram
 新摘要 → 覆盖数据库旧摘要
 ```
 
-刷新要求会话存在、expires_at 晚于当前时间且账号已启用。事务中先锁用户再锁会话并复核旧摘要，每次刷新轮换摘要、更新 updated_at，但不延长登录时确定的 expires_at。空闲超过一天的会话仍由数据库任务清理。 缺失、过期、被轮换或已撤销的令牌返回 `AUTH_403_001`。
+刷新要求会话存在、`expires_at` 晚于当前时间且账号已启用。事务中先锁用户再锁会话并复核旧摘要，每次刷新轮换摘要、更新 `updated_at`，但不延长登录时确定的 `expires_at`。空闲超过一天的会话由部署方配置的数据库任务清理。缺失、过期、被轮换或已撤销的令牌返回 `AUTH_403_001`。
 
 ## 7. 注销和客户端下线
 

@@ -13,11 +13,11 @@ baosys-manager
 
 ```text
 baosys-manager-service
-    → baosys-manager-api
-    → baosys-common-api
+    ├── baosys-manager-api → baosys-common-api
+    └── baosys-common → baosys-common-api
 ```
 
-- `api` 只包含 `AuthApi`、`UserApi` 和请求/响应 DTO，不包含 Feign、数据库或业务实现。
+- `api` 包含 `AuthApi`、`UserApi`、`LoginSessionApi`、请求/响应 DTO 和公开枚举，不包含 Feign、数据库或业务实现。
 - `app` 负责 Controller 适配、事务与业务流程编排。
 - `infra` 封装 MyBatis Plus、刷新令牌生成等技术细节，由 `app` 直接调用。
 
@@ -32,7 +32,7 @@ Access Token 和 Refresh Token 均通过 `HttpOnly` Cookie 返回，Refresh Toke
 `0` 时不输出 `Max-Age`，Cookie 在当前浏览器会话中有效；HTTP 协议中的
 `Max-Age=0` 表示立即删除 Cookie。
 
-启动服务前必须配置 `DB_URL`、`DB_USERNAME` 和 `DB_PASSWORD`。
+启动服务前确认 `DB_URL`、`DB_USERNAME` 和 `DB_PASSWORD` 与本地数据库一致；未设置时使用应用 YAML 的开发默认值。
 
 验证与打包（在仓库根目录执行）：
 
@@ -41,7 +41,11 @@ mvn -pl baosys-manager/baosys-manager-service -am test
 mvn -pl baosys-manager/baosys-manager-service -am -DskipTests package
 ```
 
-常规 `mvn test` 不执行使用 Testcontainers 的 `*IntegrationTest`，运行单元测试不需要启动 Docker。
+常规 `mvn test` 不执行 `*IntegrationTest`，运行默认测试不需要启动 Docker。数据库集成测试需要 Docker，在仓库根目录执行：
+
+```shell
+mvn -Pintegration-tests -pl :baosys-manager-service -am verify "-Dskip.frontend=true"
+```
 
 如果当前目录是 `baosys-manager`，需要显式指定仓库根 POM，让
 `baosys-common-api` 一起进入 Maven Reactor：
@@ -60,3 +64,12 @@ baosys-manager/baosys-manager-service/target/baosys-manager.jar
 账号创建、删除、权限和启停变化记录 permission_change_audit；权限、启停、密码或平台变化撤销刷新会话。已签发 JWT 在到期前仍可能有效，默认期限为 1800 秒。
 
 数据库按首版初始化：V1__init_manager.sql 一次建立用户、会话、审计表和清理函数。默认 schema 为 manager（MANAGER_DB_SCHEMA），历史表为 flyway_schema_history_manager。
+
+详细说明：
+
+- [Manager 模块设计](../docs/modules/manager/manager_module_design.md)
+- [认证与会话](../docs/modules/manager/auth_and_session.md)
+- [权限模型](../docs/modules/manager/permission_model.md)
+- [数据库设计](../docs/modules/manager/database_design.md)
+- [Common 模块说明](../baosys-common/README.md)
+- [本地开发指南](../docs/deployment/local_development.md)

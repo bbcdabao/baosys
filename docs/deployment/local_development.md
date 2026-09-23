@@ -93,7 +93,7 @@ postgres123456
 
 如本地参数不同，通过 `DB_URL`、`DB_USERNAME` 和 `DB_PASSWORD` 覆盖。
 
-启动 Manager Service 时，Flyway 会自动创建 `user_info` 和 `user_login`。
+启动 Manager Service 时，Flyway 从 `V1__init_manager.sql` 创建 `user_info`、`user_login`、`permission_change_audit` 和会话清理函数。默认使用独立的 `manager` schema，可通过 `MANAGER_DB_SCHEMA` 覆盖。
 
 ## 4. 首次构建
 
@@ -125,6 +125,16 @@ cd ..
 
 ### 5.1 终端一：Manager Service
 
+首次需要创建管理员时，先设置以下变量（PowerShell 示例，密码仅用于本地开发）：
+
+```powershell
+$env:DEFAULT_ADMIN_ENABLED="true"
+$env:DEFAULT_ADMIN_USERNAME="local-admin"
+$env:DEFAULT_ADMIN_PASSWORD="LocalAdmin123!"
+```
+
+默认不创建管理员，密码至少 12 位；初始化器不会覆盖已有账户。环境变量只作用于当前终端及其启动的进程。
+
 ```shell
 mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 ```
@@ -142,16 +152,6 @@ Application:  baosys-manager
 ```text
 http://localhost:9090/baosys-manager/actuator/health
 ```
-
-首次启动会执行 Flyway V1 初始化。默认不创建管理员；需要初始化时，在启动 Manager 的终端先设置以下变量（示例密码仅用于本地开发）：
-
-```powershell
-$env:DEFAULT_ADMIN_ENABLED="true"
-$env:DEFAULT_ADMIN_USERNAME="local-admin"
-$env:DEFAULT_ADMIN_PASSWORD="LocalAdmin123!"
-```
-
-环境变量只作用于当前终端及其启动的进程。
 
 ### 5.2 终端二：Manager Web
 
@@ -223,9 +223,7 @@ mvn compile "-Dskip.frontend=true"
 mvn test "-Dskip.frontend=true"
 ```
 
-根 POM 默认排除使用 Testcontainers 的 `*IntegrationTest`，因此该命令只运行
-非集成测试，不需要 Docker。数据库和网关集成测试需通过 IDE、专用 Maven 参数
-或后续配置的 Failsafe 阶段执行。
+根 POM 的 Surefire 默认排除所有 `*IntegrationTest`，因此该命令只运行非集成测试，不需要 Docker。
 
 ### 8.3 只测试 Common
 
@@ -253,6 +251,26 @@ npm run build
 ```
 
 该脚本先运行 `vue-tsc --noEmit`，再生成 `dist`。
+
+### 8.7 后端集成测试
+
+在仓库根目录启用已配置的 `integration-tests` profile，由 Failsafe 执行集成测试并在 `verify` 检查结果：
+
+```shell
+mvn -Pintegration-tests verify "-Dskip.frontend=true"
+```
+
+只运行 Manager 及其依赖的测试（需要 Docker，Testcontainers 会启动独立 PostgreSQL）：
+
+```shell
+mvn -Pintegration-tests -pl :baosys-manager-service -am verify "-Dskip.frontend=true"
+```
+
+只运行网关及其依赖的测试（无需数据库或 Docker）：
+
+```shell
+mvn -Pintegration-tests -pl :baosys-manager-web -am verify "-Dskip.frontend=true"
+```
 
 ## 9. 生产形式的本地打包
 
@@ -390,13 +408,7 @@ docker stop baosys-postgres
 
 保留容器会保留数据库卷层中的开发数据；需要全新数据时，可以删除并重新创建容器。
 
-## 首版数据库与管理员
-
-Flyway 从 `V1__init_manager.sql` 初始化完整模型，默认使用独立的 `manager` schema（可用 `MANAGER_DB_SCHEMA` 覆盖）。首次创建管理员需在启动 Manager 前显式设置 `DEFAULT_ADMIN_ENABLED=true` 和至少 12 位的 `DEFAULT_ADMIN_PASSWORD`；默认关闭自动初始化。
-
-数据库集成测试需 Docker，可在仓库根目录执行 `mvn -Pintegration-tests -pl :baosys-manager-service -am verify "-Dskip.frontend=true"`。
-
-## 容器构建
+## 13. 容器构建
 
 在完成 Maven verify 后，从仓库根目录执行：
 

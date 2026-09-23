@@ -79,14 +79,17 @@ flowchart LR
 - 资源服务权限转换。
 - Spring Boot 自动配置与启用注解。
 
+接入方式、配置默认值及边界参见 [Common 模块说明](../../baosys-common/README.md)。
+
 ### 3.5 数据层
 
 Manager 当前独占自己的业务表：
 
 - `user_info`：账户、系统类型和权限。
 - `user_login`：登录客户端和刷新令牌状态。
+- `permission_change_audit`：账号授权和启停变更审计。
 
-结构变更由 Manager Service 内的 Flyway 脚本管理。
+默认使用独立的 `manager` schema。首版由 `V1__init_manager.sql` 创建三张表及会话清理函数，后续结构变更由新 Flyway 迁移管理。
 
 ## 4. 构建时模块依赖
 
