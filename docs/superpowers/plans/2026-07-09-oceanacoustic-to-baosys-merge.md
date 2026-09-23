@@ -72,37 +72,37 @@ git commit -m "docs: add baosys merge implementation plan"
 ### Task 2: 合并 Common 安全模块
 
 **Files:**
-- Create: `baosys-common/src/test/java/szs/baosys/common/security/config/SzsJwtDecoderConfigurationTest.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/autoconfigure/PasswordAutoConfiguration.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/annotation/SzsEnableAuthenticationCheck.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/annotation/SzsEnableUltraViresCheck.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/config/SzsAuthenticationCheckConfiguration.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/config/SzsJwtDecoderConfiguration.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/config/SzsJwtEncoderConfiguration.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/config/SzsSecurityProperties.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/config/SzsUltraViresCheckConfiguration.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/gateway/CookieTokenToAuthorizationFilter.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/gateway/GatewayCsrfFilter.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/gateway/GatewaySecurityConfig.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/gateway/GatewaySecurityErrorHandler.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/gateway/PermitAllPathMatcher.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/jwt/SzsJwtKeyLoader.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/jwt/SzsJwtTokenService.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/jwt/SzsJwtTokenServiceImpl.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/password/BCryptPasswordHasher.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/password/PasswordHasher.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/password/PasswordProperties.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/resource/JwtPermissionConverter.java`
-- Modify: `baosys-common/src/main/java/szs/baosys/common/security/resource/ResourceServerSecurityConfig.java`
-- Modify: `baosys-common/src/test/java/szs/baosys/common/security/jwt/SzsJwtTokenServiceTest.java`
+- Create: `baosys-common/src/test/java/baosys/common/security/config/JwtDecoderConfigurationTest.java`
+- Modify: `baosys-common/src/main/java/baosys/common/autoconfigure/PasswordAutoConfiguration.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/annotation/EnableAuthenticationCheck.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/annotation/EnableUltraViresCheck.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/config/AuthenticationCheckConfiguration.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/config/JwtDecoderConfiguration.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/config/JwtEncoderConfiguration.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/config/SecurityProperties.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/config/UltraViresCheckConfiguration.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/gateway/CookieTokenToAuthorizationFilter.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/gateway/GatewayCsrfFilter.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/gateway/GatewaySecurityConfig.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/gateway/GatewaySecurityErrorHandler.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/gateway/PermitAllPathMatcher.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/jwt/JwtKeyLoader.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/jwt/JwtTokenService.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/jwt/JwtTokenServiceImpl.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/password/BCryptPasswordHasher.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/password/PasswordHasher.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/password/PasswordProperties.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/resource/JwtPermissionConverter.java`
+- Modify: `baosys-common/src/main/java/baosys/common/security/resource/ResourceServerSecurityConfig.java`
+- Modify: `baosys-common/src/test/java/baosys/common/security/jwt/JwtTokenServiceTest.java`
 
 **Interfaces:**
-- Consumes: `SzsSecurityProperties.Jwt.issuer`、JWT 公私钥和 Spring Security JWT API。
-- Produces: `SzsSecurityProperties.systemType`；解码器对 `iss` 和可选 `systemType` claim 的联合校验；网关和资源服务统一的认证错误行为。
+- Consumes: `SecurityProperties.Jwt.issuer`、JWT 公私钥和 Spring Security JWT API。
+- Produces: `SecurityProperties.systemType`；解码器对 `iss` 和可选 `systemType` claim 的联合校验；网关和资源服务统一的认证错误行为。
 
 - [ ] **Step 1: 迁移 JWT 解码器测试**
 
-将源测试映射为 `szs.baosys` 包，保留以下断言：
+将源测试映射为 `baosys` 包，保留以下断言：
 
 ```java
 assertThat(decoder.decode(managerToken).getClaimAsString("systemType"))
@@ -116,7 +116,7 @@ assertThatThrownBy(() -> decoder.decode(otherSystemToken))
 Run:
 
 ```powershell
-mvn -pl baosys-common -am -Dtest=SzsJwtDecoderConfigurationTest test
+mvn -pl baosys-common -am -Dtest=JwtDecoderConfigurationTest test
 ```
 
 Expected: FAIL，失败点为缺少 `systemType` 属性或错误系统 token 未被拒绝。
@@ -126,13 +126,13 @@ Expected: FAIL，失败点为缺少 `systemType` 属性或错误系统 token 未
 逐文件采用源侧行为并执行以下命名变换：
 
 ```text
-szs.oceanacoustic -> szs.baosys
+oceanacoustic -> baosys
 oceanacoustic -> baosys
 Ocean Acoustic / OceanAcoustic -> BaoSys
 OA_CSRF_TOKEN -> BAOSYS_CSRF_TOKEN
 ```
 
-保留 `baosys-common/src/main/java/szs/baosys/common/security/package-info.java`。核心联合校验必须为：
+保留 `baosys-common/src/main/java/baosys/common/security/package-info.java`。核心联合校验必须为：
 
 ```java
 return new DelegatingOAuth2TokenValidator<>(
@@ -162,26 +162,26 @@ git commit -m "feat: merge common security updates"
 
 **Files:**
 - Create: `baosys-manager/baosys-manager-service/src/main/resources/db/scheduler/pg_cron_user_login_cleanup.sql`
-- Create: `baosys-manager/baosys-manager-service/src/test/java/szs/baosys/manager/infra/database/UserLoginCleanupFunctionIntegrationTest.java`
-- Modify: `baosys-manager/baosys-manager-api/src/main/java/szs/baosys/manager/api/AuthApi.java`
-- Modify: `baosys-manager/baosys-manager-api/src/main/java/szs/baosys/manager/api/LoginSessionApi.java`
-- Modify: `baosys-manager/baosys-manager-api/src/main/java/szs/baosys/manager/api/UserApi.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/app/config/DefaultAdminInitializer.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/app/config/web/TraceIdFilter.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/app/controllers/AuthController.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/app/error/GlobalExceptionHandler.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/app/model/PermissionCode.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/app/services/impl/AuthAppServiceImpl.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/app/services/impl/UserAppServiceImpl.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/infra/database/converter/PermissionPersistenceConverter.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/infra/database/entity/UserLoginEntity.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/infra/database/mapper/UserLoginMapper.java`
-- Modify: `baosys-manager/baosys-manager-service/src/main/java/szs/baosys/manager/infra/security/RefreshTokenProvider.java`
+- Create: `baosys-manager/baosys-manager-service/src/test/java/baosys/manager/infra/database/UserLoginCleanupFunctionIntegrationTest.java`
+- Modify: `baosys-manager/baosys-manager-api/src/main/java/baosys/manager/api/AuthApi.java`
+- Modify: `baosys-manager/baosys-manager-api/src/main/java/baosys/manager/api/LoginSessionApi.java`
+- Modify: `baosys-manager/baosys-manager-api/src/main/java/baosys/manager/api/UserApi.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/app/config/DefaultAdminInitializer.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/app/config/web/TraceIdFilter.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/app/controllers/AuthController.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/app/error/GlobalExceptionHandler.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/app/model/PermissionCode.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/app/services/impl/AuthAppServiceImpl.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/app/services/impl/UserAppServiceImpl.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/infra/database/converter/PermissionPersistenceConverter.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/infra/database/entity/UserLoginEntity.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/infra/database/mapper/UserLoginMapper.java`
+- Modify: `baosys-manager/baosys-manager-service/src/main/java/baosys/manager/infra/security/RefreshTokenProvider.java`
 - Modify: `baosys-manager/baosys-manager-service/src/main/resources/application.yml`
 - Modify: `baosys-manager/baosys-manager-service/src/main/resources/db/migration/V20260621_001__create_user_auth_tables.sql`
-- Modify: `baosys-manager/baosys-manager-service/src/test/java/szs/baosys/manager/app/controllers/UserControllerIntegrationTest.java`
-- Modify: `baosys-manager/baosys-manager-service/src/test/java/szs/baosys/manager/app/services/impl/AuthAppServiceImplTest.java`
-- Modify: `baosys-manager/baosys-manager-service/src/test/java/szs/baosys/manager/app/services/impl/UserAppServiceImplTest.java`
+- Modify: `baosys-manager/baosys-manager-service/src/test/java/baosys/manager/app/controllers/UserControllerIntegrationTest.java`
+- Modify: `baosys-manager/baosys-manager-service/src/test/java/baosys/manager/app/services/impl/AuthAppServiceImplTest.java`
+- Modify: `baosys-manager/baosys-manager-service/src/test/java/baosys/manager/app/services/impl/UserAppServiceImplTest.java`
 
 **Interfaces:**
 - Consumes: Common JWT/密码服务、Manager API DTO、`user_info` 和 `user_login` 表。
@@ -212,7 +212,7 @@ Expected: 至少一个迁移测试失败，指向刷新资格、默认管理员�
 按源侧文件逐项合并，统一执行：
 
 ```text
-szs.oceanacoustic -> szs.baosys
+oceanacoustic -> baosys
 oceanacoustic-manager -> baosys-manager
 /api/oceanacoustic-manager -> /api/baosys-manager
 /oceanacoustic-manager -> /baosys-manager
@@ -326,13 +326,13 @@ git commit -m "feat: merge manager ui updates"
 - Create: `baosys-manager-web/src/test/resources/static/assets/test.css`
 - Create: `baosys-manager-web/src/test/resources/static/index.html`
 - Modify: `baosys-manager-web/pom.xml`
-- Modify: `baosys-manager-web/src/main/java/szs/baosys/managerweb/SpaWebConfiguration.java`
+- Modify: `baosys-manager-web/src/main/java/baosys/managerweb/SpaWebConfiguration.java`
 - Modify: `baosys-manager-web/src/main/resources/application.yml`
-- Modify: `baosys-manager-web/src/test/java/szs/baosys/managerweb/ManagerWebApplicationTest.java`
-- Modify: `baosys-manager-web/src/test/java/szs/baosys/managerweb/security/GatewaySecurityIntegrationTest.java`
-- Modify: `baosys-manager-web/src/test/java/szs/baosys/managerweb/SpaWebConfigurationTest.java`
+- Modify: `baosys-manager-web/src/test/java/baosys/managerweb/ManagerWebApplicationTest.java`
+- Modify: `baosys-manager-web/src/test/java/baosys/managerweb/security/GatewaySecurityIntegrationTest.java`
+- Modify: `baosys-manager-web/src/test/java/baosys/managerweb/SpaWebConfigurationTest.java`
 - Modify: `baosys-manager-web/src/test/resources/application-test.yml`
-- Preserve: `baosys-manager-web/src/main/java/szs/baosys/managerweb/package-info.java`
+- Preserve: `baosys-manager-web/src/main/java/baosys/managerweb/package-info.java`
 
 **Interfaces:**
 - Consumes: `baosys-common` 网关安全配置、Manager Service `/baosys-manager/**` 路径、Manager UI 静态资源。
@@ -512,7 +512,7 @@ Run:
 
 ```powershell
 rg -n -i "oceanacoustic|ocean acoustic" --glob "!docs/superpowers/**" .
-rg -n "baosys-simulators|szs\.baosys\.simulators" --glob "!docs/superpowers/**" .
+rg -n "baosys-simulators|baosys\.simulators" --glob "!docs/superpowers/**" .
 ```
 
 Expected: 两次扫描均无匹配。

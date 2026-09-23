@@ -6,10 +6,10 @@ Manager 当前使用 PostgreSQL，数据库结构由 Flyway 管理。首个迁�
 
 ```text
 baosys-manager/baosys-manager-service/src/main/resources/db/migration/
-└── V20260621_001__create_user_auth_tables.sql
+└── V1__init_manager.sql
 ```
 
-当前包含 `user_info` 和 `user_login` 两张表。
+首版一次创建 `user_info`、`user_login`、`permission_change_audit` 三张表和会话清理函数。默认 schema 为 `manager`，由 `MANAGER_DB_SCHEMA` 控制；Flyway 历史表为 `flyway_schema_history_manager`。不启用 baseline-on-migrate，也不需要旧版本升级脚本。
 
 ## 2. 实体关系
 
@@ -22,6 +22,7 @@ erDiagram
         varchar user_name
         varchar system_type
         varchar user_pass
+        boolean enabled
         varchar user_permissions
         timestamptz created_at
         timestamptz updated_at
@@ -55,6 +56,7 @@ erDiagram
 | `system_type` | VARCHAR(32) | NOT NULL、CHECK | 所属系统 |
 | `user_pass` | VARCHAR(512) | NOT NULL | BCrypt 密码摘要 |
 | `user_permissions` | VARCHAR(1024) | NOT NULL | 逗号分隔权限编码 |
+| `enabled` | BOOLEAN | NOT NULL、DEFAULT TRUE | 是否允许登录和刷新 |
 | `created_at` | TIMESTAMPTZ | NOT NULL | 创建时间 |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | 修改时间 |
 | `created_by` | VARCHAR(128) | NOT NULL | 创建人 |
@@ -82,7 +84,7 @@ uk_user_info_user_name_system_type
 | `user_info_id` | BIGINT | FK、NOT NULL | 所属用户 |
 | `login_client` | VARCHAR(512) | NOT NULL | 客户端描述 |
 | `refresh_token_hash` | VARCHAR(64) | UNIQUE、NOT NULL | Refresh Token SHA-256 十六进制摘要 |
-| `expires_at` | TIMESTAMPTZ | NOT NULL | 预留的绝对过期时间；当前不参与 Refresh 资格判断 |
+| `expires_at` | TIMESTAMPTZ | NOT NULL | 登录时确定的绝对过期时间，刷新时强制校验 |
 | `created_at` | TIMESTAMPTZ | NOT NULL | 登录时间 |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | 最近更新时间 |
 | `created_by` | VARCHAR(128) | NOT NULL | 创建人 |
@@ -163,14 +165,11 @@ user:list,user:add,user:update
 1. 生成随机 Refresh Token。
 2. 计算 SHA-256 摘要。
 3. 插入 `user_login`。
-4. `expires_at = 当前 UTC 时间 + REFRESH_TOKEN_EXPIRE_DAYS`，作为后续绝对有效期功能的预留数据。
+4. `expires_at = 当前 UTC 时间 + REFRESH_TOKEN_EXPIRE_DAYS`，作为会话绝对有效期，刷新不延长。
 
 ### 7.2 刷新
 
-根据 `refresh_token_hash` 查询登录会话。记录存在即允许刷新，成功后覆盖为新摘要；
-`updated_at` 由 MyBatis Plus 自动更新，用于表示最近一次续租时间。
-
-当前实现不会在刷新时校验 `expires_at`；会话有效性的现行规则是记录存在，且数据库清理任务尚未因超过一天未续租而删除该记录。
+刷新要求会话存在、expires_at 晚于当前时间且账号已启用。事务中先锁用户再锁会话并复核旧摘要，每次刷新轮换摘要、更新 updated_at，但不延长登录时确定的 expires_at。空闲超过一天的会话仍由数据库任务清理。
 
 ### 7.3 注销与下线
 
@@ -271,14 +270,14 @@ OffsetDateTime.now(ZoneOffset.UTC)
 后续迁移命名：
 
 ```text
-V{yyyyMMdd}_{sequence}__{description}.sql
+V{version}__{description}.sql
 ```
 
 例如：
 
 ```text
-V20260710_001__add_user_status.sql
-V20260710_002__create_role_tables.sql
+V2__add_user_lock.sql
+V3__create_role_tables.sql
 ```
 
 要求：
@@ -295,10 +294,9 @@ V20260710_002__create_role_tables.sql
 
 ### 11.1 账户状态
 
-可在 `user_info` 增加：
+enabled 已在首版实现，未来可按需增加：
 
 ```text
-enabled
 locked
 password_changed_at
 deleted_at（如采用逻辑删除）
@@ -319,6 +317,10 @@ role_permission
 
 ### 11.3 操作审计
 
-建议创建独立审计表，记录操作者、动作、业务对象、结果、Trace ID 和时间，不与 Entity 基础审计字段混为一谈。
+首版已实现 permission_change_audit 授权审计；更广泛的业务操作审计可按需扩展，与 Entity 基础审计字段区分。
 
 所有演进必须通过新 Flyway 迁移完成。
+
+## 授权审计
+
+`permission_change_audit` 保存 `operator_user_id`、`target_user_id`、前后权限和 enabled、`trace_id`、`occurred_at`，使用 identity 主键以及 `(target_user_id, occurred_at DESC)` 索引。账号删除后审计保留，不设置级联删除外键。默认管理员初始化也写审计。

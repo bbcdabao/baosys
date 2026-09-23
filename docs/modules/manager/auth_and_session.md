@@ -10,7 +10,7 @@
 AuthApi / AuthController
 AuthAppServiceImpl
 RefreshTokenProvider
-SzsJwtTokenService
+JwtTokenService
 GatewaySecurityConfig
 ResourceServerSecurityConfig
 baosys-manager-ui/src/utils/request.ts
@@ -34,7 +34,7 @@ Access Token 适合短期、无状态校验；Refresh Token 对应数据库中�
 
 | Claim | 内容 |
 |---|---|
-| `iss` | `szs.security.jwt.issuer` |
+| `iss` | `security.jwt.issuer` |
 | `sub` | 用户 ID 字符串 |
 | `iat` | 签发时间 |
 | `exp` | 到期时间 |
@@ -47,7 +47,7 @@ Access Token 适合短期、无状态校验；Refresh Token 对应数据库中�
 
 ```json
 {
-  "iss": "szs-auth-server",
+  "iss": "auth-server",
   "sub": "1",
   "username": "admin",
   "displayName": "admin",
@@ -102,6 +102,7 @@ sequenceDiagram
 3. `systemType` 必须与账户所属系统匹配。
 4. 空的 `loginClient` 保存为 `unknown-client`。
 5. 每次登录创建一条新的 `user_login`。
+6. 登录时锁定用户行并检查 enabled；禁用账号返回统一的凭据错误。
 
 ## 5. Cookie
 
@@ -109,11 +110,11 @@ sequenceDiagram
 
 | Cookie | HttpOnly | Path | SameSite | 默认 Max-Age |
 |---|---:|---|---|---:|
-| `access_token` | 是 | `/` | Strict | 7200 秒 |
+| `access_token` | 是 | `/` | Strict | 1800 秒 |
 | `refresh_token` | 是 | `/api/baosys-manager/v1/auth` | Strict | 2592000 秒 |
 | `BAOSYS_CSRF_TOKEN` | 否 | `/` | Strict | 1 天 |
 
-`BAOSYS_CSRF_TOKEN` 只在 `szs.security.gateway.csrf.enabled=true` 时写入。
+`BAOSYS_CSRF_TOKEN` 只在 `security.gateway.csrf.enabled=true` 时写入。
 
 Cookie 的 `Secure` 由 `AUTH_COOKIE_SECURE` 控制。Cookie Max-Age 配置为 `0` 时，代码转换为会话 Cookie，而不是立即删除。
 
@@ -152,10 +153,7 @@ sequenceDiagram
 新摘要 → 覆盖数据库旧摘要
 ```
 
-缺失或未知的 Refresh Token 返回 `AUTH_403_001`。刷新是否可用以
-`user_login` 记录存在为准；每次刷新会轮换摘要并更新 `updated_at`。
-
-`expires_at` 当前是为后续绝对有效期功能保留的数据，不参与 Refresh 资格判断。现阶段会话是否继续有效由最近续租时间 `updated_at` 和“一天未更新即清理”的数据库任务控制。
+刷新要求会话存在、expires_at 晚于当前时间且账号已启用。事务中先锁用户再锁会话并复核旧摘要，每次刷新轮换摘要、更新 updated_at，但不延长登录时确定的 expires_at。空闲超过一天的会话仍由数据库任务清理。 缺失、过期、被轮换或已撤销的令牌返回 `AUTH_403_001`。
 
 ## 7. 注销和客户端下线
 
@@ -182,7 +180,7 @@ DELETE /v1/users/{userId}/login-clients
 
 部署环境需要通过项目提供的 `pg_cron` 脚本、云数据库调度或外部 DBA 调度，在每天
 00:00 调用 `cleanup_inactive_user_login_sessions()`，清理
-`updated_at` 超过 1 天未更新的 `user_login`。因此持续刷新会续租会话；
+`updated_at` 超过 1 天未更新的 `user_login`。因此持续刷新会更新空闲时间，但不延长绝对期限；
 1 天不刷新则会在数据库清理任务执行后失去刷新资格。
 
 该语义是当前实现事实；若后续要求即时失效，需要增加会话版本、JTI 校验或撤销列表。
@@ -252,7 +250,7 @@ created_by / updated_by
 登录时间使用 `created_at`。Refresh Token 刷新判断条件：
 
 ```sql
-refresh_token_hash = ?
+refresh_token_hash = ? AND expires_at > current_timestamp
 ```
 
 在线会话列表仍使用 `expires_at > current UTC time` 展示未过期会话。
@@ -264,9 +262,9 @@ refresh_token_hash = ?
 主要配置：
 
 ```text
-SZS_JWT_ISSUER
-SZS_SYSTEM_TYPE
-SZS_ACCESS_TOKEN_EXPIRE_SECONDS
+JWT_ISSUER
+SYSTEM_TYPE
+ACCESS_TOKEN_EXPIRE_SECONDS
 AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS
 AUTH_REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS
 AUTH_REFRESH_TOKEN_COOKIE_PATH
@@ -291,4 +289,8 @@ GATEWAY_CSRF_ENABLED
 - 开启 CSRF 后拒绝缺少 CSRF Token 的写请求。
 - 登录签发的 Access Token 可访问受保护接口。
 
-后续建议增加并发刷新、Refresh Token 重放和 Access Token 即时撤销语义测试。
+已补并发刷新与禁用竞争的 PostgreSQL 集成测试。Access Token 即时撤销未实现。
+
+## 14. 账号授权变更
+
+账号权限、启停状态、密码或系统类型变化会撤销全部刷新会话。创建、删除以及权限/启停变化记录操作者、目标、前后值、traceId 和时间，审计与用户修改处于同一事务。Access Token 默认有效 1800 秒，撤销刷新会话不立即使已签发 JWT 失效。

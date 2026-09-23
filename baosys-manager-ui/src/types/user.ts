@@ -6,6 +6,7 @@ export interface UserSummary {
   name: string
   systemType: SystemType
   permissions: string[]
+  enabled: boolean
   status: boolean
 }
 
@@ -14,6 +15,7 @@ export interface UserCreateRequest {
   pass: string
   systemType: SystemType
   permissions: string[]
+  enabled: boolean
 }
 
 export interface UserUpdateRequest extends UserCreateRequest {

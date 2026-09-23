@@ -66,6 +66,11 @@
             </a-tag>
           </a-space>
         </template>
+        <template #enabled="{ record }">
+          <a-tag :color="record.enabled ? 'green' : 'gray'">
+            {{ t(record.enabled ? 'common.enabled' : 'common.disabled') }}
+          </a-tag>
+        </template>
         <template #status="{ record }">
           <a-badge
             :status="record.status ? 'success' : 'normal'"
@@ -152,6 +157,10 @@
             </a-option>
           </a-select>
         </a-form-item>
+        <a-form-item field="enabled" :label="t('user.accountStatus')">
+          <a-switch v-model="form.enabled" />
+          <span class="field-hint">{{ t('user.enabledHint') }}</span>
+        </a-form-item>
       </a-form>
       <template #footer>
         <a-space>
@@ -189,6 +198,7 @@ const loading = ref(false)
 const saving = ref(false)
 const editorVisible = ref(false)
 const editingId = ref<number | null>(null)
+const originalUser = ref<UserSummary | null>(null)
 const users = ref<UserSummary[]>([])
 const total = ref(0)
 const currentPage = ref(1)
@@ -203,7 +213,8 @@ const form = reactive({
   name: '',
   pass: '',
   systemType: 'MANAGER' as SystemType,
-  permissions: [] as string[]
+  permissions: [] as string[],
+  enabled: true
 })
 
 const hasPermission = (permission: string): boolean =>
@@ -220,7 +231,8 @@ const columns = computed<TableColumnData[]>(() => [
   { title: t('user.name'), dataIndex: 'name' },
   { title: t('user.systemType'), slotName: 'systemType', width: 150 },
   { title: t('user.permissions'), slotName: 'permissions' },
-  { title: t('common.status'), slotName: 'status', width: 120 },
+  { title: t('user.accountStatus'), slotName: 'enabled', width: 120 },
+  { title: t('user.onlineStatus'), slotName: 'status', width: 120 },
   { title: t('common.actions'), slotName: 'actions', width: 260 }
 ])
 const pagination = computed(() => ({
@@ -284,21 +296,25 @@ const clearSelectedPermissions = (): void => {
 
 const openCreate = (): void => {
   editingId.value = null
+  originalUser.value = null
   Object.assign(form, {
     name: '',
     pass: '',
     systemType: 'MANAGER',
-    permissions: ['user:list']
+    permissions: ['user:list'],
+    enabled: true
   })
   editorVisible.value = true
 }
 
 const openEdit = (user: UserSummary): void => {
   editingId.value = user.id
+  originalUser.value = { ...user, permissions: [...user.permissions] }
   const availablePermissionCodes = new Set(
     permissionOptionsFor(user.systemType).map(permission => permission.code)
   )
   Object.assign(form, {
+    enabled: user.enabled,
     name: user.name,
     pass: '',
     systemType: user.systemType,
@@ -321,7 +337,14 @@ const saveUser = async (): Promise<void> => {
       Message.success(t('user.created'))
     } else {
       await updateUser({ ...form, id: editingId.value })
-      Message.success(t('user.updated'))
+      const original = originalUser.value
+      const accessChanged = original && (
+        original.enabled !== form.enabled ||
+        original.systemType !== form.systemType ||
+        form.pass.trim().length > 0 ||
+        JSON.stringify([...original.permissions].sort()) !== JSON.stringify([...form.permissions].sort())
+      )
+      Message.success(t(accessChanged ? 'user.accessChangeSessionsRevoked' : 'user.updated'))
     }
     editorVisible.value = false
     await loadUsers()
@@ -355,6 +378,7 @@ onMounted(loadUsers)
 </script>
 
 <style scoped>
+.field-hint { margin-left: 12px; color: var(--color-text-3); font-size: 12px; }
 .page-section { display: grid; gap: 18px; }
 .page-heading { display: flex; justify-content: space-between; align-items: center; }
 .page-heading h2 { margin: 0; color: var(--color-text-1); font-size: 22px; }

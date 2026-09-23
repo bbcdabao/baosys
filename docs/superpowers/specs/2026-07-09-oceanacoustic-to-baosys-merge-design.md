@@ -46,7 +46,7 @@
 至少执行并复查以下映射：
 
 - `oceanacoustic` → `baosys`
-- `szs.oceanacoustic` → `szs.baosys`
+- `oceanacoustic` → `baosys`
 - `Ocean Acoustic` / `OceanAcoustic` → `BaoSys`
 - 模块目录、Maven artifactId、Java 包路径和 API 路径使用对应 BaoSys 名称
 - OceanAcoustic 专属 Cookie 名改为 BaoSys 现有 Cookie 名

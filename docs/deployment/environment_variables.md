@@ -48,52 +48,51 @@ $env:DB_USERNAME="postgres"
 $env:DB_PASSWORD="postgres123456"
 ```
 
+默认使用 `manager` schema，可通过 `MANAGER_DB_SCHEMA` 覆盖。Flyway 历史表为 `flyway_schema_history_manager`；首个迁移为 `V1__init_manager.sql`，数据库用户需要创建 schema 的权限。
+
 ### 2.3 管理员初始化
 
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
-| `DEFAULT_ADMIN_ENABLED` | `true` | 是否在启动时幂等创建管理员 |
+| `DEFAULT_ADMIN_ENABLED` | `false` | 是否在启动时幂等创建管理员 |
 | `DEFAULT_ADMIN_USERNAME` | `admin` | 默认管理员用户名 |
-| `DEFAULT_ADMIN_PASSWORD` | `Admin123!test` | 默认管理员密码，启用时至少 12 位 |
+| `DEFAULT_ADMIN_PASSWORD` | 空 | 默认管理员密码，启用时至少 12 位 |
 
 初始化器只在指定 Manager 用户不存在时创建，不会覆盖已有密码或权限。
 
-当前运行配置默认开启管理员初始化；生产环境必须通过环境变量设置安全密码，
-或在完成首次初始化后关闭该功能。
+默认关闭管理员初始化；首次需要创建管理员时显式启用并设置至少 12 位密码。
 
 ### 2.4 Cookie 与会话
 
 | 环境变量 | 默认值 | 说明 |
 |---|---:|---|
 | `AUTH_COOKIE_SECURE` | `false` | Cookie 是否仅通过 HTTPS 发送 |
-| `AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS` | `7200` | Access Cookie 持久时间 |
+| `AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS` | `1800` | Access Cookie 持久时间 |
 | `AUTH_REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS` | `2592000` | Refresh Cookie 持久时间 |
 | `AUTH_REFRESH_TOKEN_COOKIE_PATH` | `/api/baosys-manager/v1/auth` | Refresh Cookie Path |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | `30` | 写入 `expiresAt` 的预留绝对有效期 |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | `30` | 登录会话绝对有效期，刷新不延长 |
 
 Max-Age 配置为 `0` 时，应用写出会话 Cookie。
 
 `AUTH_REFRESH_TOKEN_COOKIE_PATH` 面向浏览器经过网关的外部路径，不是 Manager Service 内部 `/v1/auth`。
 
-当前 Refresh 资格只以 `user_login` 记录是否存在为准；`expiresAt` 尚未参与
-Refresh 判定。会话通过 `updatedAt` 表示最近续租时间，超过 1 天未更新的记录由
-数据库清理任务删除。
+刷新要求会话存在、expires_at 晚于当前时间且账号已启用。事务中先锁用户再锁会话并复核旧摘要，每次刷新轮换摘要、更新 updated_at，但不延长登录时确定的 expires_at。空闲超过一天的会话仍由数据库任务清理。
 
 ### 2.5 JWT
 
 | 环境变量 | 默认值 | 说明 |
 |---|---:|---|
-| `SZS_JWT_ISSUER` | `szs-auth-server` | JWT issuer |
-| `SZS_ACCESS_TOKEN_EXPIRE_SECONDS` | `7200` | Access Token 有效期 |
+| `JWT_ISSUER` | `auth-server` | JWT issuer |
+| `ACCESS_TOKEN_EXPIRE_SECONDS` | `1800` | Access Token 有效期 |
 
 当前 RSA 公钥和私钥直接配置在 `application.yml` 的：
 
 ```text
-szs.security.jwt.public-key
-szs.security.jwt.private-key
+security.jwt.public-key
+security.jwt.private-key
 ```
 
-它们当前没有使用 `${SZS_JWT_PUBLIC_KEY}` / `${SZS_JWT_PRIVATE_KEY}` 占位符。需要外部化时，应提供外部 Spring 配置文件或修改 YAML 为显式环境变量占位符，并确保 Manager Web 使用同一公钥。
+它们当前没有使用 `${JWT_PUBLIC_KEY}` / `${JWT_PRIVATE_KEY}` 占位符。需要外部化时，应提供外部 Spring 配置文件或修改 YAML 为显式环境变量占位符，并确保 Manager Web 使用同一公钥。
 
 ### 2.6 CSRF
 
@@ -128,14 +127,14 @@ baosys-manager-web/src/main/resources/application.yml
 
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
-| `SZS_JWT_ISSUER` | `szs-auth-server` | 必须与签发端一致 |
-| `SZS_SYSTEM_TYPE` | `MANAGER` | Manager 网关只接受该子系统的 JWT |
+| `JWT_ISSUER` | `auth-server` | 必须与签发端一致 |
+| `SYSTEM_TYPE` | `MANAGER` | Manager 网关只接受该子系统的 JWT |
 | `GATEWAY_CSRF_ENABLED` | `false` | 是否启用网关 CSRF Filter |
 
 网关公钥当前位于：
 
 ```text
-szs.security.jwt.public-key
+security.jwt.public-key
 ```
 
 Manager Web 不需要私钥。
@@ -243,7 +242,7 @@ mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 
 ```text
 [ ] Manager Web 的 MANAGER_SERVICE_URL 指向 Manager Service
-[ ] Manager Web 与 Manager Service 的 SZS_JWT_ISSUER 一致
+[ ] Manager Web 与 Manager Service 的 JWT_ISSUER 一致
 [ ] Manager Web 公钥与 Manager Service 签发私钥匹配
 [ ] 两个进程的 GATEWAY_CSRF_ENABLED 一致
 [ ] AUTH_REFRESH_TOKEN_COOKIE_PATH 与外部认证路径一致

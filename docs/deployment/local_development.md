@@ -143,17 +143,7 @@ Application:  baosys-manager
 http://localhost:9090/baosys-manager/actuator/health
 ```
 
-首次启动会执行 Flyway 迁移，并按当前默认配置创建 Manager 管理员。
-
-当前开发默认账号：
-
-```text
-Username:   admin
-Password:   Admin123!test
-SystemType: MANAGER
-```
-
-需要覆盖时：
+首次启动会执行 Flyway V1 初始化。默认不创建管理员；需要初始化时，在启动 Manager 的终端先设置以下变量（示例密码仅用于本地开发）：
 
 ```powershell
 $env:DEFAULT_ADMIN_ENABLED="true"
@@ -399,3 +389,20 @@ docker stop baosys-postgres
 ```
 
 保留容器会保留数据库卷层中的开发数据；需要全新数据时，可以删除并重新创建容器。
+
+## 首版数据库与管理员
+
+Flyway 从 `V1__init_manager.sql` 初始化完整模型，默认使用独立的 `manager` schema（可用 `MANAGER_DB_SCHEMA` 覆盖）。首次创建管理员需在启动 Manager 前显式设置 `DEFAULT_ADMIN_ENABLED=true` 和至少 12 位的 `DEFAULT_ADMIN_PASSWORD`；默认关闭自动初始化。
+
+数据库集成测试需 Docker，可在仓库根目录执行 `mvn -Pintegration-tests -pl :baosys-manager-service -am verify "-Dskip.frontend=true"`。
+
+## 容器构建
+
+在完成 Maven verify 后，从仓库根目录执行：
+
+```powershell
+docker build -t baosys-manager:1.0.0 baosys-manager/baosys-manager-service
+docker build -t baosys-manager-web:1.0.0 baosys-manager-web
+```
+
+可用 --build-arg BASE_IMAGE=<镜像地址> 覆盖 Java 17 运行时镜像。容器分别暴露 9090/8080；通过环境变量传入数据库与路由配置。

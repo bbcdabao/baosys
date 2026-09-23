@@ -33,7 +33,7 @@ baosys-manager
 对外公开：
 
 ```text
-szs.baosys.manager.api
+baosys.manager.api
 ├── AuthApi
 ├── UserApi
 ├── LoginSessionApi
@@ -62,7 +62,7 @@ API Jar 不包含 Controller、业务服务、数据库实体或 FeignClient。
 可启动 Spring Boot 服务，依赖自己的 API Jar 和 `baosys-common`。
 
 ```text
-szs.baosys.manager
+baosys.manager
 ├── ManagerApplication
 ├── app
 │   ├── controllers
@@ -319,7 +319,11 @@ Failsafe 阶段执行。
 2. 将 `UserResponse.status` 明确改名为 `online`。
 3. 增加修改密码和管理员重置密码。
 4. 从用户直配权限演进到角色权限。
-5. 增加操作审计日志。
+5. 在已有账号授权审计之外按需扩展业务操作审计。
 6. 形成系统配置后端闭环。
 
 这些能力尚未实现，不应在调用方中预设其接口。
+
+## 首版账号管理补充
+
+用户创建/更新支持 enabled，创建默认 true、更新省略时保留原值；响应分别返回 enabled（启停）和 status（在线）。Controller 从认证 Principal 取操作者 ID，创建、删除、权限及启停变更写审计。登录和刷新检查 enabled，刷新检查 expires_at 并通过事务行锁防止旧令牌并发复用。数据库由 V1__init_manager.sql 一次初始化。

@@ -1,8 +1,7 @@
-szs:
-  security:
-    jwt:
-      issuer: szs-auth-server
-      public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmTjq5scT6EL92EVo4cWji4nX9fRAKUIB/xYQGgiEH+0qCGPcrPxyJePwLXvcOD58XSk6/qxobaSi37eZUe9vWAuOKWOVio7/8dNQH2xreKtyWjwgm4Yp2Ascag/6AQgvGqRp+zOMFdnlCzn8/0EkWOmniSp5kDk+k6Pw5YahI9V6P2h5xbPGkwiVFifo/dMxfTwJABTAgJvLBa0ergJ7GL5P9IeANxNghgXJexiKJeH+dSaFElvJzTyEzYCAn6uncZn6fTgXhPs44TWlxzVFYv71/J8NqyqrmIz73aG+ktqAMunCbbCHbkCt+s6BhkWBfoyHAvgmM7Z2UIZM0VE33wIDAQAB
-    access-token-cookie-name: access_token
-    permissions-claim-name: permissions
-    system-type: MANAGER
+security:
+  jwt:
+    issuer: auth-server
+    public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmTjq5scT6EL92EVo4cWji4nX9fRAKUIB/xYQGgiEH+0qCGPcrPxyJePwLXvcOD58XSk6/qxobaSi37eZUe9vWAuOKWOVio7/8dNQH2xreKtyWjwgm4Yp2Ascag/6AQgvGqRp+zOMFdnlCzn8/0EkWOmniSp5kDk+k6Pw5YahI9V6P2h5xbPGkwiVFifo/dMxfTwJABTAgJvLBa0ergJ7GL5P9IeANxNghgXJexiKJeH+dSaFElvJzTyEzYCAn6uncZn6fTgXhPs44TWlxzVFYv71/J8NqyqrmIz73aG+ktqAMunCbbCHbkCt+s6BhkWBfoyHAvgmM7Z2UIZM0VE33wIDAQAB
+  access-token-cookie-name: access_token
+  permissions-claim-name: permissions
+  system-type: MANAGER

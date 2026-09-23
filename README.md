@@ -213,6 +213,12 @@ baosys-manager-web/target/baosys-manager-web.jar
 - `SIMULATION` 和 `SIMULATORS` 已预留系统类型，尚未配置权限目录。
 - 网关中已预留 `baosys-plant` 路由，但仓库内暂未包含 Plant 服务。
 - 系统配置页面目前以界面骨架为主，尚未形成后端配置管理闭环。
-- 暂无组织机构、多租户、数据权限、审计日志和动态菜单管理。
+- 已具备账号授权与启停审计；暂无组织机构、多租户、记录级数据权限、通用业务审计和动态菜单管理。
 
 新增功能前应先明确归属服务，再按模块架构规范创建契约、实现、迁移和测试。
+
+## 首版数据库与管理员
+
+Flyway 从 `V1__init_manager.sql` 初始化完整模型，默认使用独立的 `manager` schema（可用 `MANAGER_DB_SCHEMA` 覆盖）。首次创建管理员需在启动 Manager 前显式设置 `DEFAULT_ADMIN_ENABLED=true` 和至少 12 位的 `DEFAULT_ADMIN_PASSWORD`；默认关闭自动初始化。
+
+数据库集成测试需 Docker，可在仓库根目录执行 `mvn -Pintegration-tests -pl :baosys-manager-service -am verify "-Dskip.frontend=true"`。

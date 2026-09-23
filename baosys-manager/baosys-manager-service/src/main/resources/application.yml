@@ -14,10 +14,16 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/app_db}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres123456}
+    hikari:
+      # 业务连接与 Flyway 使用同一个独立 schema，避免与其他微服务共享 public。
+      schema: ${MANAGER_DB_SCHEMA:manager}
   flyway:
     enabled: true
-    schemas: public
+    create-schemas: true
+    default-schema: ${MANAGER_DB_SCHEMA:manager}
+    schemas: ${MANAGER_DB_SCHEMA:manager}
     locations: classpath:db/migration
+    table: flyway_schema_history_manager
 
 mybatis-plus:
   configuration:
@@ -33,42 +39,44 @@ management:
       probes:
         enabled: true
 
-szs:
-  auth:
-    cookie-secure: ${AUTH_COOKIE_SECURE:false}
-    # 配置为 0 时不输出 Max-Age，Cookie 在浏览器会话结束时清除。
-    access-token-cookie-max-age-seconds: ${AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS:7200}
-    refresh-token-cookie-max-age-seconds: ${AUTH_REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS:2592000}
-    refresh-token-cookie-path: ${AUTH_REFRESH_TOKEN_COOKIE_PATH:/api/baosys-manager/v1/auth}
-    default-admin-enabled: ${DEFAULT_ADMIN_ENABLED:true}
-    default-admin-username: ${DEFAULT_ADMIN_USERNAME:admin}
-    default-admin-password: ${DEFAULT_ADMIN_PASSWORD:Admin123!test}
-    refresh-token-expire-days: ${REFRESH_TOKEN_EXPIRE_DAYS:30}
-  common:
-    password:
-      enabled: true
-      strength: 10
-  security:
-    jwt:
-      issuer: ${SZS_JWT_ISSUER:szs-auth-server}
-      access-token-expire-seconds: ${SZS_ACCESS_TOKEN_EXPIRE_SECONDS:7200}
-      private-key: |
-        MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCZOOrmxxPoQv3YRWjhxaOLidf19EApQgH/FhAaCIQf7SoIY9ys/HIl4/Ate9w4PnxdKTr+rGhtpKLft5lR729YC44pY5WKjv/x01AfbGt4q3JaPCCbhinYCxxqD/oBCC8apGn7M4wV2eULOfz/QSRY6aeJKnmQOT6To/DlhqEj1Xo/aHnFs8aTCJUWJ+j90zF9PAkAFMCAm8sFrR6uAnsYvk/0h4A3E2CGBcl7GIol4f51JoUSW8nNPITNgICfq6dxmfp9OBeE+zjhNaXHNUVi/vX8nw2rKquYjPvdob6S2oAy6cJtsIduQK36zoGGRYF+jIcC+CYztnZQhkzRUTffAgMBAAECggEAI1JftHvINw7affTiTMnG/e/0/RolgF1bIHbxl07HRqThv7VltessVVfKknGvPrgI62EJ3JPaLwx5D6G/kofj3yQqzZfLbXmxvwm7usK/s72ySuL5kWDIXKmTD1BHjd1ZHocwd1xWuuLUTlY74Iwf2O9kU9aa14iayGZOrlru4teEOlzmm3S7kJxZXBKk6V8KZlXiJtDgYM3wqOkGs77pwHM7nD2e1KVa8AIyBVcu2Trq07NNt4hmbZ2pzBfc8TKXrf/vPJ4SYG2yq6Z+bVUFW3j6V8mAii9nrziWGM6XUj5sSxi4boWzhQQr0ZhbS2+wIf2qH3ligzWURsq26oILoQKBgQC77FwU7R0E5p4EcxbfwFCeYGYI8Ikvx1Y4ArvKKGzxf58gP8PrXa1hjab0kGPwzW/2lIwmCSlOhcu/Xluo+OxqAuqJQQKF71SB+lXEc1l2MESwFpic4fIx9CmfNEfrMV3NfyrFaD08jJ1V6gxsA3OTL+aYV8II5p5D0BBxoPEbgwKBgQDQunWjQ59himSRLAwSUoWyRHtN29i2CpEfZox7aecvdpsVsCJaC/VJgOzchBFz210naviPPwucdNnFM3h2tbvnaUUCRa0UWuLIGEP0PaL3HIZBjDiXW3zmYeSGl8jYUINMIJTWiS0KCfi7IMA9KkAlc1qPfP6jShxXKeyTUqe3dQKBgCs88+bgs6eYBE2TyXSMBECcf32ZEoeKvty+TET0TjS2n39FDKgP8r+aXwqwWj5illtOzHxH6Vgm0r1iUYasV4EA0MPp0FHOwkvxtGAyBih6bKNzX4PhPN+fhSAbYFzOC/4nP0kSddyDogPNiTQlCyeXguAUeRGhNlL2AYKTfEZPAoGANffQDMuiPQUcZZC++knN+b7NJt9uE/t9dGH+drZ2KQaAqMXmy+OFo2CrXYTkQlF4r4VwCRGi/ewUlnFtdzwb/oRwbFr5mma5dkUX5OG+7ie46t/HjhMAo0yyWr6KFqwSlq9h7GqBc7QKVM/uBKKU/VnrE2idKjkyRLM5UQoxBTUCgYEAjYPxy4w/thRMYZ97KPUyiB7EKa+gHN2ag2Wa3CSFzGENu5MGN6KQo9+u2A3dBJEndqsx6pekNtrXeodm/RQnSELglIghoFTXFtmRWwv4P8MJmbCSMexJHFcn7pcVlVnxUugzAgPjn4c+O4eOTGbjMl1u6BRaxzfm3SgSBFREy4Q=
-      public-key: |
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmTjq5scT6EL92EVo4cWji4nX9fRAKUIB/xYQGgiEH+0qCGPcrPxyJePwLXvcOD58XSk6/qxobaSi37eZUe9vWAuOKWOVio7/8dNQH2xreKtyWjwgm4Yp2Ascag/6AQgvGqRp+zOMFdnlCzn8/0EkWOmniSp5kDk+k6Pw5YahI9V6P2h5xbPGkwiVFifo/dMxfTwJABTAgJvLBa0ergJ7GL5P9IeANxNghgXJexiKJeH+dSaFElvJzTyEzYCAn6uncZn6fTgXhPs44TWlxzVFYv71/J8NqyqrmIz73aG+ktqAMunCbbCHbkCt+s6BhkWBfoyHAvgmM7Z2UIZM0VE33wIDAQAB
-    access-token-cookie-name: access_token
-    permissions-claim-name: permissions
-    authority-prefix: ""
-    gateway:
-      csrf:
-        enabled: ${GATEWAY_CSRF_ENABLED:false}
-        cookie-name: BAOSYS_CSRF_TOKEN
-    resource:
-      permit-all-paths:
-        - /v1/auth/login
-        - /v1/auth/refresh
-        - /v1/auth/logout
-        - /actuator/health/**
-        - /actuator/info
-        - /swagger-ui/**
-        - /v3/api-docs/**
+auth:
+  cookie-secure: ${AUTH_COOKIE_SECURE:false}
+  # 配置为 0 时不输出 Max-Age，Cookie 在浏览器会话结束时清除。
+  access-token-cookie-max-age-seconds: ${AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS:1800}
+  refresh-token-cookie-max-age-seconds: ${AUTH_REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS:2592000}
+  refresh-token-cookie-path: ${AUTH_REFRESH_TOKEN_COOKIE_PATH:/api/baosys-manager/v1/auth}
+  # 生产安全默认值：不自动创建具有全部 Manager 权限的账号。
+  default-admin-enabled: ${DEFAULT_ADMIN_ENABLED:false}
+  default-admin-username: ${DEFAULT_ADMIN_USERNAME:admin}
+  # 启用初始化时必须由外部环境提供至少 12 位的唯一密码。
+  default-admin-password: ${DEFAULT_ADMIN_PASSWORD:}
+  refresh-token-expire-days: ${REFRESH_TOKEN_EXPIRE_DAYS:30}
+common:
+  password:
+    enabled: true
+    strength: 10
+security:
+  jwt:
+    issuer: ${JWT_ISSUER:auth-server}
+    # 权限或账号状态变化会立即撤销 Refresh Session；短期 Access Token 将最长撤权延迟限制为 30 分钟。
+    access-token-expire-seconds: ${ACCESS_TOKEN_EXPIRE_SECONDS:1800}
+    private-key: |
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCZOOrmxxPoQv3YRWjhxaOLidf19EApQgH/FhAaCIQf7SoIY9ys/HIl4/Ate9w4PnxdKTr+rGhtpKLft5lR729YC44pY5WKjv/x01AfbGt4q3JaPCCbhinYCxxqD/oBCC8apGn7M4wV2eULOfz/QSRY6aeJKnmQOT6To/DlhqEj1Xo/aHnFs8aTCJUWJ+j90zF9PAkAFMCAm8sFrR6uAnsYvk/0h4A3E2CGBcl7GIol4f51JoUSW8nNPITNgICfq6dxmfp9OBeE+zjhNaXHNUVi/vX8nw2rKquYjPvdob6S2oAy6cJtsIduQK36zoGGRYF+jIcC+CYztnZQhkzRUTffAgMBAAECggEAI1JftHvINw7affTiTMnG/e/0/RolgF1bIHbxl07HRqThv7VltessVVfKknGvPrgI62EJ3JPaLwx5D6G/kofj3yQqzZfLbXmxvwm7usK/s72ySuL5kWDIXKmTD1BHjd1ZHocwd1xWuuLUTlY74Iwf2O9kU9aa14iayGZOrlru4teEOlzmm3S7kJxZXBKk6V8KZlXiJtDgYM3wqOkGs77pwHM7nD2e1KVa8AIyBVcu2Trq07NNt4hmbZ2pzBfc8TKXrf/vPJ4SYG2yq6Z+bVUFW3j6V8mAii9nrziWGM6XUj5sSxi4boWzhQQr0ZhbS2+wIf2qH3ligzWURsq26oILoQKBgQC77FwU7R0E5p4EcxbfwFCeYGYI8Ikvx1Y4ArvKKGzxf58gP8PrXa1hjab0kGPwzW/2lIwmCSlOhcu/Xluo+OxqAuqJQQKF71SB+lXEc1l2MESwFpic4fIx9CmfNEfrMV3NfyrFaD08jJ1V6gxsA3OTL+aYV8II5p5D0BBxoPEbgwKBgQDQunWjQ59himSRLAwSUoWyRHtN29i2CpEfZox7aecvdpsVsCJaC/VJgOzchBFz210naviPPwucdNnFM3h2tbvnaUUCRa0UWuLIGEP0PaL3HIZBjDiXW3zmYeSGl8jYUINMIJTWiS0KCfi7IMA9KkAlc1qPfP6jShxXKeyTUqe3dQKBgCs88+bgs6eYBE2TyXSMBECcf32ZEoeKvty+TET0TjS2n39FDKgP8r+aXwqwWj5illtOzHxH6Vgm0r1iUYasV4EA0MPp0FHOwkvxtGAyBih6bKNzX4PhPN+fhSAbYFzOC/4nP0kSddyDogPNiTQlCyeXguAUeRGhNlL2AYKTfEZPAoGANffQDMuiPQUcZZC++knN+b7NJt9uE/t9dGH+drZ2KQaAqMXmy+OFo2CrXYTkQlF4r4VwCRGi/ewUlnFtdzwb/oRwbFr5mma5dkUX5OG+7ie46t/HjhMAo0yyWr6KFqwSlq9h7GqBc7QKVM/uBKKU/VnrE2idKjkyRLM5UQoxBTUCgYEAjYPxy4w/thRMYZ97KPUyiB7EKa+gHN2ag2Wa3CSFzGENu5MGN6KQo9+u2A3dBJEndqsx6pekNtrXeodm/RQnSELglIghoFTXFtmRWwv4P8MJmbCSMexJHFcn7pcVlVnxUugzAgPjn4c+O4eOTGbjMl1u6BRaxzfm3SgSBFREy4Q=
+    public-key: |
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmTjq5scT6EL92EVo4cWji4nX9fRAKUIB/xYQGgiEH+0qCGPcrPxyJePwLXvcOD58XSk6/qxobaSi37eZUe9vWAuOKWOVio7/8dNQH2xreKtyWjwgm4Yp2Ascag/6AQgvGqRp+zOMFdnlCzn8/0EkWOmniSp5kDk+k6Pw5YahI9V6P2h5xbPGkwiVFifo/dMxfTwJABTAgJvLBa0ergJ7GL5P9IeANxNghgXJexiKJeH+dSaFElvJzTyEzYCAn6uncZn6fTgXhPs44TWlxzVFYv71/J8NqyqrmIz73aG+ktqAMunCbbCHbkCt+s6BhkWBfoyHAvgmM7Z2UIZM0VE33wIDAQAB
+  access-token-cookie-name: access_token
+  permissions-claim-name: permissions
+  authority-prefix: ""
+  gateway:
+    csrf:
+      enabled: ${GATEWAY_CSRF_ENABLED:false}
+      cookie-name: BAOSYS_CSRF_TOKEN
+  resource:
+    permit-all-paths:
+      - /v1/auth/login
+      - /v1/auth/refresh
+      - /v1/auth/logout
+      - /actuator/health/**
+      - /actuator/info
+      - /swagger-ui/**
+      - /v3/api-docs/**

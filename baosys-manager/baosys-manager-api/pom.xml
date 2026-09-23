@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>szs.baosys</groupId>
+    <groupId>baosys</groupId>
     <artifactId>baosys</artifactId>
     <version>1.0.0</version>
     <relativePath>../../pom.xml</relativePath>
@@ -18,7 +18,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>szs.baosys</groupId>
+      <groupId>baosys</groupId>
       <artifactId>baosys-common-api</artifactId>
     </dependency>
     <dependency>

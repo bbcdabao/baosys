@@ -11,7 +11,7 @@
     </developer>
   </developers>
 
-  <groupId>szs.baosys</groupId>
+  <groupId>baosys</groupId>
   <artifactId>baosys</artifactId>
   <version>1.0.0</version>
   <packaging>pom</packaging>
@@ -44,17 +44,17 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>szs.baosys</groupId>
+        <groupId>baosys</groupId>
         <artifactId>baosys-common-api</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>szs.baosys</groupId>
+        <groupId>baosys</groupId>
         <artifactId>baosys-common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>szs.baosys</groupId>
+        <groupId>baosys</groupId>
         <artifactId>baosys-manager-api</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -149,4 +149,32 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>integration-tests</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <includes>
+                <include>**/*IntegrationTest.java</include>
+              </includes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>

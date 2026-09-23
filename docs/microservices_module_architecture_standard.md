@@ -109,7 +109,7 @@ xxx
 ```text
 xxx
 ├── xxx-api
-│   ├── src/main/java/szs/baosys/xxx
+│   ├── src/main/java/baosys/xxx
 │   │   └── api
 │   │       ├── XxxApi.java
 │   │       ├── dto
@@ -121,7 +121,7 @@ xxx
 │   └── pom.xml
 │
 └── xxx-service
-    ├── src/main/java/szs/baosys/xxx
+    ├── src/main/java/baosys/xxx
     │   ├── XxxApplication.java
     │   ├── app
     │   │   ├── controllers
@@ -220,16 +220,16 @@ Jakarta Validation 注解
 示例：
 
 ```java
-package szs.baosys.sample.api;
+package baosys.sample.api;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import szs.baosys.common.api.ApiResponse;
-import szs.baosys.sample.api.dto.SampleCreateRequest;
-import szs.baosys.sample.api.dto.SampleResponse;
+import baosys.common.api.ApiResponse;
+import baosys.sample.api.dto.SampleCreateRequest;
+import baosys.sample.api.dto.SampleResponse;
 
 public interface SampleApi {
 
@@ -301,7 +301,7 @@ API Jar 必须保持轻量。参考当前 `baosys-manager-api`：
 ```xml
 <dependencies>
   <dependency>
-    <groupId>szs.baosys</groupId>
+    <groupId>baosys</groupId>
     <artifactId>baosys-common-api</artifactId>
   </dependency>
   <dependency>
@@ -326,10 +326,10 @@ API Jar 必须保持轻量。参考当前 `baosys-manager-api`：
 启动类放在服务根包，保证组件扫描覆盖当前服务：
 
 ```java
-package szs.baosys.sample;
+package baosys.sample;
 
 @SpringBootApplication
-@MapperScan("szs.baosys.sample.infra.database.mapper")
+@MapperScan("baosys.sample.infra.database.mapper")
 public class SampleApplication {
 
     public static void main(String[] args) {
@@ -449,7 +449,7 @@ Entity 只反映持久化结构，不作为 HTTP Response，也不跨服务传�
 只放平台级、跨服务稳定的协议。目前包括：
 
 ```text
-szs.baosys.common.api
+baosys.common.api
 ├── ApiResponse.java
 └── PageResponse.java
 ```
@@ -779,7 +779,7 @@ XxxIntegrationTest       # 需要完整上下文或外部容器
 | 领域端口 | `XxxAgent` |
 | 领域端口实现 | `XxxAgentImpl` |
 
-包名全部小写，使用 `szs.baosys.{service}` 作为根包。
+包名全部小写，使用 `baosys.{service}` 作为根包。
 
 ## 17. 新微服务创建清单
 
