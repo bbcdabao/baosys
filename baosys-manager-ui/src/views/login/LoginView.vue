@@ -1,23 +1,26 @@
 <template>
   <main class="login-page">
+    <div class="login-brand">BAOSYS<span aria-hidden="true"> / </span></div>
     <div class="login-tools">
-      <a-select v-model="locale" size="small">
+      <a-select v-model="locale" size="small" :aria-label="t('common.language')">
         <a-option value="zh-CN">中文</a-option>
         <a-option value="en-US">English</a-option>
       </a-select>
-      <a-button shape="circle" @click="toggleTheme">
+      <a-button shape="circle" :aria-label="t(isDark ? 'common.light' : 'common.dark')" @click="toggleTheme">
         <icon-sun-fill v-if="isDark" />
         <icon-moon-fill v-else />
       </a-button>
     </div>
 
     <section class="login-intro">
-      <div class="ocean-mark"><icon-sound /></div>
-      <p class="eyebrow">BAOSYS</p>
-      <h1>{{ t('app.name') }}</h1>
-      <p>{{ t('login.subtitle') }}</p>
-      <div class="wave" aria-hidden="true">
-        <span v-for="index in 28" :key="index" :style="{ height: `${signalHeight(index)}px` }" />
+      <p class="eyebrow">{{ t('login.subtitle') }}</p>
+      <h1>
+        <span>{{ t('login.userCenter') }}</span>
+        <span>{{ t('login.configCenter') }}</span>
+      </h1>
+      <div class="center-descriptions">
+        <p><span class="description-marker" aria-hidden="true" />{{ t('login.userDescription') }}</p>
+        <p><span class="description-marker" aria-hidden="true" />{{ t('login.configDescription') }}</p>
       </div>
     </section>
 
@@ -107,9 +110,6 @@ const submit = async (): Promise<void> => {
   }
 }
 
-const signalHeight = (index: number): number =>
-  Math.round(10 + Math.abs(Math.sin(index * 0.72)) * 38)
-
 onMounted(() => {
   form.username = localStorage.getItem(USERNAME_STORAGE_KEY) || ''
   rememberUsername.value = Boolean(form.username)
@@ -118,32 +118,48 @@ onMounted(() => {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
+  min-height: 100svh;
   display: grid;
-  grid-template-columns: minmax(420px, 1.1fr) minmax(380px, .9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
   align-items: center;
-  gap: 8vw;
-  padding: 8vw;
+  gap: clamp(48px, 8vw, 128px);
+  padding: 120px max(48px, calc((100vw - 1040px) / 2));
   position: relative;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(22, 175, 202, .22), transparent 32%),
-    linear-gradient(135deg, var(--color-bg-1), var(--color-fill-2));
+  background: var(--color-bg-1);
 }
-.login-tools { position: absolute; top: 24px; right: 28px; display: flex; gap: 10px; }
-.login-tools :deep(.arco-select-view) { width: 105px; }
-.login-intro { max-width: 620px; color: var(--color-text-1); }
-.ocean-mark { font-size: 56px; color: rgb(var(--primary-6)); }
-.eyebrow { letter-spacing: .28em; color: rgb(var(--primary-6)); font-weight: 700; }
-.login-intro h1 { margin: 8px 0 14px; font-size: clamp(36px, 5vw, 64px); }
-.login-intro > p:last-of-type { color: var(--color-text-2); font-size: 18px; }
-.wave { height: 72px; display: flex; align-items: center; gap: 6px; margin-top: 38px; }
-.wave span { width: 4px; border-radius: 4px; background: linear-gradient(rgb(var(--primary-5)), rgb(var(--cyan-5))); opacity: .8; }
-.login-card { width: 100%; max-width: 440px; padding: 22px; box-shadow: 0 24px 70px rgba(7, 30, 45, .16); }
-.login-card h2 { margin: 0 0 28px; font-size: 26px; color: var(--color-text-1); }
-.submit-button { margin-top: 24px; }
-@media (max-width: 900px) {
-  .login-page { grid-template-columns: 1fr; padding: 80px 24px 36px; }
-  .login-intro { display: none; }
-  .login-card { margin: auto; }
+.login-brand {
+  position: absolute;
+  top: 36px;
+  left: 48px;
+  color: var(--color-text-1);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+.login-brand span { margin-left: 8px; color: rgb(var(--primary-6)); }
+.login-tools { position: absolute; top: 28px; right: 48px; display: flex; align-items: center; gap: 12px; }
+.login-tools :deep(.arco-select-view) { width: 100px; background: transparent; }
+.login-tools :deep(.arco-btn) { background: transparent; }
+.login-intro { color: var(--color-text-1); }
+.eyebrow { margin: 0 0 24px; color: var(--color-text-3); font-size: 13px; letter-spacing: .12em; }
+.login-intro h1 { margin: 0; font-size: clamp(36px, 4.2vw, 56px); font-weight: 600; line-height: 1.45; letter-spacing: -.04em; }
+.login-intro h1 span { display: block; }
+.center-descriptions { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 12px 28px; }
+.center-descriptions p { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--color-text-2); font-size: 14px; line-height: 1.6; }
+.description-marker { width: 5px; height: 5px; background: rgb(var(--primary-6)); border-radius: 50%; flex-shrink: 0; }
+.login-card { width: 100%; padding: 12px 0 12px 48px; border-left: 1px solid var(--color-border-2); border-radius: 0; background: transparent; }
+.login-card :deep(.arco-card-body) { padding: 0; }
+.login-card h2 { margin: 0 0 32px; font-size: 24px; font-weight: 600; color: var(--color-text-1); }
+.login-card :deep(.arco-input-wrapper) { min-height: 46px; border-radius: 6px; }
+.submit-button { margin-top: 28px; height: 46px; border-radius: 6px; }
+@media (max-width: 760px) {
+  .login-page { grid-template-columns: minmax(0, 400px); justify-content: center; gap: 40px; padding: 120px 24px 48px; }
+  .login-brand { top: 30px; left: 24px; font-size: 14px; }
+  .login-tools { top: 22px; right: 20px; gap: 4px; }
+  .eyebrow { margin-bottom: 16px; }
+  .login-intro h1 { font-size: 36px; }
+  .center-descriptions { margin-top: 20px; gap: 12px 20px; }
+  .login-card { padding: 32px 0 0; border-left: 0; border-top: 1px solid var(--color-border-2); }
+  .login-card h2 { margin-bottom: 24px; }
 }
 </style>

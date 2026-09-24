@@ -36,7 +36,11 @@ export default {
   },
   login: {
     title: 'Welcome back',
-    subtitle: 'BaoSys Unified Administration',
+    subtitle: 'Unified management, made simple',
+    userCenter: 'User Center',
+    configCenter: 'Config Center',
+    userDescription: 'Unified account management',
+    configDescription: 'Unified system configuration',
     username: 'Username',
     password: 'Password',
     rememberUsername: 'Remember username',

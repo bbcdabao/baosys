@@ -36,7 +36,11 @@ export default {
   },
   login: {
     title: '欢迎登录',
-    subtitle: '海洋声学统一管理平台',
+    subtitle: '统一管理，简单有序',
+    userCenter: '用户中心',
+    configCenter: '配置中心',
+    userDescription: '统一账户管理',
+    configDescription: '统一系统配置',
     username: '用户名',
     password: '密码',
     rememberUsername: '记住用户名',
