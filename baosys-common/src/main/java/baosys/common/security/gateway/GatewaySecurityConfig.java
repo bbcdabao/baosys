@@ -108,7 +108,7 @@ public class GatewaySecurityConfig {
     }
 
     private static boolean isProtectedApiPath(String path) {
-        return path.equals("/api") || path.startsWith("/api/");
+        return path.startsWith("/api/");
     }
 
 }
