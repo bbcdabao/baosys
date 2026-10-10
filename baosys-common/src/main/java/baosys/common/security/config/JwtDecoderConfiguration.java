@@ -1,11 +1,11 @@
 package baosys.common.security.config;
 
-import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -20,14 +20,15 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import baosys.common.security.jwt.JwtKeyLoader;
 
 /**
- * JWT 解码器自动配置。
+ * JWT 解码器配置。
  *
- * <p>只要配置了 {@code security.jwt.public-key}，就会根据 RSA 公钥创建
+ * <p>由网关认证或资源服务越权检查组合配置通过 {@code @Import} 引入。
+ * 配置了 {@code security.jwt.public-key} 后，会根据 RSA 公钥创建
  * Servlet 与 WebFlux 两套可用的 JWT 解码器，供资源服务和网关校验 access token。
  * 公钥负责确认 token 未被篡改，issuer 校验负责确认 token 来自当前服务信任的
  * 鉴权中心。</p>
  */
-@AutoConfiguration
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(JwtDecoder.class)
 @EnableConfigurationProperties(SecurityProperties.class)
 @ConditionalOnProperty(prefix = "security.jwt", name = "public-key")

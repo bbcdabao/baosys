@@ -27,7 +27,7 @@ import baosys.common.security.jwt.JwtTokenServiceImpl;
  * 只需要公钥校验 token，不应该具备签发 token 的能力。这个约束可以降低私钥泄露面，
  * 也让“谁能签发 token”在部署配置上清晰可见。</p>
  */
-@AutoConfiguration(after = JwtDecoderConfiguration.class)
+@AutoConfiguration
 @ConditionalOnClass(JwtEncoder.class)
 @EnableConfigurationProperties(SecurityProperties.class)
 @ConditionalOnProperty(prefix = "security.jwt", name = "private-key")

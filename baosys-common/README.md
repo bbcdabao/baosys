@@ -46,12 +46,12 @@ Common 不负责用户查询、登录接口、Refresh Token 存储、账号启�
 
 Common 中 Gateway 和 Servlet API 依赖为 `optional`。使用方仍需引入自身 Web 技术栈：Servlet 服务使用 `spring-boot-starter-web`，网关使用 `spring-cloud-starter-gateway-server-webflux`。
 
-自动配置登记在 [AutoConfiguration.imports](src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports)：
+`PasswordAutoConfiguration` 和 `JwtEncoderConfiguration` 登记在 [AutoConfiguration.imports](src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports)。`JwtDecoderConfiguration` 由两种安全接入注解对应的组合配置通过 `@Import` 引入，不再独立登记为自动配置：
 
 | 入口 | 启用条件 | 主要 Bean / 能力 |
 |---|---|---|
 | `PasswordAutoConfiguration` | `common.password.enabled=true` 且 BCrypt 类可用 | `PasswordHasher` |
-| `JwtDecoderConfiguration` | 配置 `security.jwt.public-key` 且 JWT 类可用 | `JwtDecoder`；响应式依赖可用时另提供 `ReactiveJwtDecoder` |
+| `JwtDecoderConfiguration` | 由安全组合配置导入，配置 `security.jwt.public-key` 且 JWT 类可用 | `JwtDecoder`；响应式依赖可用时另提供 `ReactiveJwtDecoder` |
 | `JwtEncoderConfiguration` | 配置 `security.jwt.private-key` 且 JWT 类可用；创建默认编码器还需要公钥 | `JwtEncoder`、`JwtTokenService` |
 | `@EnableAuthenticationCheck` | 网关应用显式声明 | 网关安全链、Cookie 转发；配置开关开启时增加 CSRF Filter |
 | `@EnableUltraViresCheck` | Servlet 应用显式声明 | 资源服务安全链、JWT 权限转换、`@EnableMethodSecurity` |
