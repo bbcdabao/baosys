@@ -22,7 +22,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockCookie;
 
 import baosys.manager.PostgreSqlIntegrationTest;
-import baosys.manager.api.enums.SystemType;
 import baosys.manager.infra.database.mapper.UserInfoMapper;
 import baosys.manager.infra.database.mapper.UserLoginMapper;
 
@@ -43,7 +42,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void shouldGetCurrentUserFromAccessTokenSubject() throws Exception {
         var admin = userMapper
-                .findByUserNameAndSystemType("admin", SystemType.MANAGER)
+                .findByUserNameAndSystemType("admin", "MANAGER")
                 .orElseThrow();
 
         mockMvc.perform(get("/v1/users/me")
@@ -92,7 +91,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
                 .getContentAsString();
 
         var user = userMapper
-                .findByUserNameAndSystemType(username, SystemType.SIMULATORS)
+                .findByUserNameAndSystemType(username, "SIMULATORS")
                 .orElseThrow();
         assertThat(user.getUserPass()).isNotEqualTo("secure123");
 

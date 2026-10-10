@@ -14,7 +14,6 @@ import baosys.manager.app.config.AuthProperties;
 import baosys.manager.app.services.AuthAppService;
 import baosys.manager.app.services.LoginResult;
 import baosys.manager.api.dto.LoginRequest;
-import baosys.manager.api.enums.SystemType;
 
 class AuthControllerTest {
 
@@ -44,7 +43,7 @@ class AuthControllerTest {
         controller.login(new LoginRequest(
                 "admin",
                 "password",
-                SystemType.MANAGER,
+                "MANAGER",
                 "test-client"));
 
         assertThat(response.getHeaders("Set-Cookie"))

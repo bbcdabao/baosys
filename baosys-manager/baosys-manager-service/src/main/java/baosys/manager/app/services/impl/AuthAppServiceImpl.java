@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import baosys.common.security.jwt.JwtTokenService;
 import baosys.common.security.password.PasswordHasher;
 import baosys.manager.app.config.AuthProperties;
+import baosys.manager.app.config.SystemCatalog;
 import baosys.manager.app.error.BusinessException;
 import baosys.manager.app.error.InvalidCredentialsException;
 import baosys.manager.app.services.AuthAppService;
@@ -38,6 +39,7 @@ public class AuthAppServiceImpl implements AuthAppService {
     private final UserInfoMapper userMapper;
     private final UserLoginMapper loginMapper;
     private final AuthProperties authProperties;
+    private final SystemCatalog catalog;
 
     public AuthAppServiceImpl(
             JwtTokenService tokenService,
@@ -45,7 +47,8 @@ public class AuthAppServiceImpl implements AuthAppService {
             RefreshTokenProvider refreshTokenProvider,
             UserInfoMapper userMapper,
             UserLoginMapper loginMapper,
-            AuthProperties authProperties) {
+            AuthProperties authProperties, SystemCatalog catalog) {
+        this.catalog = catalog;
         this.tokenService = tokenService;
         this.passwordHasher = passwordHasher;
         this.refreshTokenProvider = refreshTokenProvider;
@@ -57,6 +60,9 @@ public class AuthAppServiceImpl implements AuthAppService {
     @Override
     @Transactional
     public LoginResult login(LoginRequest request) {
+        if (!catalog.contains(request.systemType())) {
+            throw new InvalidCredentialsException();
+        }
         String username = request.username().trim();
         UserInfoEntity user = userMapper
                 .findByUserNameAndSystemTypeForUpdate(
@@ -106,6 +112,7 @@ public class AuthAppServiceImpl implements AuthAppService {
                 .orElseThrow(AuthAppServiceImpl::refreshDenied);
         UserInfoEntity user = userMapper.findByIdForUpdate(candidate.getUserInfoId())
                 .filter(UserInfoEntity::isEnabled)
+                .filter(candidateUser -> catalog.contains(candidateUser.getSystemType()))
                 .orElseThrow(AuthAppServiceImpl::refreshDenied);
         UserLoginEntity login = loginMapper
                 .findActiveByRefreshTokenHashForUpdate(
@@ -151,9 +158,10 @@ public class AuthAppServiceImpl implements AuthAppService {
      */
     private LoginResult createResult(UserInfoEntity user, String refreshToken) {
         String userPermissions = user.getUserPermissions();
-        String systemType = user.getSystemType().name();
+        String systemType = user.getSystemType();
         List<String> permissions = PermissionPersistenceConverter.decode(userPermissions)
                 .stream()
+                .filter(catalog.codes(systemType)::contains)
                 .sorted()
                 .toList();
         String accessToken = tokenService.generateAccessToken(

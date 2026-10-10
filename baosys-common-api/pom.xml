@@ -13,6 +13,7 @@
 
   <artifactId>baosys-common-api</artifactId>
   <packaging>jar</packaging>
+
   <name>BaoSys Common API</name>
   <description>Lightweight platform-wide API contracts</description>
 </project>

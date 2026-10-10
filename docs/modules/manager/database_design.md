@@ -77,14 +77,16 @@ erDiagram
 约束：
 
 ```text
-ck_user_info_system_type
-  system_type IN ('MANAGER', 'SIMULATION', 'SIMULATORS')
+ck_user_info_system_type_format
+  system_type ~ '^[A-Z][A-Z0-9_]{0,31}$'
 
 uk_user_info_user_name_system_type
   UNIQUE (user_name, system_type)
 ```
 
 同一用户名允许在不同系统中存在，但同一系统中必须唯一。
+
+V2 迁移移除 V1 的固定系统名单，系统是否注册由根目录 `baosys-systems.yml` 校验。升级时保留原 V1 文件和已有数据。
 
 ## 4. `user_login`
 
@@ -147,7 +149,7 @@ mybatis-plus:
 
 ```text
 Set<String>
-  → 按 PermissionCode 顺序排序
+  → 按权限编码字典序稳定排序
   → 逗号连接
   → user_permissions
 ```

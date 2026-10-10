@@ -71,7 +71,7 @@ flowchart LR
 - `ApiResponse<T>`。
 - `PageResponse<T>`。
 
-`baosys-common` 提供可复用实现：
+`baosys-common` 仅保留无安全依赖的兼容入口。独立的 common-password 与 common-security-* 模块分别提供：
 
 - BCrypt 密码处理。
 - RSA JWT 编码与解码。
@@ -97,23 +97,35 @@ Manager 当前独占自己的业务表：
 flowchart TD
     Root["baosys root pom"]
     CommonApi["baosys-common-api"]
-    Common["baosys-common"]
+    Core["baosys-common-security-core"]
+    Issuer["baosys-common-security-issuer"]
+    Resource["baosys-common-security-resource"]
+    Gateway["baosys-common-security-gateway"]
+    Password["baosys-common-password"]
     ManagerApi["baosys-manager-api"]
     ManagerService["baosys-manager-service"]
     ManagerWeb["baosys-manager-web"]
     ManagerUi["baosys-manager-ui"]
 
     Root --> CommonApi
-    Root --> Common
+    Root --> Core
     Root --> ManagerApi
     Root --> ManagerService
     Root --> ManagerWeb
 
-    Common --> CommonApi
+    Issuer --> Core
+    Resource --> Core
+    Resource --> CommonApi
+    Gateway --> Core
+    Gateway --> CommonApi
     ManagerApi --> CommonApi
     ManagerService --> ManagerApi
-    ManagerService --> Common
-    ManagerWeb --> Common
+    ManagerService --> CommonApi
+    ManagerService --> Core
+    ManagerService --> Issuer
+    ManagerService --> Resource
+    ManagerService --> Password
+    ManagerWeb --> Gateway
     ManagerWeb -. "构建并复制 dist" .-> ManagerUi
 ```
 
@@ -123,6 +135,7 @@ flowchart TD
 2. 业务服务之间只通过 API Jar 或网络契约协作。
 3. Common 不依赖具体业务模块。
 4. UI 不加入 Maven Reactor，由 Manager Web 构建插件集成。
+5. 每个模块显式声明其源码使用的依赖；公共库与应用 starter 的边界见 [Maven 依赖边界](dependency-boundaries.md)。
 
 ## 5. HTTP 路径模型
 
@@ -183,9 +196,9 @@ sequenceDiagram
 | 能力 | 当前实现位置 |
 |---|---|
 | 统一响应 | `baosys-common-api` |
-| 密码和 JWT | `baosys-common` |
-| 网关认证 | `baosys-common` + `baosys-manager-web` |
-| 服务授权 | `baosys-common` + `@PreAuthorize` |
+| 密码和 JWT | `baosys-common-password`、`baosys-common-security-issuer` |
+| 网关认证 | `baosys-common-security-gateway` + `baosys-manager-web` |
+| 服务授权 | `baosys-common-security-resource` + `@PreAuthorize` |
 | Trace ID | Manager Service `TraceIdFilter` |
 | 日志格式 | 各可启动模块 `logback-spring.xml` |
 | 健康检查 | Spring Boot Actuator |

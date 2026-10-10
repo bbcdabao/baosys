@@ -27,7 +27,7 @@
 ```text
 baosys
 ├── baosys-common-api                 # 平台公共接口协议
-├── baosys-common                     # 平台公共实现与自动配置
+├── baosys-common                     # 兼容基础入口，无安全装配
 ├── baosys-manager
 │   ├── baosys-manager-api            # manager 对外契约
 │   └── baosys-manager-service        # manager 可启动服务
@@ -40,7 +40,9 @@ baosys
 | 模块类型 | 是否可启动 | 主要内容 |
 |---|---:|---|
 | `baosys-common-api` | 否 | `ApiResponse`、`PageResponse` 等平台公共协议 |
-| `baosys-common` | 否 | 安全、密码、JWT、网关与资源服务自动配置 |
+| `baosys-common` | 否 | 兼容基础入口，无安全装配 |
+| `baosys-common-security-*` | 否 | core / issuer / resource / gateway 分离的安全能力 |
+| `baosys-common-password` | 否 | 密码编码自动配置 |
 | `xxx-api` | 否 | 当前服务的 HTTP 接口、请求/响应 DTO、公开枚举 |
 | `xxx-service` | 是 | Controller、应用服务、业务规则和基础设施实现 |
 | `xxx-web` | 是 | 网关路由、统一入口、SPA 静态资源宿主 |
@@ -54,15 +56,16 @@ baosys
 xxx-service
     ├── xxx-api
     │     └── baosys-common-api
-    └── baosys-common
+    └── baosys-common-security-resource
 
 yyy-service（调用方）
     └── xxx-api
           └── baosys-common-api
 
 xxx-web
-    └── baosys-common
-          └── baosys-common-api
+    └── baosys-common-security-gateway
+          └── baosys-common-security-core
+                └── baosys-common-api
 ```
 
 必须遵守：
@@ -338,7 +341,7 @@ public class SampleApplication {
 }
 ```
 
-服务需要平台公共能力时，通过 `baosys-common` 提供的自动配置或启用注解接入，禁止复制公共实现。
+服务需要平台公共能力时，通过对应 `baosys-common-security-*` / `baosys-common-password` 模块提供的自动配置或启用注解接入，禁止复制公共实现。
 
 ### 7.2 Controller
 
@@ -466,11 +469,11 @@ baosys.common.api
 - Spring Security、数据库或网关实现。
 - 无明确复用场景的工具类。
 
-### 8.2 `baosys-common`
+### 8.2 Common 实现模块
 
 现有能力、启用注解、条件装配和配置示例见 [Common 模块说明](../baosys-common/README.md)。
 
-负责可复用的技术能力和 Spring 自动配置。新增公共能力时建议采用：
+安全能力按 core、issuer、resource、gateway 分开依赖，密码独立为 common-password；旧 common 仅兼容基础依赖。签发和密码模块登记自动配置，resource/gateway 由原启用注解显式导入，不注册基础 imports。新增可复用自动配置能力时建议采用：
 
 ```text
 接口或配置属性
@@ -488,7 +491,7 @@ AutoConfiguration
 META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 ```
 
-只有跨两个及以上服务、且语义稳定的能力才进入 `baosys-common`。不要把 Common 变成无法治理的 `utils` 集合。
+只有跨两个及以上服务、且语义稳定的能力才进入对应 Common 实现模块。不要把 Common 变成无法治理的 `utils` 集合。
 
 ## 9. HTTP 路径规范
 
@@ -841,7 +844,7 @@ mvn -Pintegration-tests verify "-Dskip.frontend=true"
 | 规范角色 | 当前实现 |
 |---|---|
 | 平台公共协议 | `baosys-common-api` |
-| 平台公共自动配置 | `baosys-common` |
+| 平台公共自动配置 | 对应的 Common 功能模块 |
 | 业务契约 Jar | `baosys-manager-api` |
 | 业务实现服务 | `baosys-manager-service` |
 | 简单业务分层示例 | `UserAppServiceImpl`、`UserInfoMapper` |

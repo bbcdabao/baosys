@@ -12,8 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import baosys.common.security.password.PasswordHasher;
-import baosys.manager.app.model.PermissionCode;
-import baosys.manager.api.enums.SystemType;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.PermissionChangeAuditEntity;
 import baosys.manager.infra.database.entity.UserInfoEntity;
@@ -34,12 +32,14 @@ public class DefaultAdminInitializer implements ApplicationRunner {
     private final PermissionChangeAuditMapper permissionChangeAuditMapper;
     private final PasswordHasher passwordHasher;
     private final AuthProperties properties;
+    private final SystemCatalog catalog;
 
     public DefaultAdminInitializer(
             UserInfoMapper userMapper,
             PermissionChangeAuditMapper permissionChangeAuditMapper,
             PasswordHasher passwordHasher,
-            AuthProperties properties) {
+            AuthProperties properties, SystemCatalog catalog) {
+        this.catalog = catalog;
         this.userMapper = userMapper;
         this.permissionChangeAuditMapper = permissionChangeAuditMapper;
         this.passwordHasher = passwordHasher;
@@ -51,15 +51,15 @@ public class DefaultAdminInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         String username = requireUsername(properties.getDefaultAdminUsername());
         String password = requirePassword(properties.getDefaultAdminPassword());
-        if (userMapper.existsByUserNameAndSystemType(username, SystemType.MANAGER)) {
+        if (userMapper.existsByUserNameAndSystemType(username, "MANAGER")) {
             return;
         }
 
         UserInfoEntity admin = new UserInfoEntity();
         String permissions = PermissionPersistenceConverter.encode(
-                PermissionCode.codes(SystemType.MANAGER));
+                catalog.codes("MANAGER"));
         admin.setUserName(username);
-        admin.setSystemType(SystemType.MANAGER);
+        admin.setSystemType("MANAGER");
         admin.setUserPass(passwordHasher.hash(password));
         admin.setUserPermissions(permissions);
         admin.setEnabled(true);

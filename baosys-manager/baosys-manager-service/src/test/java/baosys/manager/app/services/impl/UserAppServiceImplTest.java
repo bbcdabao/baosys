@@ -16,7 +16,6 @@ import org.mockito.ArgumentCaptor;
 import baosys.common.security.password.PasswordHasher;
 import baosys.manager.app.error.BusinessException;
 import baosys.manager.api.dto.UserUpdateRequest;
-import baosys.manager.api.enums.SystemType;
 import baosys.manager.infra.database.entity.PermissionChangeAuditEntity;
 import baosys.manager.infra.database.entity.UserInfoEntity;
 import baosys.manager.infra.database.mapper.PermissionChangeAuditMapper;
@@ -33,34 +32,34 @@ class UserAppServiceImplTest {
             userMapper,
             loginMapper,
             auditMapper,
-            passwordHasher);
+            passwordHasher, baosys.manager.app.config.CatalogFixture.load());
 
     @Test
     void shouldLoadCurrentSystemTypeFromPersistedUser() {
         UserInfoEntity user = new UserInfoEntity();
         user.setId(1001L);
         user.setUserName("simulator");
-        user.setSystemType(SystemType.SIMULATORS);
+        user.setSystemType("SIMULATORS");
         user.setUserPermissions("");
         when(userMapper.findById(1001L)).thenReturn(Optional.of(user));
 
         var currentUser = userAppService.currentUser(1001L);
 
         assertThat(currentUser.userId()).isEqualTo(1001L);
-        assertThat(currentUser.systemType()).isEqualTo(SystemType.SIMULATORS);
+        assertThat(currentUser.systemType()).isEqualTo("SIMULATORS");
         assertThat(currentUser.permissions()).isEmpty();
     }
 
     @Test
     void shouldAllowEmptyPermissionsWhenSystemPermissionCatalogIsEmpty() {
-        UserInfoEntity user = user(SystemType.SIMULATION, "");
+        UserInfoEntity user = user("SIMULATION", "");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         var updated = userAppService.update(new UserUpdateRequest(
                 1001L,
                 "simulation-user",
                 "",
-                SystemType.SIMULATION,
+                "SIMULATION",
                 Set.of(),
                 true), 9001L);
 
@@ -71,7 +70,7 @@ class UserAppServiceImplTest {
     @Test
     void shouldRejectEmptyPermissionsWhenSystemPermissionCatalogIsNotEmpty() {
         UserInfoEntity user = user(
-                SystemType.MANAGER,
+                "MANAGER",
                 "user:list");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
@@ -79,7 +78,7 @@ class UserAppServiceImplTest {
                 1001L,
                 "manager-user",
                 "",
-                SystemType.MANAGER,
+                "MANAGER",
                 Set.of(),
                 true), 9001L))
                 .isInstanceOf(BusinessException.class)
@@ -89,7 +88,7 @@ class UserAppServiceImplTest {
     @Test
     void shouldRevokeSessionsAndAuditPermissionChange() {
         UserInfoEntity user = user(
-                SystemType.MANAGER,
+                "MANAGER",
                 "user:list");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
@@ -97,7 +96,7 @@ class UserAppServiceImplTest {
                 1001L,
                 "manager-user",
                 "",
-                SystemType.MANAGER,
+                "MANAGER",
                 Set.of("user:update"),
                 true), 9001L);
 
@@ -118,7 +117,7 @@ class UserAppServiceImplTest {
     @Test
     void shouldRevokeSessionsAndAuditWhenAccountIsDisabled() {
         UserInfoEntity user = user(
-                SystemType.MANAGER,
+                "MANAGER",
                 "user:list");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
@@ -126,7 +125,7 @@ class UserAppServiceImplTest {
                 1001L,
                 "manager-user",
                 "",
-                SystemType.MANAGER,
+                "MANAGER",
                 Set.of("user:list"),
                 false), 9001L);
 
@@ -141,7 +140,7 @@ class UserAppServiceImplTest {
     @Test
     void shouldKeepSessionsWhenAuthorizationDoesNotChange() {
         UserInfoEntity user = user(
-                SystemType.MANAGER,
+                "MANAGER",
                 "user:list");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
@@ -149,7 +148,7 @@ class UserAppServiceImplTest {
                 1001L,
                 "renamed-user",
                 "",
-                SystemType.MANAGER,
+                "MANAGER",
                 Set.of("user:list"),
                 true), 9001L);
 
@@ -160,29 +159,29 @@ class UserAppServiceImplTest {
 
     @Test
     void shouldPreserveDisabledStateWhenUpdateOmitsEnabled() {
-        UserInfoEntity user = user(SystemType.MANAGER, "user:list");
+        UserInfoEntity user = user("MANAGER", "user:list");
         user.setEnabled(false);
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
         var result = userAppService.update(new UserUpdateRequest(
-                1001L, "renamed", "", SystemType.MANAGER, Set.of("user:list"), null), 9001L);
+                1001L, "renamed", "", "MANAGER", Set.of("user:list"), null), 9001L);
         assertThat(result.enabled()).isFalse();
         verify(loginMapper, never()).deleteByUserId(1001L);
     }
 
     @Test
     void shouldRevokeSessionsAfterPasswordChange() {
-        UserInfoEntity user = user(SystemType.MANAGER, "user:list");
+        UserInfoEntity user = user("MANAGER", "user:list");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
         when(passwordHasher.hash("new-password")).thenReturn("encoded");
         userAppService.update(new UserUpdateRequest(
-                1001L, "test-user", "new-password", SystemType.MANAGER, Set.of("user:list"), true), 9001L);
+                1001L, "test-user", "new-password", "MANAGER", Set.of("user:list"), true), 9001L);
         verify(loginMapper).deleteByUserId(1001L);
         assertThat(user.getUserPass()).isEqualTo("encoded");
     }
 
     @Test
     void shouldDeleteSessionsAndRetainDeletionAudit() {
-        UserInfoEntity user = user(SystemType.MANAGER, "user:list");
+        UserInfoEntity user = user("MANAGER", "user:list");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
         userAppService.delete(1001L, 9001L);
         verify(loginMapper).deleteByUserId(1001L);
@@ -195,7 +194,7 @@ class UserAppServiceImplTest {
     }
 
     private static UserInfoEntity user(
-            SystemType systemType,
+            String systemType,
             String permissions) {
         UserInfoEntity user = new UserInfoEntity();
         user.setId(1001L);
@@ -210,7 +209,7 @@ class UserAppServiceImplTest {
             long id,
             String name,
             String permissions) {
-        UserInfoEntity user = user(SystemType.MANAGER, permissions);
+        UserInfoEntity user = user("MANAGER", permissions);
         user.setId(id);
         user.setUserName(name);
         return user;

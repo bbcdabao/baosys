@@ -1,5 +1,7 @@
 # BaoSys 环境变量说明
 
+子系统目录通过 `BAOSYS_SYSTEMS_CONFIG` 指定，默认 `classpath:baosys-systems.yml`（构建时取工程根目录文件）。外部文件示例：`file:/config/baosys-systems.yml`；需提供完整目录并重启 manager。详见[子系统接入指南](../subsystem-onboarding.md)。
+
 ## 1. 配置来源与优先级
 
 当前应用主要通过 `application.yml` 中的 `${ENV:default}` 读取环境变量。
@@ -95,7 +97,7 @@ security.jwt.public-key
 security.jwt.private-key
 ```
 
-它们当前没有使用 `${JWT_PUBLIC_KEY}` / `${JWT_PRIVATE_KEY}` 占位符。需要外部化时，应提供外部 Spring 配置文件或修改 YAML 为显式环境变量占位符，并确保 Manager Web 使用同一公钥。
+它们当前没有使用 `${JWT_PUBLIC_KEY}` / `${JWT_PRIVATE_KEY}` 占位符。需要外部化时，应提供外部 Spring 配置文件或修改 YAML 为显式环境变量占位符，Manager Web 默认通过 JWKS 获取对应公钥，也可显式配置本地公钥。
 
 ### 2.6 CSRF
 
@@ -131,16 +133,17 @@ baosys-manager-web/src/main/resources/application.yml
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
 | `JWT_ISSUER` | `auth-server` | 必须与签发端一致 |
+| `JWT_JWK_SET_URI` | `http://127.0.0.1:9090/baosys-manager/oauth2/jwks` | 固定可信 manager 公钥接口；更改端口/context-path 时同步修改 |
 | `SYSTEM_TYPE` | `MANAGER` | Manager 网关只接受该子系统的 JWT |
 | `GATEWAY_CSRF_ENABLED` | `false` | 是否启用网关 CSRF Filter |
 
-网关公钥当前位于：
+网关默认通过上述 JWKS 地址按请求懒获取，缓存 5 分钟；未知 kid 不提前刷新，失败退避 5 秒。显式设置 public-key 或 public-key-location 后始终使用本地公钥，完全停止远程获取。内联配置名称：
 
 ```text
 security.jwt.public-key
 ```
 
-Manager Web 不需要私钥。
+Manager Web 不需要私钥。子系统隔离使用 `security.system-type`：配置后要求令牌中的 `systemType` 与其一致。公钥接口在 manager 的 `/oauth2/jwks`，网关路径为 `/api/baosys-manager/oauth2/jwks`。轮换配置见 [JWT 配置方案](../superpowers/plans/2026-10-09-common-jwt-refactor.md)。
 
 ## 4. 前端
 

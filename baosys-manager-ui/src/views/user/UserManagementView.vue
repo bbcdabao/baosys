@@ -27,11 +27,11 @@
             :placeholder="t('user.allPlatforms')"
           >
             <a-option
-              v-for="option in SYSTEM_TYPE_OPTIONS"
+              v-for="option in systemOptions"
               :key="option.value"
               :value="option.value"
             >
-              {{ t(option.labelKey) }}
+              {{ option.label }}
             </a-option>
           </a-select>
         </a-form-item>
@@ -56,13 +56,13 @@
       >
         <template #systemType="{ record }">
           <a-tag color="arcoblue">
-            {{ t(systemTypeLabelKey(record.systemType)) }}
+            {{ systemLabel(record.systemType) }}
           </a-tag>
         </template>
         <template #permissions="{ record }">
           <a-space wrap>
             <a-tag v-for="permission in record.permissions" :key="permission">
-              {{ t(permissionLabelKey(record.systemType, permission)) }}
+              {{ permissionLabel(record.systemType, permission) }}
             </a-tag>
           </a-space>
         </template>
@@ -133,11 +133,11 @@
         <a-form-item field="systemType" :label="t('user.systemType')">
           <a-select v-model="form.systemType" @change="clearSelectedPermissions">
             <a-option
-              v-for="option in SYSTEM_TYPE_OPTIONS"
+              v-for="option in systemOptions"
               :key="option.value"
               :value="option.value"
             >
-              {{ t(option.labelKey) }}
+              {{ option.label }}
             </a-option>
           </a-select>
         </a-form-item>
@@ -153,7 +153,7 @@
               :key="permission.code"
               :value="permission.code"
             >
-              {{ t(permission.labelKey) }}
+              {{ permission.label }}
             </a-option>
           </a-select>
         </a-form-item>
@@ -183,15 +183,13 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { createUser, deleteUser, listUsers, updateUser } from '@/api/user'
-import {
-  permissionLabelKey,
-  permissionOptionsFor
-} from '@/constants/permissions'
-import { SYSTEM_TYPE_OPTIONS, systemTypeLabelKey } from '@/constants/systemTypes'
+import { useSystemCatalog } from '@/composables/useSystemCatalog'
+
 import { useAuthStore } from '@/store/auth'
 import type { SystemType, UserSummary } from '@/types/user'
 
 const { t } = useI18n()
+const { systemOptions, systemLabel, permissionOptionsFor, permissionLabel } = useSystemCatalog()
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)

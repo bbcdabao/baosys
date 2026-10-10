@@ -1,11 +1,9 @@
 package baosys.manager.infra.database.converter;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import baosys.manager.app.model.PermissionCode;
 
 public final class PermissionPersistenceConverter {
 
@@ -24,7 +22,7 @@ public final class PermissionPersistenceConverter {
 
     public static String encode(Set<String> permissions) {
         return permissions.stream()
-                .sorted(Comparator.comparingInt(PermissionCode::order))
+                .sorted()
                 .collect(Collectors.joining(","));
     }
 }

@@ -16,15 +16,14 @@ import baosys.common.api.PageResponse;
 import baosys.common.security.password.PasswordHasher;
 import baosys.manager.app.assembler.UserAssembler;
 import baosys.manager.app.config.web.TraceIds;
+import baosys.manager.app.config.SystemCatalog;
 import baosys.manager.app.error.BusinessException;
-import baosys.manager.app.model.PermissionCode;
 import baosys.manager.app.services.UserAppService;
 import baosys.manager.api.dto.CurrentUserResponse;
 import baosys.manager.api.dto.LoginClientResponse;
 import baosys.manager.api.dto.UserCreateRequest;
 import baosys.manager.api.dto.UserResponse;
 import baosys.manager.api.dto.UserUpdateRequest;
-import baosys.manager.api.enums.SystemType;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.PermissionChangeAuditEntity;
 import baosys.manager.infra.database.entity.UserInfoEntity;
@@ -41,12 +40,14 @@ public class UserAppServiceImpl implements UserAppService {
     private final UserLoginMapper loginMapper;
     private final PermissionChangeAuditMapper permissionChangeAuditMapper;
     private final PasswordHasher passwordHasher;
+    private final SystemCatalog catalog;
 
     public UserAppServiceImpl(
             UserInfoMapper userMapper,
             UserLoginMapper loginMapper,
             PermissionChangeAuditMapper permissionChangeAuditMapper,
-            PasswordHasher passwordHasher) {
+            PasswordHasher passwordHasher, SystemCatalog catalog) {
+        this.catalog = catalog;
         this.userMapper = userMapper;
         this.loginMapper = loginMapper;
         this.permissionChangeAuditMapper = permissionChangeAuditMapper;
@@ -75,7 +76,7 @@ public class UserAppServiceImpl implements UserAppService {
     @Transactional(readOnly = true)
     public PageResponse<UserResponse> list(
             String name,
-            SystemType systemType,
+            String systemType,
             int page,
             int size) {
         var result = userMapper.selectPageByNameAndSystemType(
@@ -91,12 +92,11 @@ public class UserAppServiceImpl implements UserAppService {
                         user,
                         onlineUserIds.contains(user.getId())))
                 .toList();
-        return new PageResponse<>(
+        return PageResponse.of(
                 items,
                 result.getTotal(),
                 page,
-                size,
-                Math.toIntExact(result.getPages()));
+                size);
     }
 
     @Override
@@ -155,7 +155,7 @@ public class UserAppServiceImpl implements UserAppService {
             throw new BusinessException("USER_409_001", HttpStatus.CONFLICT, "账户名称已存在");
         }
 
-        boolean systemTypeChanged = user.getSystemType() != request.systemType();
+        boolean systemTypeChanged = !Objects.equals(user.getSystemType(), request.systemType());
         boolean passwordChanged = false;
         boolean authorizationChanged = !Objects.equals(
                 beforePermissions,
@@ -291,19 +291,22 @@ public class UserAppServiceImpl implements UserAppService {
         permissionChangeAuditMapper.insert(audit);
     }
 
-    private static Set<String> validatePermissions(
-            SystemType systemType,
+    private Set<String> validatePermissions(
+            String systemType,
             Set<String> permissions) {
-        Set<String> availablePermissions = PermissionCode.codes(systemType);
-        if (systemType == null
+        Set<String> availablePermissions = catalog.codes(systemType);
+        if (!catalog.contains(systemType)
                 || permissions == null
                 || (!availablePermissions.isEmpty() && permissions.isEmpty())
                 || permissions.stream().anyMatch(
-                        permission -> !PermissionCode.isValid(systemType, permission))) {
+                        permission -> permission == null || !availablePermissions.contains(permission))) {
             throw new BusinessException(
                     "USER_400_002",
                     HttpStatus.BAD_REQUEST,
                     "权限配置错误");
+        }
+        if (PermissionPersistenceConverter.encode(permissions).length() > 1024) {
+            throw new BusinessException("USER_400_002", HttpStatus.BAD_REQUEST, "权限配置总长度不能超过 1024 个字符");
         }
         return Set.copyOf(permissions);
     }

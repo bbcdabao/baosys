@@ -6,6 +6,8 @@ server:
     context-path: ${MANAGER_CONTEXT_PATH:/baosys-manager}
 
 spring:
+  config:
+    import: ${BAOSYS_SYSTEMS_CONFIG:classpath:baosys-systems.yml}
   application:
     name: baosys-manager
   lifecycle:
@@ -73,6 +75,7 @@ security:
       cookie-name: BAOSYS_CSRF_TOKEN
   resource:
     permit-all-paths:
+      - /oauth2/jwks
       - /v1/auth/login
       - /v1/auth/refresh
       - /v1/auth/logout

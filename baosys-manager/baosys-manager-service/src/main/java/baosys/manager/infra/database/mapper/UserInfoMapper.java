@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
-import baosys.manager.api.enums.SystemType;
 import baosys.manager.infra.database.entity.UserInfoEntity;
 
 public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
@@ -25,7 +24,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
 
     default Optional<UserInfoEntity> findByUserNameAndSystemType(
             String userName,
-            SystemType systemType) {
+            String systemType) {
         return Optional.ofNullable(selectOne(Wrappers.<UserInfoEntity>lambdaQuery()
                 .eq(UserInfoEntity::getUserName, userName)
                 .eq(UserInfoEntity::getSystemType, systemType)));
@@ -33,14 +32,14 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
 
     default Optional<UserInfoEntity> findByUserNameAndSystemTypeForUpdate(
             String userName,
-            SystemType systemType) {
+            String systemType) {
         return Optional.ofNullable(selectOne(Wrappers.<UserInfoEntity>lambdaQuery()
                 .eq(UserInfoEntity::getUserName, userName)
                 .eq(UserInfoEntity::getSystemType, systemType)
                 .last("FOR UPDATE")));
     }
 
-    default boolean existsByUserNameAndSystemType(String userName, SystemType systemType) {
+    default boolean existsByUserNameAndSystemType(String userName, String systemType) {
         return selectCount(Wrappers.<UserInfoEntity>lambdaQuery()
                 .eq(UserInfoEntity::getUserName, userName)
                 .eq(UserInfoEntity::getSystemType, systemType)) > 0;
@@ -48,7 +47,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
 
     default boolean existsByUserNameAndSystemTypeExcludingId(
             String userName,
-            SystemType systemType,
+            String systemType,
             Long id) {
         return selectCount(Wrappers.<UserInfoEntity>lambdaQuery()
                 .eq(UserInfoEntity::getUserName, userName)
@@ -58,7 +57,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
 
     default IPage<UserInfoEntity> selectPageByNameAndSystemType(
             String name,
-            SystemType systemType,
+            String systemType,
             int page,
             int size) {
         var query = Wrappers.<UserInfoEntity>lambdaQuery()

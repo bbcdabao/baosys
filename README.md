@@ -37,7 +37,12 @@ baosys
 ├── baosys-common-api
 │   └── 平台统一响应和分页协议
 ├── baosys-common
-│   └── 密码、JWT、网关和资源服务公共能力
+│   └── 兼容基础入口，不加载安全组件
+├── baosys-common-security-core
+├── baosys-common-security-issuer
+├── baosys-common-security-resource
+├── baosys-common-security-gateway
+├── baosys-common-password
 ├── baosys-manager
 │   ├── baosys-manager-api
 │   └── baosys-manager-service
@@ -217,7 +222,7 @@ baosys-manager-web/target/baosys-manager-web.jar
 当前版本定位为基础工程和 Manager 第一阶段：
 
 - 权限直接配置到用户，尚未实现角色模型。
-- `SIMULATION` 和 `SIMULATORS` 已预留系统类型，尚未配置权限目录。
+- 子系统及权限统一维护在根目录 [`baosys-systems.yml`](baosys-systems.yml)；默认预留 `SIMULATION` 和 `SIMULATORS`，权限列表为空。新增系统参见[接入指南](docs/subsystem-onboarding.md)。
 - 网关中已预留 `baosys-plant` 路由，但仓库内暂未包含 Plant 服务。
 - 系统配置页面目前以界面骨架为主，尚未形成后端配置管理闭环。
 - 已具备账号授权与启停审计；暂无组织机构、多租户、记录级数据权限、通用业务审计和动态菜单管理。

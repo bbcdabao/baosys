@@ -1,0 +1,24 @@
+# 子系统与可分配权限的唯一目录。修改后重新构建或使用外部文件覆盖，并重启 manager。
+baosys:
+  systems:
+    - system-type: MANAGER
+      name: { zh-CN: 后台管理, en-US: Management }
+      permissions:
+        - code: user:list
+          name: { zh-CN: 查看用户, en-US: View users }
+        - code: user:add
+          name: { zh-CN: 新增用户, en-US: Create users }
+        - code: user:update
+          name: { zh-CN: 修改用户, en-US: Update users }
+        - code: user:delete
+          name: { zh-CN: 删除用户, en-US: Delete users }
+        - code: user:session:list
+          name: { zh-CN: 查看登录会话, en-US: View sessions }
+        - code: user:session:kick
+          name: { zh-CN: 撤销登录会话, en-US: Revoke sessions }
+    - system-type: SIMULATION
+      name: { zh-CN: 仿真平台, en-US: Simulation }
+      permissions: []
+    - system-type: SIMULATORS
+      name: { zh-CN: 试验平台, en-US: Simulators }
+      permissions: []

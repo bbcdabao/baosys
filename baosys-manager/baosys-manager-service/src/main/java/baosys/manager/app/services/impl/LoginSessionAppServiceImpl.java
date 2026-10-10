@@ -36,12 +36,11 @@ public class LoginSessionAppServiceImpl implements LoginSessionAppService {
         var items = result.getRecords().stream()
                 .map(LoginSessionAppServiceImpl::toResponse)
                 .toList();
-        return new PageResponse<>(
+        return PageResponse.of(
                 items,
                 result.getTotal(),
                 page,
-                size,
-                Math.toIntExact(result.getPages()));
+                size);
     }
 
     private static LoginSessionResponse toResponse(LoginSessionRow row) {

@@ -1,5 +1,9 @@
 # BaoSys 文档目录
 
+- [Maven 依赖边界](architecture/dependency-boundaries.md)：直接依赖、公共库与应用 starter 的职责及审计方法。
+
+- [新增子系统接入指南](subsystem-onboarding.md)：根目录配置、双语名称、权限目录和部署覆盖。
+
 本文是仓库文档入口。当前实现说明按主题维护；迁移计划保留为历史资料，不作为部署操作指南。
 
 ## 建议阅读顺序
@@ -25,6 +29,7 @@
 
 ## 设计与历史资料
 
+- [Common 与 JWT 拆分设计](superpowers/plans/2026-10-09-common-jwt-refactor.md)
 - [迁移设计](superpowers/specs/2026-07-09-oceanacoustic-to-baosys-merge-design.md)
 - [首轮迁移计划](superpowers/plans/2026-07-09-oceanacoustic-to-baosys-merge.md)
 - [增量迁移计划](superpowers/plans/2026-09-23-oceanacoustic-incremental-merge.md)

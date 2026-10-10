@@ -33,11 +33,15 @@ import reactor.core.publisher.Mono;
 class GatewaySecurityIntegrationTest {
 
     private static final AtomicReference<String> FORWARDED_URI = new AtomicReference<>();
+    private static final AtomicReference<String> FORWARDED_USER = new AtomicReference<>();
+    private static final AtomicReference<String> FORWARDED_AUTH = new AtomicReference<>();
     private static final DisposableServer MANAGER_SERVICE = HttpServer.create()
             .host("127.0.0.1")
             .port(0)
             .handle((request, response) -> {
                 FORWARDED_URI.set(request.uri());
+                FORWARDED_USER.set(request.requestHeaders().get("X-User-Id"));
+                FORWARDED_AUTH.set(request.requestHeaders().get("Authorization"));
                 return response.status(204).send();
             })
             .bindNow();
@@ -88,6 +92,23 @@ class GatewaySecurityIntegrationTest {
                 .expectStatus().isForbidden()
                 .expectBody()
                 .jsonPath("$.code").isEqualTo("AUTH_403_002");
+    }
+
+    @Test
+    void shouldStripForgedIdentityAndForwardBearerToken() {
+        webTestClient.get().uri("/api/baosys-manager/v1/users")
+                .header("X-User-Id", "forged-admin")
+                .cookie("access_token", "user-token")
+                .exchange().expectStatus().isNoContent();
+        assertThat(FORWARDED_USER.get()).isNull();
+        assertThat(FORWARDED_AUTH.get()).isEqualTo("Bearer user-token");
+    }
+
+    @Test
+    void shouldRouteJwksWithoutAuthentication() {
+        webTestClient.get().uri("/api/baosys-manager/oauth2/jwks")
+                .exchange().expectStatus().isNoContent();
+        assertThat(FORWARDED_URI.get()).isEqualTo("/baosys-manager/oauth2/jwks");
     }
 
     @TestConfiguration

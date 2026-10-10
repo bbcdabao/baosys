@@ -17,7 +17,6 @@ import baosys.manager.api.dto.LoginClientResponse;
 import baosys.manager.api.dto.UserCreateRequest;
 import baosys.manager.api.dto.UserResponse;
 import baosys.manager.api.dto.UserUpdateRequest;
-import baosys.manager.api.enums.SystemType;
 
 @RestController
 @RequestMapping(UserApi.PREFIX)
@@ -40,7 +39,7 @@ public class UserController implements UserApi {
     @PreAuthorize("hasAuthority('user:list')")
     public ApiResponse<PageResponse<UserResponse>> list(
             String name,
-            SystemType systemType,
+            String systemType,
             int page,
             int size) {
         return ApiResponse.success(

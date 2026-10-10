@@ -96,22 +96,5 @@ export default {
     title: 'System Configuration',
     building: 'Under construction...',
     description: 'System-wide configuration is being planned.'
-  },
-  platform: {
-    manager: 'Administration',
-    simulation: 'Simulation',
-    simulators: 'Test Range'
-  },
-  permission: {
-    manager: {
-      list: 'View users',
-      add: 'Create users',
-      update: 'Update users',
-      delete: 'Delete users',
-      sessionList: 'View login sessions',
-      sessionKick: 'Sign out sessions'
-    },
-    simulation: {},
-    simulators: {}
   }
 }

@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 import { login as loginApi, logout as logoutApi } from '@/api/auth'
 import { getCurrentUser } from '@/api/user'
+import { loadSystemCatalog } from '@/composables/useSystemCatalog'
 import type { CurrentUser, LoginRequest } from '@/types/auth'
 import { syncCsrfTokenFromCookie } from '@/utils/authSession'
 
@@ -28,7 +29,8 @@ export const useAuthStore = defineStore('auth', () => {
       return restorePromise
     }
     restorePromise = getCurrentUser()
-      .then(user => {
+      .then(async user => {
+        await loadSystemCatalog()
         updateSession(user)
         syncCsrfTokenFromCookie()
         return user

@@ -43,7 +43,7 @@
         @page-change="changePage"
       >
         <template #systemType="{ record }">
-          <a-tag color="arcoblue">{{ t(systemTypeLabelKey(record.systemType)) }}</a-tag>
+          <a-tag color="arcoblue">{{ systemLabel(record.systemType) }}</a-tag>
         </template>
         <template #loginAt="{ record }">{{ formatTime(record.loginAt) }}</template>
         <template #expiresAt="{ record }">{{ formatTime(record.expiresAt) }}</template>
@@ -73,12 +73,13 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { listLoginSessions } from '@/api/loginSession'
 import { kickAllLoginClients, kickLoginClient } from '@/api/user'
-import { systemTypeLabelKey } from '@/constants/systemTypes'
+import { useSystemCatalog } from '@/composables/useSystemCatalog'
 import { useLocale } from '@/composables/useLocale'
 import { useAuthStore } from '@/store/auth'
 import type { LoginSession } from '@/types/loginSession'
 
 const { t } = useI18n()
+const { systemLabel } = useSystemCatalog()
 const { locale } = useLocale()
 const route = useRoute()
 const router = useRouter()

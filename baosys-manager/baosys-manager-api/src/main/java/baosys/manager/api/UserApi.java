@@ -21,7 +21,6 @@ import baosys.manager.api.dto.LoginClientResponse;
 import baosys.manager.api.dto.UserCreateRequest;
 import baosys.manager.api.dto.UserResponse;
 import baosys.manager.api.dto.UserUpdateRequest;
-import baosys.manager.api.enums.SystemType;
 
 public interface UserApi {
 
@@ -34,7 +33,7 @@ public interface UserApi {
     @GetMapping
     ApiResponse<PageResponse<UserResponse>> list(
             @RequestParam(name = "name", required = false) String name,
-            @RequestParam(name = "systemType", required = false) SystemType systemType,
+            @RequestParam(name = "systemType", required = false) String systemType,
             @Min(0) @RequestParam(name = "page", defaultValue = "0") int page,
             @Min(1) @Max(200) @RequestParam(name = "size", defaultValue = "20") int size);
 

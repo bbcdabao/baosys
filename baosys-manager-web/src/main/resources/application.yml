@@ -61,8 +61,8 @@ management:
 security:
   jwt:
     issuer: ${JWT_ISSUER:auth-server}
-    public-key: |
-      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmTjq5scT6EL92EVo4cWji4nX9fRAKUIB/xYQGgiEH+0qCGPcrPxyJePwLXvcOD58XSk6/qxobaSi37eZUe9vWAuOKWOVio7/8dNQH2xreKtyWjwgm4Yp2Ascag/6AQgvGqRp+zOMFdnlCzn8/0EkWOmniSp5kDk+k6Pw5YahI9V6P2h5xbPGkwiVFifo/dMxfTwJABTAgJvLBa0ergJ7GL5P9IeANxNghgXJexiKJeH+dSaFElvJzTyEzYCAn6uncZn6fTgXhPs44TWlxzVFYv71/J8NqyqrmIz73aG+ktqAMunCbbCHbkCt+s6BhkWBfoyHAvgmM7Z2UIZM0VE33wIDAQAB
+    # Set security.jwt.public-key or public-key-location externally to pin a local key.
+    jwk-set-uri: ${JWT_JWK_SET_URI:http://127.0.0.1:9090/baosys-manager/oauth2/jwks}
   access-token-cookie-name: access_token
   permissions-claim-name: permissions
   system-type: ${SYSTEM_TYPE:MANAGER}
@@ -72,6 +72,7 @@ security:
       enabled: ${GATEWAY_CSRF_ENABLED:false}
       cookie-name: BAOSYS_CSRF_TOKEN
     permit-all-paths:
+      - /api/baosys-manager/oauth2/jwks
       - /api/baosys-manager/v1/auth/login
       - /api/baosys-manager/v1/auth/refresh
       - /api/baosys-manager/v1/auth/logout

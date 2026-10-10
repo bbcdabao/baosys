@@ -8,7 +8,6 @@ import baosys.manager.api.dto.LoginClientResponse;
 import baosys.manager.api.dto.UserCreateRequest;
 import baosys.manager.api.dto.UserResponse;
 import baosys.manager.api.dto.UserUpdateRequest;
-import baosys.manager.api.enums.SystemType;
 
 public interface UserAppService {
 
@@ -16,7 +15,7 @@ public interface UserAppService {
 
     PageResponse<UserResponse> list(
             String name,
-            SystemType systemType,
+            String systemType,
             int page,
             int size);
 

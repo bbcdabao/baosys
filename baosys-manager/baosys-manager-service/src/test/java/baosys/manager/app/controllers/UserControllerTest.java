@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 
 import baosys.manager.app.services.UserAppService;
 import baosys.manager.api.dto.CurrentUserResponse;
-import baosys.manager.api.enums.SystemType;
 
 class UserControllerTest {
 
@@ -24,7 +23,7 @@ class UserControllerTest {
                 1001L,
                 "admin",
                 "admin",
-                SystemType.MANAGER,
+                "MANAGER",
                 List.of("user:list"));
         when(userAppService.currentUser(1001L)).thenReturn(expected);
         UserController controller = new UserController(userAppService);

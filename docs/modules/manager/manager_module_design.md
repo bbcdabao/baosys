@@ -47,8 +47,7 @@ baosys.manager.api
 │   ├── UserResponse
 │   ├── LoginClientResponse
 │   └── LoginSessionResponse
-└── enums
-    └── SystemType
+└── SystemCatalogApi（返回 SystemDefinition 目录）
 ```
 
 API Jar 依赖：
@@ -154,7 +153,7 @@ flowchart TD
 | 参数 | 类型 | 默认值 | 说明 |
 |---|---|---:|---|
 | `name` | String | 空 | 用户名模糊查询 |
-| `systemType` | SystemType | 空 | 系统类型精确查询 |
+| `systemType` | String | 空 | 系统类型精确查询，目录在根配置文件中声明 |
 | `page` | int | 0 | 从 0 开始 |
 | `size` | int | 20 | 1～200 |
 

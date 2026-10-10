@@ -96,22 +96,5 @@ export default {
     title: '系统配置',
     building: '建设中...',
     description: '系统级配置能力正在规划建设。'
-  },
-  platform: {
-    manager: '后台管理',
-    simulation: '仿真平台',
-    simulators: '试验场平台'
-  },
-  permission: {
-    manager: {
-      list: '查看用户',
-      add: '新增用户',
-      update: '修改用户',
-      delete: '删除用户',
-      sessionList: '查看登录状态',
-      sessionKick: '踢出登录状态'
-    },
-    simulation: {},
-    simulators: {}
   }
 }

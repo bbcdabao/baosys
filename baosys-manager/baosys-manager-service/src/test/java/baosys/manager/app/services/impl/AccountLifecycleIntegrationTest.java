@@ -21,7 +21,6 @@ import baosys.manager.api.dto.LoginRequest;
 import baosys.manager.api.dto.UserCreateRequest;
 import baosys.manager.api.dto.UserResponse;
 import baosys.manager.api.dto.UserUpdateRequest;
-import baosys.manager.api.enums.SystemType;
 import baosys.manager.app.error.BusinessException;
 import baosys.manager.app.error.InvalidCredentialsException;
 import baosys.manager.app.services.AuthAppService;
@@ -39,11 +38,11 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT current_schema()", String.class)).isEqualTo("manager");
         assertThat(jdbc.queryForList(
                 "SELECT version FROM flyway_schema_history_manager WHERE success AND type = 'SQL'",
-                String.class)).containsExactly("1");
+                String.class)).containsExactlyInAnyOrder("1", "2");
         UserResponse user = createUser();
         assertThat(user.enabled()).isTrue();
         var login = auth.login(loginRequest(user));
-        users.update(new UserUpdateRequest(user.id(), user.name(), "", SystemType.MANAGER,
+        users.update(new UserUpdateRequest(user.id(), user.name(), "", "MANAGER",
                 Set.of("user:list"), false), 9001L);
         assertThatThrownBy(() -> auth.login(loginRequest(user))).isInstanceOf(InvalidCredentialsException.class);
         assertThatThrownBy(() -> auth.refresh(login.refreshToken())).isInstanceOf(BusinessException.class);
@@ -107,7 +106,7 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
             });
             var disable = executor.submit(() -> {
                 if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Start timed out");
-                users.update(new UserUpdateRequest(user.id(), user.name(), "", SystemType.MANAGER,
+                users.update(new UserUpdateRequest(user.id(), user.name(), "", "MANAGER",
                         Set.of("user:list"), false), 9001L);
                 return null;
             });
@@ -128,10 +127,10 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
 
     private UserResponse createUser() {
         return users.create(new UserCreateRequest("lifecycle-" + UUID.randomUUID(), "secure123",
-                SystemType.MANAGER, Set.of("user:list"), null), 9001L);
+                "MANAGER", Set.of("user:list"), null), 9001L);
     }
 
     private LoginRequest loginRequest(UserResponse user) {
-        return new LoginRequest(user.name(), "secure123", SystemType.MANAGER, "integration-test");
+        return new LoginRequest(user.name(), "secure123", "MANAGER", "integration-test");
     }
 }

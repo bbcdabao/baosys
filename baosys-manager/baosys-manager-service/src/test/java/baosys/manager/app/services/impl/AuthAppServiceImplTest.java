@@ -27,7 +27,6 @@ import baosys.manager.app.error.BusinessException;
 import baosys.manager.app.error.InvalidCredentialsException;
 import baosys.manager.app.services.LoginResult;
 import baosys.manager.api.dto.LoginRequest;
-import baosys.manager.api.enums.SystemType;
 import baosys.manager.infra.database.entity.UserInfoEntity;
 import baosys.manager.infra.database.entity.UserLoginEntity;
 import baosys.manager.infra.database.mapper.UserInfoMapper;
@@ -49,7 +48,7 @@ class AuthAppServiceImplTest {
             refreshTokenProvider,
             userMapper,
             loginMapper,
-            authProperties);
+            authProperties, baosys.manager.app.config.CatalogFixture.load());
 
     @BeforeEach
     void setUp() {
@@ -71,7 +70,7 @@ class AuthAppServiceImplTest {
     void shouldLoginWithPersistedCredentials() {
         UserInfoEntity user = user();
         when(userMapper.findByUserNameAndSystemTypeForUpdate(
-                "admin", SystemType.MANAGER))
+                "admin", "MANAGER"))
                 .thenReturn(Optional.of(user));
         when(passwordHasher.matches("Admin123!test", "encoded")).thenReturn(true);
 
@@ -79,7 +78,7 @@ class AuthAppServiceImplTest {
                 new LoginRequest(
                         "admin",
                         "Admin123!test",
-                        SystemType.MANAGER,
+                        "MANAGER",
                         "test-client"));
 
         assertThat(result.refreshToken()).isEqualTo("refresh-token");
@@ -96,25 +95,25 @@ class AuthAppServiceImplTest {
     @Test
     void shouldRejectInvalidCredentials() {
         when(userMapper.findByUserNameAndSystemTypeForUpdate(
-                "admin", SystemType.MANAGER))
+                "admin", "MANAGER"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authAppService.login(
-                new LoginRequest("admin", "wrong", SystemType.MANAGER, null)))
+                new LoginRequest("admin", "wrong", "MANAGER", null)))
                 .isInstanceOf(InvalidCredentialsException.class);
     }
 
     @Test
     void shouldRejectCredentialsFromAnotherSystem() {
         when(userMapper.findByUserNameAndSystemTypeForUpdate(
-                "admin", SystemType.SIMULATION))
+                "admin", "SIMULATION"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authAppService.login(
                 new LoginRequest(
                         "admin",
                         "Admin123!test",
-                        SystemType.SIMULATION,
+                        "SIMULATION",
                         null)))
                 .isInstanceOf(InvalidCredentialsException.class);
     }
@@ -124,14 +123,14 @@ class AuthAppServiceImplTest {
         UserInfoEntity user = user();
         user.setEnabled(false);
         when(userMapper.findByUserNameAndSystemTypeForUpdate(
-                "admin", SystemType.MANAGER))
+                "admin", "MANAGER"))
                 .thenReturn(Optional.of(user));
         when(passwordHasher.matches("Admin123!test", "encoded")).thenReturn(true);
 
         assertThatThrownBy(() -> authAppService.login(new LoginRequest(
                 "admin",
                 "Admin123!test",
-                SystemType.MANAGER,
+                "MANAGER",
                 null)))
                 .isInstanceOf(InvalidCredentialsException.class);
     }
@@ -199,6 +198,34 @@ class AuthAppServiceImplTest {
     }
 
     @Test
+    void shouldExcludePermissionsRemovedFromCatalog() {
+        UserInfoEntity user = user();
+        user.setUserPermissions("user:list,removed:permission");
+        when(userMapper.findByUserNameAndSystemTypeForUpdate("admin", "MANAGER"))
+                .thenReturn(Optional.of(user));
+        when(passwordHasher.matches("Admin123!test", "encoded")).thenReturn(true);
+        authAppService.login(new LoginRequest("admin", "Admin123!test", "MANAGER", null));
+        verify(tokenService).generateAccessToken("1001", "admin", "MANAGER",
+                List.of("user:list"), Map.of("displayName", "admin"));
+    }
+
+    @Test
+    void shouldRejectRefreshWhenSystemRemovedFromCatalog() {
+        UserLoginEntity login = new UserLoginEntity();
+        login.setId(2001L);
+        login.setUserInfoId(1001L);
+        UserInfoEntity user = user();
+        user.setSystemType("REMOVED");
+        when(refreshTokenProvider.hash("refresh")).thenReturn("hash");
+        when(loginMapper.findActiveByRefreshTokenHash(eq("hash"), any(OffsetDateTime.class)))
+                .thenReturn(Optional.of(login));
+        when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
+        assertThatThrownBy(() -> authAppService.refresh("refresh")).isInstanceOf(BusinessException.class);
+        verify(loginMapper, never()).updateById(any(UserLoginEntity.class));
+        verify(tokenService, never()).generateAccessToken(anyString(), anyString(), anyString(), anyList(), anyMap());
+    }
+
+    @Test
     void shouldRejectMissingRefreshToken() {
         assertThatThrownBy(() -> authAppService.refresh(null))
                 .isInstanceOf(BusinessException.class)
@@ -247,7 +274,7 @@ class AuthAppServiceImplTest {
         UserInfoEntity user = new UserInfoEntity();
         user.setId(1001L);
         user.setUserName("admin");
-        user.setSystemType(SystemType.MANAGER);
+        user.setSystemType("MANAGER");
         user.setUserPass("encoded");
         user.setUserPermissions("user:list,user:add");
         user.setEnabled(true);

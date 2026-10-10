@@ -2,7 +2,6 @@ package baosys.manager.api.dto;
 
 import java.util.List;
 
-import baosys.manager.api.enums.SystemType;
 
 /**
  * 当前登录用户的可信快照。
@@ -13,6 +12,6 @@ public record CurrentUserResponse(
         long userId,
         String username,
         String displayName,
-        SystemType systemType,
+        String systemType,
         List<String> permissions) {
 }

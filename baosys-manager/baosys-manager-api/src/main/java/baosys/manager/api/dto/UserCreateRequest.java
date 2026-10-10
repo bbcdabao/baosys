@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import baosys.manager.api.enums.SystemType;
 
 public record UserCreateRequest(
         @NotBlank(message = "账户名称不能为空")
@@ -16,7 +15,7 @@ public record UserCreateRequest(
         @Size(min = 8, max = 128, message = "密码长度必须为 8 到 128 个字符")
         String pass,
         @NotNull(message = "系统类型不能为空")
-        SystemType systemType,
+        String systemType,
         @NotNull(message = "权限配置不能为空")
         Set<String> permissions,
         Boolean enabled) {

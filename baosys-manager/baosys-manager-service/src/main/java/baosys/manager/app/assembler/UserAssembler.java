@@ -1,8 +1,6 @@
 package baosys.manager.app.assembler;
 
-import java.util.Comparator;
 
-import baosys.manager.app.model.PermissionCode;
 import baosys.manager.api.dto.UserResponse;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.UserInfoEntity;
@@ -18,7 +16,7 @@ public final class UserAssembler {
                 user.getUserName(),
                 user.getSystemType(),
                 PermissionPersistenceConverter.decode(user.getUserPermissions()).stream()
-                        .sorted(Comparator.comparingInt(PermissionCode::order))
+                        .sorted()
                         .toList(),
                 user.isEnabled(),
                 online);
