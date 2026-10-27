@@ -6,6 +6,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import org.springframework.util.StringUtils;
 
 /**
  * RSA 密钥加载工具。
@@ -16,8 +17,7 @@ import java.util.Base64;
  */
 public final class JwtKeyLoader {
 
-    private JwtKeyLoader() {
-    }
+    private JwtKeyLoader() {}
 
     /**
      * 加载用于校验 JWT 签名的 RSA 公钥。
@@ -26,7 +26,7 @@ public final class JwtKeyLoader {
      * 未具备 token 校验能力的状态下启动。</p>
      */
     public static RSAPublicKey loadPublicKey(String publicKeyPem) {
-        if (publicKeyPem == null || publicKeyPem.isBlank()) {
+        if (!StringUtils.hasText(publicKeyPem)) {
             throw new IllegalArgumentException("JWT public key must not be blank");
         }
         try {
@@ -45,7 +45,7 @@ public final class JwtKeyLoader {
      * {@code -----BEGIN RSA PRIVATE KEY-----} 的 PKCS#1 私钥。</p>
      */
     public static RSAPrivateKey loadPrivateKey(String privateKeyPem) {
-        if (privateKeyPem == null || privateKeyPem.isBlank()) {
+        if (!StringUtils.hasText(privateKeyPem)) {
             throw new IllegalArgumentException("JWT private key must not be blank");
         }
         try {
@@ -53,7 +53,10 @@ public final class JwtKeyLoader {
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decoded);
             return (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(keySpec);
         } catch (Exception exception) {
-            throw new IllegalStateException("RSA private key parse failed, please use PKCS8 format", exception);
+            throw new IllegalStateException(
+                "RSA private key parse failed, please use PKCS8 format",
+                exception
+            );
         }
     }
 
@@ -64,8 +67,9 @@ public final class JwtKeyLoader {
      * 复用同一套解析逻辑。</p>
      */
     private static String stripPem(String pem, String type) {
-        return pem.replace("-----BEGIN " + type + "-----", "")
-                .replace("-----END " + type + "-----", "")
-                .replaceAll("\\s", "");
+        return pem
+            .replace("-----BEGIN " + type + "-----", "")
+            .replace("-----END " + type + "-----", "")
+            .replaceAll("\\s", "");
     }
 }

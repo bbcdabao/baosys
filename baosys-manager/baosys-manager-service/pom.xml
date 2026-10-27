@@ -23,6 +23,14 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.springframework.session</groupId>
+      <artifactId>spring-session-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
+    </dependency>
+    <dependency>
       <groupId>baosys</groupId>
       <artifactId>baosys-common-api</artifactId>
     </dependency>
@@ -33,10 +41,6 @@
     <dependency>
       <groupId>baosys</groupId>
       <artifactId>baosys-common-security-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>baosys</groupId>
-      <artifactId>baosys-common-security-issuer</artifactId>
     </dependency>
     <dependency>
       <groupId>baosys</groupId>
@@ -162,7 +166,6 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>

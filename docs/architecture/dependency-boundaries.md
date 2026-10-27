@@ -14,12 +14,11 @@
 | --- | --- |
 | common-api | 纯公共协议，不依赖安全模块或应用框架 |
 | security-core | 安全属性、密钥和 JWT 基础能力；不依赖 common-api 或 Web starter |
-| security-issuer | 依赖 core 和签发所需库，不引入 Servlet / Gateway 启动环境 |
 | security-resource | 直接依赖 common-api、core、Servlet 安全所需库；Servlet API 为 provided，不绑定嵌入式 Tomcat |
 | security-gateway | 直接依赖 common-api、core、Gateway / WebFlux / Reactor 所需库；应用负责 Gateway starter |
 | common-password | 密码接口、BCrypt 和自动配置所需库；不依赖 JWT 或 common-api |
 | manager-api | 接口协议及自身使用的 common-api、Web 注解、Validation 注解，保留注解库的 optional 约定 |
-| manager-service | 显式依赖其使用的 common-api、core、issuer、resource、password、manager-api；选择 Servlet、数据库和认证运行环境 |
+| manager-service | 显式依赖其使用的 common-api、core、resource、password、manager-api；负责签名密钥加载和 JWT 签发配置，选择 Servlet、数据库和认证运行环境 |
 | manager-web | 选择 Gateway、认证和 Actuator 运行环境；负载均衡、Caffeine 保留为 runtime，支持现有 lb:// 配置 |
 
 公共库的测试依赖按使用情况声明 JUnit、AssertJ、Mockito、Boot Test，JUnit engine 保留用于执行测试。应用的测试仍使用 Boot 测试环境，同时直接声明源码使用的测试库。未使用的 Testcontainers JUnit 扩展和 manager-web 的 Security Test 已移除。

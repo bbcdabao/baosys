@@ -1,6 +1,12 @@
 <template>
-  <a-card :bordered="false" class="building-card">
-    <a-result :title="t('system.building')" :subtitle="t('system.description')">
+  <a-card
+    :bordered="false"
+    class="building-card"
+  >
+    <a-result
+      :title="t('system.building')"
+      :subtitle="t('system.description')"
+    >
       <template #icon><icon-settings /></template>
     </a-result>
   </a-card>
@@ -13,5 +19,9 @@ const { t } = useI18n()
 </script>
 
 <style scoped>
-.building-card { min-height: 420px; display: grid; place-items: center; }
+.building-card {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+}
 </style>

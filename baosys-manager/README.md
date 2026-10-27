@@ -1,5 +1,7 @@
 # BaoSys Manager
 
+内部子系统通过 [同域共享 Manager 登录](../docs/deployment/shared_login.md) 使用统一 HttpOnly Token Cookie，支持同主机不同端口及登录后返回原页面。账户通过统一 permissions 分配多个系统；外部 OAuth2 Authorization Server 能力保留。启动需提供 JWK 文件及认证中心配置；数据库初始化说明见 [升级指南](../docs/deployment/oauth2_upgrade.md)。
+
 `baosys-manager` 按微服务契约与实现分离：
 
 ```text
@@ -17,7 +19,7 @@ baosys-manager-service
     └── baosys-common → baosys-common-api
 ```
 
-- `api` 包含 `AuthApi`、`UserApi`、`LoginSessionApi`、请求/响应 DTO 和公开枚举，不包含 Feign、数据库或业务实现。
+- `api` 包含 `UserApi`、`LoginSessionApi`、请求/响应 DTO 和公开枚举，不包含 Feign、数据库或业务实现。
 - `app` 负责 Controller 适配、事务与业务流程编排。
 - `infra` 封装 MyBatis Plus、刷新令牌生成等技术细节，由 `app` 直接调用。
 

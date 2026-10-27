@@ -17,12 +17,12 @@ import java.time.ZoneOffset;
  * @param <T> 响应数据类型
  */
 public record ApiResponse<T>(
-        String code,
-        String message,
-        T data,
-        String traceId,
-        OffsetDateTime timestamp) {
-
+    String code,
+    String message,
+    T data,
+    String traceId,
+    OffsetDateTime timestamp
+) {
     public static ApiResponse<Void> success(String traceId) {
         return success(null, traceId);
     }
@@ -32,22 +32,18 @@ public record ApiResponse<T>(
      */
     public static <T> ApiResponse<T> success(T data, String traceId) {
         return new ApiResponse<>(
-                "SUCCESS",
-                "操作成功",
-                data,
-                traceId,
-                OffsetDateTime.now(ZoneOffset.UTC));
+            "SUCCESS",
+            "操作成功",
+            data,
+            traceId,
+            OffsetDateTime.now(ZoneOffset.UTC)
+        );
     }
 
     /**
      * 创建失败响应。
      */
     public static <T> ApiResponse<T> failure(String code, String message, String traceId) {
-        return new ApiResponse<>(
-                code,
-                message,
-                null,
-                traceId,
-                OffsetDateTime.now(ZoneOffset.UTC));
+        return new ApiResponse<>(code, message, null, traceId, OffsetDateTime.now(ZoneOffset.UTC));
     }
 }

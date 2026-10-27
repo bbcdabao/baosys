@@ -6,9 +6,11 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+@org.springframework.context.annotation.Import(TestOAuth2Configuration.class)
 @SpringBootTest(
-        classes = ManagerWebApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+    classes = ManagerWebApplication.class,
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+)
 @ActiveProfiles("test")
 class ManagerWebApplicationTest {
 
@@ -16,6 +18,5 @@ class ManagerWebApplicationTest {
     private ReactiveJwtDecoder jwtDecoder;
 
     @Test
-    void contextLoads() {
-    }
+    void contextLoads() {}
 }

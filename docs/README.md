@@ -1,5 +1,7 @@
 # BaoSys 文档目录
 
+- [同域共享 Manager 登录](deployment/shared_login.md)：共享 Cookie、跨端口回跳、CSRF、刷新退出及子系统迁移配置。
+
 - [Maven 依赖边界](architecture/dependency-boundaries.md)：直接依赖、公共库与应用 starter 的职责及审计方法。
 
 - [新增子系统接入指南](subsystem-onboarding.md)：根目录配置、双语名称、权限目录和部署覆盖。
@@ -19,6 +21,7 @@
 | 主题 | 文档 | 内容 |
 |---|---|---|
 | 部署配置 | [环境变量说明](deployment/environment_variables.md) | 按进程列出变量、应用默认值及一致性要求 |
+| OAuth2 升级 | [多子系统账户升级指南](deployment/oauth2_upgrade.md) | V1 初始化、密钥注入、标准验签与权限契约 |
 | 公共模块 | [Common 模块说明](../baosys-common/README.md) | Common / Common API 边界、JWT、密码、网关及资源服务 |
 | Manager 入口 | [Manager README](../baosys-manager/README.md) | 模块职责与构建入口 |
 | Manager 设计 | [模块设计](modules/manager/manager_module_design.md) | 接口、应用服务、事务和业务约束 |
@@ -29,6 +32,7 @@
 
 ## 设计与历史资料
 
+- [OAuth2 / JWT 鉴权规范化修改计划](superpowers/plans/2026-10-14-oauth2-jwt-standardization.md)（待实施）
 - [Common 与 JWT 拆分设计](superpowers/plans/2026-10-09-common-jwt-refactor.md)
 - [迁移设计](superpowers/specs/2026-07-09-oceanacoustic-to-baosys-merge-design.md)
 - [首轮迁移计划](superpowers/plans/2026-07-09-oceanacoustic-to-baosys-merge.md)

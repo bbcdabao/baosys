@@ -1,104 +1,68 @@
-import axios, {
-  AxiosError,
-  type AxiosRequestConfig,
-  type InternalAxiosRequestConfig
-} from 'axios'
+import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 
-import { MANAGER_API_PREFIX } from '@/constants/api'
 import emitter from '@/event-bus'
 import type { ApiResult } from '@/types/api'
-import { CSRF_TOKEN_STORAGE_KEY, saveCsrfToken } from '@/utils/authSession'
 
-declare module 'axios' {
-  interface AxiosRequestConfig {
-    skipAuthRefresh?: boolean
-  }
-  interface InternalAxiosRequestConfig {
-    _retry?: boolean
-  }
-}
-
-const CSRF_TOKEN_HEADER_NAME = 'X-CSRF-Token'
 const client = axios.create({
   baseURL: '/',
   timeout: 10_000,
   withCredentials: true,
-  skipAuthRefresh: false,
   headers: { 'Content-Type': 'application/json' }
 })
 
-// 刷新使用独立实例，避免刷新接口的 401 再次进入业务响应拦截器。
-const refreshClient = axios.create({
-  baseURL: '/',
-  timeout: 10_000,
-  withCredentials: true,
-  headers: { 'Content-Type': 'application/json' }
-})
-let refreshPromise: Promise<void> | null = null
-
-client.interceptors.request.use(config => {
-  const method = config.method?.toUpperCase()
-  if (method && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    const csrfToken = sessionStorage.getItem(CSRF_TOKEN_STORAGE_KEY)
-    if (csrfToken) config.headers.set(CSRF_TOKEN_HEADER_NAME, csrfToken)
+// 通过端点获取 Spring 的掩码 CSRF 令牌，并由服务端设置 HttpOnly XSRF-TOKEN Cookie。
+// 并发请求共用一次获取操作；令牌不落盘，JavaScript 不读取 Cookie。
+let csrfPromise: Promise<{ headerName: string; token: string }> | null = null
+const prepareCsrf = async (config: InternalAxiosRequestConfig) => {
+  if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(config.method?.toUpperCase() || 'GET')) {
+    csrfPromise ??= axios
+      .get<{ headerName: string; token: string }>('/csrf', {
+        withCredentials: true,
+        timeout: 10_000
+      })
+      .then((response) => response.data)
+      .finally(() => {
+        csrfPromise = null
+      })
+    const csrf = await csrfPromise
+    config.headers.set(csrf.headerName, csrf.token)
   }
   return config
-})
+}
+client.interceptors.request.use(prepareCsrf)
 
+const authPrefix = '/api/baosys-manager/v1/browser-auth'
+let refreshPromise: Promise<void> | null = null
 client.interceptors.response.use(
-  response => response,
-  async (error: AxiosError<ApiResult<unknown>>) => {
-    const original = error.config
-
-    if (error.response?.status !== 401 || !original || original.skipAuthRefresh) {
+  (response) => response,
+  async (error: AxiosError) => {
+    const config = error.config as (InternalAxiosRequestConfig & { retried?: boolean }) | undefined
+    if (error.response?.status !== 401 || config?.url?.startsWith(authPrefix)) {
       return Promise.reject(error)
     }
-
-    if (original._retry) {
-      emitter.emit('go-login')
-      return Promise.reject(error)
+    if (config && !config.retried) {
+      config.retried = true
+      // 仅 Manager 调用刷新接口；其他子系统收到 401 后跳转至共享登录入口。
+      refreshPromise ??= client
+        .post(`${authPrefix}/refresh`, {})
+        .then(() => undefined)
+        .finally(() => {
+          refreshPromise = null
+        })
+      try {
+        await refreshPromise
+        return client.request(config)
+      } catch {
+        /* 刷新失败后继续触发下方的登录跳转。 */
+      }
     }
-
-    original._retry = true
-
-    try {
-      await refreshAccessToken()
-      return await client(original)
-    } catch (refreshOrRetryError) {
-      emitter.emit('go-login')
-      return Promise.reject(refreshOrRetryError)
-    }
+    emitter.emit('go-login')
+    return Promise.reject(error)
   }
 )
 
-const captureCsrfToken = (value: unknown): void => {
-  if (typeof value === 'string' && value) saveCsrfToken(value)
-}
-
-const refreshAccessToken = async (): Promise<void> => {
-  if (refreshPromise) return refreshPromise
-
-  const csrfToken = sessionStorage.getItem(CSRF_TOKEN_STORAGE_KEY)
-  refreshPromise = refreshClient
-    .post<ApiResult<void>>(
-      `${MANAGER_API_PREFIX}/v1/auth/refresh`,
-      undefined,
-      {
-        headers: csrfToken
-          ? { [CSRF_TOKEN_HEADER_NAME]: csrfToken }
-          : undefined
-      }
-    )
-    .then(response => {
-      if (response.data.code !== 'SUCCESS') {
-        throw new Error(response.data.message || 'Session renewal failed')
-      }
-      captureCsrfToken(response.headers[CSRF_TOKEN_HEADER_NAME.toLowerCase()])
-    })
-    .finally(() => {
-      refreshPromise = null
-    })
-  return refreshPromise
+export const logout = async (): Promise<void> => {
+  await client.post(`${authPrefix}/logout`, {})
 }
 
 const perform = async <T>(config: AxiosRequestConfig): Promise<T> => {
@@ -109,32 +73,32 @@ const perform = async <T>(config: AxiosRequestConfig): Promise<T> => {
     }
     return response.data.data
   } catch (error) {
-    if (!(error instanceof AxiosError)) throw error
-    const message = error.response?.data?.message
-      || (error.code === 'ECONNABORTED'
-        ? 'Request timed out'
-        : 'Service is temporarily unavailable')
+    if (!(error instanceof AxiosError)) {
+      throw error
+    }
+    const message =
+      error.response?.data?.message ||
+      (error.response?.status === 401
+        ? '账户凭证不正确或登录已失效，请重新登录'
+        : error.response?.status === 403
+          ? '请求被拒绝，请检查权限或刷新页面后重试'
+          : error.code === 'ECONNABORTED'
+            ? 'Request timed out'
+            : 'Service is temporarily unavailable')
     throw new Error(message)
   }
 }
 
-export const get = <TResponse>(
-  url: string,
-  params?: Record<string, unknown>
-): Promise<TResponse> =>
+export const get = <TResponse>(url: string, params?: Record<string, unknown>): Promise<TResponse> =>
   perform<TResponse>({ method: 'GET', url, params })
 
 export const post = <TResponse, TRequest>(
   url: string,
   data: TRequest,
   config?: AxiosRequestConfig
-): Promise<TResponse> =>
-  perform<TResponse>({ ...config, method: 'POST', url, data })
+): Promise<TResponse> => perform<TResponse>({ ...config, method: 'POST', url, data })
 
-export const put = <TResponse, TRequest>(
-  url: string,
-  data: TRequest
-): Promise<TResponse> =>
+export const put = <TResponse, TRequest>(url: string, data: TRequest): Promise<TResponse> =>
   perform<TResponse>({ method: 'PUT', url, data })
 
 export const remove = <TResponse>(url: string): Promise<TResponse> =>

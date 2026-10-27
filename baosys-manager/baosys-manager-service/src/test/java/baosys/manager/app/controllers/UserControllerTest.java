@@ -5,26 +5,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import baosys.manager.api.dto.CurrentUserResponse;
+import baosys.manager.app.services.UserAppService;
 import java.security.Principal;
 import java.util.List;
-
 import org.junit.jupiter.api.Test;
-
-import baosys.manager.app.services.UserAppService;
-import baosys.manager.api.dto.CurrentUserResponse;
 
 class UserControllerTest {
 
     @Test
     void shouldLoadCurrentUserFromAccessTokenSubject() {
         UserAppService userAppService = mock(UserAppService.class);
-        Principal principal = () -> "1001";
+        Principal principal = () -> "2001";
+        when(userAppService.userIdForLogin(2001L)).thenReturn(1001L);
         CurrentUserResponse expected = new CurrentUserResponse(
-                1001L,
-                "admin",
-                "admin",
-                "MANAGER",
-                List.of("user:list"));
+            1001L,
+            "admin",
+            "admin",
+            List.of("MGR"),
+            List.of("MGR:user:list")
+        );
         when(userAppService.currentUser(1001L)).thenReturn(expected);
         UserController controller = new UserController(userAppService);
 
@@ -33,10 +33,12 @@ class UserControllerTest {
         assertThat(response.data()).isEqualTo(expected);
         verify(userAppService).currentUser(1001L);
     }
+
     @Test
     void shouldUseAuthenticatedSubjectAsDeleteOperator() {
         UserAppService service = mock(UserAppService.class);
-        new UserController(service).delete(1001L, () -> "9001");
+        when(service.userIdForLogin(2001L)).thenReturn(9001L);
+        new UserController(service).delete(1001L, () -> "2001");
         verify(service).delete(1001L, 9001L);
     }
 }

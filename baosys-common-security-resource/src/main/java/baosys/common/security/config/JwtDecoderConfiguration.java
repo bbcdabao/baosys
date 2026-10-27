@@ -1,30 +1,47 @@
 package baosys.common.security.config;
 
+import baosys.common.security.jwt.JwtKeyLoader;
+import baosys.common.security.jwt.JwtVerification;
+import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import baosys.common.security.jwt.JwtVerification;
-import baosys.common.security.resource.LazyJwksJwtDecoder;
+import org.springframework.security.oauth2.jwt.*;
+import org.springframework.util.StringUtils;
 
-/** Explicitly imported only; intentionally not a component-scan candidate. */
+/** 组装 at+jwt 访问令牌校验规则；JWKS 的加载和密钥选择由 Spring/Nimbus 处理。 */
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@EnableConfigurationProperties(SecurityProperties.class)
+@EnableConfigurationProperties(OAuth2ResourceServerProperties.class)
 public class JwtDecoderConfiguration {
+
     @Bean
     @ConditionalOnMissingBean(JwtDecoder.class)
-    JwtDecoder jwtDecoder(SecurityProperties properties) {
-        JwtVerification.validate(properties);
-        var key = JwtVerification.localKey(properties.getJwt());
-        if (key == null) {
-            org.slf4j.LoggerFactory.getLogger(getClass()).info("JWT verification mode: JWKS (request-driven refresh)");
-            return new LazyJwksJwtDecoder(properties);
+    JwtDecoder jwtDecoder(OAuth2ResourceServerProperties properties) throws java.io.IOException {
+        var jwt = properties.getJwt();
+        if (!List.of("RS256").equals(jwt.getJwsAlgorithms())) {
+            throw new IllegalArgumentException("Only RS256 is supported");
         }
-        org.slf4j.LoggerFactory.getLogger(getClass()).info("JWT verification mode: LOCAL (remote fetching disabled)");
-        var decoder = NimbusJwtDecoder.withPublicKey(key).build();
-        decoder.setJwtValidator(JwtVerification.validator(properties));
+        NimbusJwtDecoder decoder;
+        if (jwt.getPublicKeyLocation() != null) {
+            if (StringUtils.hasText(jwt.getJwkSetUri())) {
+                throw new IllegalArgumentException("Choose JWKS or local public key, not both");
+            }
+            decoder = NimbusJwtDecoder.withPublicKey(
+                JwtKeyLoader.loadPublicKey(jwt.readPublicKey())
+            )
+                .validateType(false)
+                .build();
+        } else {
+            if (!StringUtils.hasText(jwt.getJwkSetUri())) {
+                throw new IllegalArgumentException("jwk-set-uri required");
+            }
+            decoder = NimbusJwtDecoder.withJwkSetUri(jwt.getJwkSetUri())
+                .validateType(false)
+                .build();
+        }
+        decoder.setJwtValidator(JwtVerification.validator(jwt.getIssuerUri()));
         return decoder;
     }
 }

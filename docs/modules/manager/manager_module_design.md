@@ -36,7 +36,6 @@ baosys-manager
 
 ```text
 baosys.manager.api
-├── AuthApi
 ├── UserApi
 ├── LoginSessionApi
 ├── dto
@@ -129,31 +128,27 @@ flowchart TD
 
 ### 4.1 认证接口
 
-| 方法 | 外部路径 | 说明 | 是否公开 |
-|---|---|---|---:|
-| POST | `/api/baosys-manager/v1/auth/login` | 用户登录 | 是 |
-| POST | `/api/baosys-manager/v1/auth/refresh` | 轮换刷新令牌并签发访问令牌 | 是 |
-| POST | `/api/baosys-manager/v1/auth/logout` | 删除刷新会话并清理 Cookie | 是 |
+登录由官方 Authorization Server 与网关 OAuth2 Client 完成：网关 GET /oauth2/authorization/baosys，回调 /login/oauth2/code/baosys，退出 POST /logout。认证中心提供标准 /oauth2/authorize、token、jwks、revoke 和 OIDC 元数据端点。旧自建认证接口已删除。详见 [认证与会话](auth_and_session.md)。
 
 ### 4.2 用户接口
 
 | 方法 | 外部路径 | 说明 | 权限 |
 |---|---|---|---|
 | GET | `/api/baosys-manager/v1/users/me` | 当前登录用户 | 已认证 |
-| GET | `/api/baosys-manager/v1/users` | 分页查询用户 | `user:list` |
-| POST | `/api/baosys-manager/v1/users` | 新增用户 | `user:add` |
-| PUT | `/api/baosys-manager/v1/users` | 修改用户 | `user:update` |
-| DELETE | `/api/baosys-manager/v1/users/{id}` | 删除用户 | `user:delete` |
-| GET | `/api/baosys-manager/v1/users/{id}/login-clients` | 查询用户登录客户端 | `user:session:list` |
-| DELETE | `/api/baosys-manager/v1/users/{id}/login-clients/{loginId}` | 指定客户端下线 | `user:session:kick` |
-| DELETE | `/api/baosys-manager/v1/users/{id}/login-clients` | 全部客户端下线 | `user:session:kick` |
+| GET | `/api/baosys-manager/v1/users` | 分页查询用户 | `MGR:user:list` |
+| POST | `/api/baosys-manager/v1/users` | 新增用户 | `MGR:user:add` |
+| PUT | `/api/baosys-manager/v1/users` | 修改用户 | `MGR:user:update` |
+| DELETE | `/api/baosys-manager/v1/users/{id}` | 删除用户 | `MGR:user:delete` |
+| GET | `/api/baosys-manager/v1/users/{id}/login-clients` | 查询用户登录客户端 | `MGR:user:session:list` |
+| DELETE | `/api/baosys-manager/v1/users/{id}/login-clients/{loginId}` | 指定客户端下线 | `MGR:user:session:kick` |
+| DELETE | `/api/baosys-manager/v1/users/{id}/login-clients` | 全部客户端下线 | `MGR:user:session:kick` |
 
 用户列表查询参数：
 
 | 参数 | 类型 | 默认值 | 说明 |
 |---|---|---:|---|
 | `name` | String | 空 | 用户名模糊查询 |
-| `systemType` | String | 空 | 系统类型精确查询，目录在根配置文件中声明 |
+| `systemType` | String | 空 | 按账户是否拥有该系统入口权限筛选，目录在根配置文件中声明 |
 | `page` | int | 0 | 从 0 开始 |
 | `size` | int | 20 | 1～200 |
 
@@ -161,7 +156,7 @@ flowchart TD
 
 | 方法 | 外部路径 | 说明 | 权限 |
 |---|---|---|---|
-| GET | `/api/baosys-manager/v1/login-sessions` | 分页查询有效会话 | `user:session:list` |
+| GET | `/api/baosys-manager/v1/login-sessions` | 分页查询有效会话 | `MGR:user:session:list` |
 
 查询参数：
 
@@ -174,15 +169,9 @@ flowchart TD
 
 ## 5. 应用服务
 
-### 5.1 `AuthAppService`
+### 5.1 官方授权服务
 
-```text
-login(LoginRequest)
-refresh(String refreshToken)
-logout(String refreshToken)
-```
-
-负责认证、令牌签发、刷新令牌轮换和注销。
+Spring Authorization Server 处理协议端点。AccountAuthorizationService 委托官方 JDBC 服务，维护业务登录记录；OAuth2TokenCustomizer 只补充账户声明。
 
 ### 5.2 `UserAppService`
 
@@ -212,10 +201,10 @@ list(userId, userName, page, size)
 ### 6.1 用户
 
 1. 用户名保存前去除首尾空白。
-2. 同一 `systemType` 下用户名必须唯一。
+2. 用户名全局唯一，账户可选择多个子系统入口及接口权限。
 3. 新增用户密码长度为 8～128。
 4. 修改时密码为空表示不修改密码。
-5. 权限、启停状态、密码或系统类型变化时删除该用户全部刷新会话。
+5. 权限、启停状态、密码或用户名变化时撤销该用户全部授权与认证会话。
 6. 删除用户时数据库级联删除登录会话。
 7. Manager 系统用户至少配置一个有效权限。
 8. 用户列表中的 `status` 当前表示是否存在未过期登录会话，不是账户启停状态。
@@ -224,15 +213,15 @@ list(userId, userName, page, size)
 
 ### 6.2 当前用户
 
-JWT 的 `sub` 保存用户 ID。`/users/me` 根据该 ID 重新查询数据库，返回当前系统类型和当前权限，不直接把令牌中的展示信息作为最终业务数据。
+JWT 的 sub 保存登录记录 ID；/users/me 通过 user_login.user_info_id 解析用户，返回派生 systemTypes 与有效 permissions。单值 systemType 已从登录及账户写入 DTO 删除。
 
 ### 6.3 登录会话
 
 1. 只查询 `expires_at` 晚于当前 UTC 时间的会话。
 2. 用户列表一次查询整页在线用户 ID，避免逐用户 N+1 查询。
 3. 单客户端下线必须同时匹配 `loginId` 和 `userId`。
-4. 注销接口保持幂等；缺少刷新 Cookie 时仍可完成本地退出。
-5. 刷新先锁用户再锁会话，校验账号启用、原摘要和到期时间，轮换摘要但不延长绝对到期时间。
+4. 官方撤销端点支持幂等撤销；网关退出同时清理本地会话。
+5. 令牌端点事务锁定账户，官方服务校验刷新令牌并轮换，业务登录记录同步官方到期时间。
 6. 撤销刷新会话不立即撤销已签发 JWT，Manager 的 Access Token 默认有效期为 1800 秒。
 
 ## 7. 事务边界
@@ -267,8 +256,8 @@ JWT 的 `sub` 保存用户 ID。`/users/me` 根据该 ID 重新查询数据库�
 |---|---:|---|
 | `REQUEST_400_001` | 400 | 方法参数错误 |
 | `AUTH_400_001` | 400 | 登录请求或请求体错误 |
-| `AUTH_401_001` | 401 | 凭据错误、访问令牌缺失或过期 |
-| `AUTH_403_001` | 403 | 无权限或刷新状态失效 |
+| `AUTH_401_001` | 401 | 登录凭据错误或业务层登录会话失效 |
+| `AUTH_403_001` | 403 | 刷新状态失效 |
 | `USER_400_001` | 400 | 用户名为空 |
 | `USER_400_002` | 400 | 权限配置错误 |
 | `USER_400_003` | 400 | 修改密码长度错误 |
@@ -277,7 +266,7 @@ JWT 的 `sub` 保存用户 ID。`/users/me` 根据该 ID 重新查询数据库�
 | `LOGIN_404_001` | 404 | 登录客户端不存在 |
 | `SYS_500_001` | 500 | 未预期异常 |
 
-所有响应通过 `TraceIds.current()` 关联请求日志。
+业务响应通过 `TraceIds.current()` 关联请求日志。JWT 认证、URL 与方法授权错误由 Spring Security 返回标准 401/403 和适用的 `WWW-Authenticate`，不保证上述 JSON 结构；前端按 HTTP 状态处理。CSRF 失败返回 403，不标记为 Bearer 权限不足。
 
 ## 9. 配置和启动
 

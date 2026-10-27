@@ -1,5 +1,7 @@
 # BaoSys
 
+内部子系统通过 [同域共享 Manager 登录](docs/deployment/shared_login.md) 使用统一 HttpOnly Token Cookie，支持同主机不同端口及登录后返回原页面。账户通过统一 permissions 分配多个系统；外部 OAuth2 Authorization Server 能力保留。启动需提供 JWK 文件及认证中心配置；V3/V4 升级说明见 [升级指南](docs/deployment/oauth2_upgrade.md)。
+
 BaoSys 是一个面向多业务系统的前后端分离基础工程。当前仓库已经实现公共 API 协议、安全公共模块、Manager 管理服务、API 网关与 Vue 管理端，后续业务服务按 `xxx-api + xxx-service` 模式扩展。
 
 ## 当前能力
@@ -9,7 +11,7 @@ BaoSys 是一个面向多业务系统的前后端分离基础工程。当前仓�
 - 当前用户信息查询。
 - 登录会话查询、单客户端下线和全部客户端下线。
 - 基于权限编码的接口授权和前端操作控制。
-- JWT 签发与校验、HttpOnly Cookie 和可选 CSRF 校验。
+- JWT 签发与校验、HttpOnly Cookie 和Spring 标准 CSRF 防护。
 - PostgreSQL、Flyway 和 MyBatis Plus。
 - Spring Cloud Gateway 路由与 Vue SPA 宿主。
 - 中英文界面、主题切换和响应式管理端布局。
@@ -39,7 +41,6 @@ baosys
 ├── baosys-common
 │   └── 兼容基础入口，不加载安全组件
 ├── baosys-common-security-core
-├── baosys-common-security-issuer
 ├── baosys-common-security-resource
 ├── baosys-common-security-gateway
 ├── baosys-common-password
@@ -222,7 +223,7 @@ baosys-manager-web/target/baosys-manager-web.jar
 当前版本定位为基础工程和 Manager 第一阶段：
 
 - 权限直接配置到用户，尚未实现角色模型。
-- 子系统及权限统一维护在根目录 [`baosys-systems.yml`](baosys-systems.yml)；默认预留 `SIMULATION` 和 `SIMULATORS`，权限列表为空。新增系统参见[接入指南](docs/subsystem-onboarding.md)。
+- 子系统及权限统一维护在根目录 [`baosys-systems.yml`](baosys-systems.yml)；默认预留 `SIM` 和 `SMS`，权限列表为空。新增系统参见[接入指南](docs/subsystem-onboarding.md)。
 - 网关中已预留 `baosys-plant` 路由，但仓库内暂未包含 Plant 服务。
 - 系统配置页面目前以界面骨架为主，尚未形成后端配置管理闭环。
 - 已具备账号授权与启停审计；暂无组织机构、多租户、记录级数据权限、通用业务审计和动态菜单管理。

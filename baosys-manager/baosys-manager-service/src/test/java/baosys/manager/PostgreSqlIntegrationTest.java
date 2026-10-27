@@ -4,12 +4,14 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+@org.springframework.context.annotation.Import(OAuth2TestClient.Configuration.class)
 public abstract class PostgreSqlIntegrationTest {
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine")
-            .withDatabaseName("baosys")
-            .withUsername("baosys")
-            .withPassword("baosys");
+        .withDatabaseName("baosys")
+        .withUsername("baosys")
+        .withPassword("baosys");
 
     static {
         POSTGRES.start();

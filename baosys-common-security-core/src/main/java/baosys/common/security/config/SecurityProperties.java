@@ -2,149 +2,58 @@ package baosys.common.security.config;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.time.Duration;
-import java.time.Instant;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * 平台安全配置属性。
+ * 网关与资源服务的安全策略配置，绑定 {@code spring.security} 下的项目扩展属性。
  *
- * <p>所有配置统一使用 {@code security} 前缀，网关、认证中心和资源服务共享同一组
- * Cookie 名称、JWT 签发者、权限 claim 名称等约定。这样认证链路中的各服务可以通过
- * 配置保持协议一致，而不是把这些约定散落在业务代码中。</p>
+ * <p>网关使用 {@code gateway}，资源服务使用 {@code resource}，由各自的安全配置类明确读取，
+ * 不根据配置内容自动选择角色。两个对象都会初始化，未配置的字段保留默认值。
+ * 标准 OAuth2 参数由 Spring Boot 自身绑定，不由本类管理。</p>
+ * <p>网关先匹配公开路径，再按顺序匹配访问规则；规则未指定权限时仅要求登录。
+ * 资源服务对非公开路径要求有效认证，并通过接口上的 {@code @PreAuthorize} 校验具体 API 权限，
+ * 不再统一检查系统入口权限。接口内部仍需执行数据归属和业务权限校验。</p>
  */
-@ConfigurationProperties(prefix = "security")
+@ConfigurationProperties("spring.security")
 public class SecurityProperties {
 
     /**
-     * JWT 签发与校验配置。
-     */
-    private Jwt jwt = new Jwt();
-    /**
-     * 前端和网关之间传递访问令牌的 Cookie 名称。
-     *
-     * <p>网关会从该 Cookie 中读取 access token，并在转发到下游服务前补齐
-     * {@code Authorization: Bearer ...} 请求头。</p>
-     */
-    private String accessTokenCookieName = "access_token";
-    /**
-     * JWT 中保存权限编码列表的 claim 名称。
-     *
-     * <p>资源服务会读取这个 claim，并把其中的权限编码转换为 Spring Security
-     * {@code GrantedAuthority}。</p>
-     */
-    private String permissionsClaimName = "permissions";
-    /**
-     * 当前网关允许访问的子系统类型。
-     *
-     * <p>网关和业务资源服务均可配置该值，例如 {@code MANAGER}。
-     * 配置后 JWT 解码器会要求 token 中的 {@code systemType} claim 与它一致；未配置时
-     * 跳过该校验，适用于同时服务多个子系统的认证中心。</p>
-     */
-    private String systemType;
-    /**
-     * 转换为 Spring Security 权限时追加的前缀。
-     *
-     * <p>平台默认直接使用权限编码，因此不追加 {@code ROLE_} 等前缀。</p>
-     */
-    private String authorityPrefix = "";
-    /**
-     * 网关安全配置。
+     * 网关入口策略，对应 {@code spring.security.gateway}。
+     * 路径使用网关接收到的对外请求路径，例如 {@code /api/baosys-manager/v1/users/me}。
      */
     private Gateway gateway = new Gateway();
     /**
-     * Servlet 资源服务安全配置。
+     * 资源服务入口策略，对应 {@code spring.security.resource}。
+     * 路径使用服务内部路径，不包含 Servlet context-path，例如 {@code /v1/users/me}。
      */
-    private EndpointAccess resource = new EndpointAccess();
-
-    public Jwt getJwt() {
-        return jwt;
-    }
-
-    public void setJwt(Jwt jwt) {
-        this.jwt = jwt;
-    }
-
-    public String getAccessTokenCookieName() {
-        return accessTokenCookieName;
-    }
-
-    public void setAccessTokenCookieName(String accessTokenCookieName) {
-        this.accessTokenCookieName = accessTokenCookieName;
-    }
-
-    public String getPermissionsClaimName() {
-        return permissionsClaimName;
-    }
-
-    public void setPermissionsClaimName(String permissionsClaimName) {
-        this.permissionsClaimName = permissionsClaimName;
-    }
-
-    public String getSystemType() {
-        return systemType;
-    }
-
-    public void setSystemType(String systemType) {
-        this.systemType = systemType;
-    }
-
-    public String getAuthorityPrefix() {
-        return authorityPrefix;
-    }
-
-    public void setAuthorityPrefix(String authorityPrefix) {
-        this.authorityPrefix = authorityPrefix;
-    }
+    private Resource resource = new Resource();
 
     public Gateway getGateway() {
         return gateway;
     }
 
-    public void setGateway(Gateway gateway) {
-        this.gateway = gateway == null ? new Gateway() : gateway;
+    public void setGateway(Gateway value) {
+        gateway = value;
     }
 
-    public EndpointAccess getResource() {
+    public Resource getResource() {
         return resource;
     }
 
-    public void setResource(EndpointAccess resource) {
-        this.resource = resource == null ? new EndpointAccess() : resource;
+    public void setResource(Resource value) {
+        resource = value;
     }
 
     /**
-     * 网关侧安全配置。
-     *
-     * <p>继承公开路径配置，并额外提供 Cookie 场景下的 CSRF 保护开关。</p>
-     */
-    public static class Gateway extends EndpointAccess {
-
-        /**
-         * 网关 CSRF 校验配置。
-         */
-        private Csrf csrf = new Csrf();
-
-        public Csrf getCsrf() {
-            return csrf;
-        }
-
-        public void setCsrf(Csrf csrf) {
-            this.csrf = csrf == null ? new Csrf() : csrf;
-        }
-    }
-
-    /**
-     * 端点访问控制配置。
-     *
-     * <p>网关和 Servlet 资源服务都使用这组白名单语义，避免同一类公开路径在不同
-     * 技术栈下出现理解不一致。</p>
+     * 网关与资源服务共用的路径访问规则，配置前缀由所属的 gateway 或 resource 决定。
      */
     public static class EndpointAccess {
 
         /**
-         * 无需认证的路径，支持 Spring PathPattern 格式，例如 {@code /actuator/health/**}。
+         * 无需登录即可访问的路径模式，对应 {@code permit-all-paths}，默认空列表。
+         * 例如 {@code /actuator/health/**}；支持对应 Spring Security 路径匹配器的模式。
+         * 优先于后续的认证和授权规则，重叠时以公开规则为准。
+         * 此处仅放开路径授权，不代表跳过所有安全过滤器，也不会自动豁免网关 CSRF 校验。
          */
         private List<String> permitAllPaths = new ArrayList<>();
 
@@ -152,161 +61,74 @@ public class SecurityProperties {
             return permitAllPaths;
         }
 
-        public void setPermitAllPaths(List<String> permitAllPaths) {
-            this.permitAllPaths = permitAllPaths == null ? new ArrayList<>() : new ArrayList<>(permitAllPaths);
+        public void setPermitAllPaths(List<String> value) {
+            permitAllPaths = value;
         }
     }
 
     /**
-     * 网关 CSRF 校验配置。
+     * 资源服务策略：公开路径之外的请求必须通过 JWT 认证。
+     * 具体 API 权限由 {@code @PreAuthorize} 等方法级规则声明；未声明额外规则的接口仅要求认证。
      */
-    public static class Csrf {
+    public static class Resource extends EndpointAccess {}
+
+    /**
+     * 网关策略：按对外请求路径检查目标子系统的入口权限。
+     */
+    public static class Gateway extends EndpointAccess {
 
         /**
-         * 是否启用网关 CSRF 校验。内网系统默认关闭，需要时显式打开。
+         * 路径与登录/系统入口权限要求的映射，对应 {@code spring.security.gateway.access-rules}，默认空列表。
+         * 在公开路径之后按列表顺序匹配，首次命中的规则生效。
+         * 共享接口的具体路径应放在子系统的宽泛路径之前；permission 为空时仍要求登录。
+         * 未匹配任何规则的 {@code /api/**} 请求被拒绝，其他未匹配路径由当前网关安全配置放行。
+         * 此列表仅控制访问权限，实际转发地址仍由 Spring Cloud Gateway 路由配置决定。
          */
-        private boolean enabled;
-        /**
-         * 前端和网关之间传递 CSRF token 的 Cookie 名称。
-         */
-        private String cookieName = "BAOSYS_CSRF_TOKEN";
+        private List<RoutePermission> accessRules = new ArrayList<>();
 
-        public boolean isEnabled() {
-            return enabled;
+        public List<RoutePermission> getAccessRules() {
+            return accessRules;
         }
 
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public String getCookieName() {
-            return cookieName;
-        }
-
-        public void setCookieName(String cookieName) {
-            this.cookieName = cookieName;
+        public void setAccessRules(List<RoutePermission> value) {
+            accessRules = value;
         }
     }
 
     /**
-     * 请求触发的 JWKS 缓存与网络超时配置。
+     * 一条网关路径授权规则，对应 {@code spring.security.gateway.access-rules} 中的一个列表项。
      */
-    public static class Jwks {
-        private Duration cacheTtl = Duration.ofMinutes(5);
-        private Duration failureBackoff = Duration.ofSeconds(5);
-        private Duration connectTimeout = Duration.ofSeconds(3);
-        private Duration readTimeout = Duration.ofSeconds(5);
-        public Duration getCacheTtl() { return cacheTtl; }
-        public void setCacheTtl(Duration value) { cacheTtl = value; }
-        public Duration getFailureBackoff() { return failureBackoff; }
-        public void setFailureBackoff(Duration value) { failureBackoff = value; }
-        public Duration getConnectTimeout() { return connectTimeout; }
-        public void setConnectTimeout(Duration value) { connectTimeout = value; }
-        public Duration getReadTimeout() { return readTimeout; }
-        public void setReadTimeout(Duration value) { readTimeout = value; }
-    }
-
-    /** Public-only prepublished or retired key with a finite retention deadline. */
-    public static class PublishedKey {
-        private String keyId;
-        private String publicKey;
-        private Instant removeAfter;
-        public String getKeyId() { return keyId; }
-        public void setKeyId(String value) { keyId = value; }
-        public String getPublicKey() { return publicKey; }
-        public void setPublicKey(String value) { publicKey = value; }
-        public Instant getRemoveAfter() { return removeAfter; }
-        public void setRemoveAfter(Instant value) { removeAfter = value; }
-    }
-
-    public static class Jwt {
+    public static class RoutePermission {
 
         /**
-         * JWT 签发者，也就是平台约定的鉴权中心名称。
-         *
-         * <p>签发 access token 时会写入 {@code iss} claim，解码校验时也会要求
-         * token 中的 {@code iss} 与这里配置的值一致。这样即使存在多个鉴权中心或
-         * 多套密钥，也能通过 issuer 明确区分 token 的来源，避免误信其他签发方。</p>
-         *
-         * <p>当前平台使用稳定服务名，不要求 issuer 必须是 URL。</p>
+         * 需要检查权限的对外请求路径模式，对应列表项的 {@code path}。
+         * 例如 {@code /api/baosys-manager/**}；每条规则应提供有效路径模式，默认未设置。
          */
-        private String issuer = "auth-server";
+        private String path;
         /**
-         * 访问令牌有效期，单位秒。
+         * 命中该路径时要求的子系统编码，对应列表项的 {@code permission}。
+         * 未配置、空字符串或仅含空白字符时，只要求有效登录，不检查系统入口权限。
+         * 适用于全局子系统共用接口；下游的 API 权限和数据归属检查仍然生效。
+         * 例如 {@code MGR}；约定使用 3～8 个大写字母，配置值即为入口权限。
+         * 网关将编码转换为 {@code MGR} 等 authority，与 JWT 中的系统入口权限匹配。
+         * 命名由配置维护，不进行格式校验。
          */
-        private long accessTokenExpireSeconds = 7200;
-        /**
-         * X.509 RSA 公钥。
-         *
-         * <p>网关和资源服务用它校验 JWT 签名。支持完整 PEM 文本，或去掉 PEM
-         * 头尾后的裸 Base64。</p>
-         */
-        private String publicKey;
-        /**
-         * PKCS#8 RSA 私钥。
-         *
-         * <p>仅认证中心需要配置，用于签发 access token；网关和资源服务不应持有
-         * 私钥。</p>
-         */
-        private String privateKey;
+        private String permission;
 
-        private String publicKeyLocation;
-        private String jwkSetUri;
-        private String issuerUri;
-        private List<String> allowedAlgorithms = new ArrayList<>(List.of("RS256"));
-        private Duration clockSkew = Duration.ofSeconds(60);
-        private Jwks jwks = new Jwks();
-        private String keyId;
-        private List<PublishedKey> publishedKeys = new ArrayList<>();
-
-        public String getPublicKeyLocation() { return publicKeyLocation; }
-        public void setPublicKeyLocation(String value) { publicKeyLocation = value; }
-        public String getJwkSetUri() { return jwkSetUri; }
-        public void setJwkSetUri(String value) { jwkSetUri = value; }
-        public String getIssuerUri() { return issuerUri; }
-        public void setIssuerUri(String value) { issuerUri = value; }
-        public String getExpectedIssuer() { return issuerUri == null ? issuer : issuerUri; }
-        public List<String> getAllowedAlgorithms() { return allowedAlgorithms; }
-        public void setAllowedAlgorithms(List<String> value) { allowedAlgorithms = value; }
-        public Duration getClockSkew() { return clockSkew; }
-        public void setClockSkew(Duration value) { clockSkew = value; }
-        public Jwks getJwks() { return jwks; }
-        public void setJwks(Jwks value) { jwks = value; }
-        public String getKeyId() { return keyId; }
-        public void setKeyId(String value) { keyId = value; }
-        public List<PublishedKey> getPublishedKeys() { return publishedKeys; }
-        public void setPublishedKeys(List<PublishedKey> value) { publishedKeys = value; }
-
-        public String getIssuer() {
-            return issuer;
+        public String getPath() {
+            return path;
         }
 
-        public void setIssuer(String issuer) {
-            this.issuer = issuer;
+        public void setPath(String value) {
+            path = value;
         }
 
-        public long getAccessTokenExpireSeconds() {
-            return accessTokenExpireSeconds;
+        public String getPermission() {
+            return permission;
         }
 
-        public void setAccessTokenExpireSeconds(long accessTokenExpireSeconds) {
-            this.accessTokenExpireSeconds = accessTokenExpireSeconds;
-        }
-
-        public String getPublicKey() {
-            return publicKey;
-        }
-
-        public void setPublicKey(String publicKey) {
-            this.publicKey = publicKey;
-        }
-
-        public String getPrivateKey() {
-            return privateKey;
-        }
-
-        public void setPrivateKey(String privateKey) {
-            this.privateKey = privateKey;
+        public void setPermission(String value) {
+            permission = value;
         }
     }
 }

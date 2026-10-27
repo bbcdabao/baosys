@@ -1,24 +1,26 @@
 package baosys.manager.app.assembler;
 
-
 import baosys.manager.api.dto.UserResponse;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.UserInfoEntity;
 
 public final class UserAssembler {
 
-    private UserAssembler() {
-    }
+    private UserAssembler() {}
 
     public static UserResponse toResponse(UserInfoEntity user, boolean online) {
         return new UserResponse(
-                user.getId(),
-                user.getUserName(),
-                user.getSystemType(),
-                PermissionPersistenceConverter.decode(user.getUserPermissions()).stream()
-                        .sorted()
-                        .toList(),
-                user.isEnabled(),
-                online);
+            user.getId(),
+            user.getUserName(),
+            baosys.common.security.resource.PermissionSet.systems(
+                PermissionPersistenceConverter.decode(user.getUserPermissions())
+            ),
+            PermissionPersistenceConverter.decode(user.getUserPermissions())
+                .stream()
+                .sorted()
+                .toList(),
+            user.isEnabled(),
+            online
+        );
     }
 }

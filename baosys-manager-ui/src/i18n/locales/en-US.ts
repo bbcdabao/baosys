@@ -51,6 +51,12 @@ export default {
     passwordRequired: 'Please enter a password'
   },
   user: {
+    authorizedSystems: 'Authorized subsystems',
+    noSystemAccess: 'No subsystem permissions assigned',
+    systemAccessHint:
+      'Subsystem access follows your account permissions. Open management features from the menu.',
+    entryOnly: 'Subsystem entry permission only',
+    retiredPermissions: 'These retired permissions will be removed',
     title: 'User Management',
     description: 'Manage platform users, permissions, and online status',
     name: 'Username',
@@ -59,8 +65,10 @@ export default {
     allPlatforms: 'All platforms',
     accountStatus: 'Account status',
     onlineStatus: 'Login status',
-    enabledHint: 'Disabled accounts cannot sign in or refresh. Issued access tokens may remain valid until expiry.',
-    accessChangeSessionsRevoked: 'Account access changed. Refresh sessions were revoked; sign in again.',
+    enabledHint:
+      'Disabled accounts cannot sign in or refresh. Issued access tokens may remain valid until expiry.',
+    accessChangeSessionsRevoked:
+      'Account access changed. Refresh sessions were revoked; sign in again.',
     permissions: 'Permissions',
     password: 'Password',
     passwordPlaceholder: 'Enter at least 8 characters',

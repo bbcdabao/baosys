@@ -4,7 +4,7 @@ export interface LoginSession {
   id: number
   userId: number
   userName: string
-  systemType: SystemType
+  systemTypes: SystemType[]
   loginClient: string
   loginAt: string
   expiresAt: string

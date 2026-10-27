@@ -14,8 +14,15 @@
     </div>
 
     <a-card :bordered="false">
-      <a-form :model="filters" layout="inline" class="filter-form">
-        <a-form-item field="userName" :label="t('session.userName')">
+      <a-form
+        :model="filters"
+        layout="inline"
+        class="filter-form"
+      >
+        <a-form-item
+          field="userName"
+          :label="t('session.userName')"
+        >
           <a-input
             v-model="filters.userName"
             allow-clear
@@ -25,7 +32,11 @@
         </a-form-item>
         <a-form-item>
           <a-space>
-            <a-button type="primary" :loading="loading" @click="search">
+            <a-button
+              type="primary"
+              :loading="loading"
+              @click="search"
+            >
               <template #icon><icon-search /></template>
               {{ t('common.query') }}
             </a-button>
@@ -43,7 +54,12 @@
         @page-change="changePage"
       >
         <template #systemType="{ record }">
-          <a-tag color="arcoblue">{{ systemLabel(record.systemType) }}</a-tag>
+          <a-tag
+            v-for="type in record.systemTypes"
+            :key="type"
+            color="arcoblue"
+            >{{ systemLabel(type) }}</a-tag
+          >
         </template>
         <template #loginAt="{ record }">{{ formatTime(record.loginAt) }}</template>
         <template #expiresAt="{ record }">{{ formatTime(record.expiresAt) }}</template>
@@ -53,7 +69,11 @@
             :content="t('session.kickConfirm')"
             @ok="kickOne(record)"
           >
-            <a-button type="text" status="danger" size="small">
+            <a-button
+              type="text"
+              status="danger"
+              size="small"
+            >
               {{ t('session.kick') }}
             </a-button>
           </a-popconfirm>
@@ -93,8 +113,8 @@ const exactUserId = ref<number>()
 const exactUserName = ref('')
 const filters = reactive({ userName: '' })
 
-const canKick = computed(() =>
-  authStore.currentUser?.permissions.includes('user:session:kick') === true
+const canKick = computed(
+  () => authStore.currentUser?.permissions.includes('MGR:user:session:kick') === true
 )
 const columns = computed<TableColumnData[]>(() => [
   { title: t('session.userName'), dataIndex: 'userName', width: 160 },
@@ -140,12 +160,8 @@ const loadSessions = async (): Promise<void> => {
 
 const syncFromRoute = async (): Promise<void> => {
   const userId = Number(route.query.userId)
-  exactUserId.value = Number.isSafeInteger(userId) && userId > 0
-    ? userId
-    : undefined
-  exactUserName.value = typeof route.query.userName === 'string'
-    ? route.query.userName
-    : ''
+  exactUserId.value = Number.isSafeInteger(userId) && userId > 0 ? userId : undefined
+  exactUserName.value = typeof route.query.userName === 'string' ? route.query.userName : ''
   filters.userName = exactUserName.value
   currentPage.value = 1
   await loadSessions()
@@ -153,8 +169,7 @@ const syncFromRoute = async (): Promise<void> => {
 
 const search = async (): Promise<void> => {
   const normalized = filters.userName.trim()
-  const keepExactUser = exactUserId.value
-    && normalized === exactUserName.value
+  const keepExactUser = exactUserId.value && normalized === exactUserName.value
   await router.replace({
     name: 'login-management',
     query: keepExactUser
@@ -178,7 +193,9 @@ const kickOne = async (session: LoginSession): Promise<void> => {
   try {
     await kickLoginClient(session.userId, session.id)
     // 删除当前页唯一记录时先回退，避免停留在空页。
-    if (sessions.value.length === 1 && currentPage.value > 1) currentPage.value--
+    if (sessions.value.length === 1 && currentPage.value > 1) {
+      currentPage.value--
+    }
     await loadSessions()
     Message.success(t('session.kicked'))
   } catch (error) {
@@ -187,7 +204,9 @@ const kickOne = async (session: LoginSession): Promise<void> => {
 }
 
 const kickAll = async (): Promise<void> => {
-  if (!exactUserId.value) return
+  if (!exactUserId.value) {
+    return
+  }
   try {
     await kickAllLoginClients(exactUserId.value)
     currentPage.value = 1
@@ -203,10 +222,28 @@ watch(() => route.fullPath, syncFromRoute, { immediate: true })
 </script>
 
 <style scoped>
-.page-section { display: grid; gap: 18px; }
-.page-heading { display: flex; justify-content: space-between; align-items: center; }
-.page-heading h2 { margin: 0; color: var(--color-text-1); font-size: 22px; }
-.page-heading p { margin: 6px 0 0; color: var(--color-text-3); }
-.filter-form { margin-bottom: 18px; }
-.filter-form :deep(.arco-input-wrapper) { width: 260px; }
+.page-section {
+  display: grid;
+  gap: 18px;
+}
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.page-heading h2 {
+  margin: 0;
+  color: var(--color-text-1);
+  font-size: 22px;
+}
+.page-heading p {
+  margin: 6px 0 0;
+  color: var(--color-text-3);
+}
+.filter-form {
+  margin-bottom: 18px;
+}
+.filter-form :deep(.arco-input-wrapper) {
+  width: 260px;
+}
 </style>

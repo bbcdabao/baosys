@@ -1,6 +1,10 @@
 # baosys-manager-ui
 
+Manager 提供账号密码登录表单，支持同域不同端口子系统的 redirect_url 回跳。Token 使用 HttpOnly Cookie，不存入前端存储。API 401 尝试统一刷新后转登录，403 提示权限不足。部署配置和子系统接入见 [同域共享登录](../docs/deployment/shared_login.md)。
+
 BaoSys 管理平台前端，当前包含登录、用户管理、登录会话和系统配置页面骨架。
+
+写请求（含登录、刷新、退出）先通过同源 `GET /csrf` 获取 Spring 标准 Token，再按返回的 `headerName` 提交；不再读取 CSRF Cookie 或缓存至 sessionStorage。Vite 同时代理 `/api` 和 `/csrf`。安全层错误按 HTTP 401/403 处理，业务错误仍读取 JSON message。
 
 在 `baosys-manager-ui` 目录执行：
 

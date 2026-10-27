@@ -1,12 +1,11 @@
 package baosys.manager.infra.database.entity;
 
-import java.time.OffsetDateTime;
-
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.time.OffsetDateTime;
 
 @TableName("user_login")
 public class UserLoginEntity {
@@ -16,9 +15,36 @@ public class UserLoginEntity {
 
     private Long userInfoId;
 
+    private String clientId;
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String value) {
+        clientId = value;
+    }
+
     private String loginClient;
 
-    private String refreshTokenHash;
+    private String authorizationId;
+    private String authenticationSessionId;
+
+    public String getAuthorizationId() {
+        return authorizationId;
+    }
+
+    public void setAuthorizationId(String value) {
+        authorizationId = value;
+    }
+
+    public String getAuthenticationSessionId() {
+        return authenticationSessionId;
+    }
+
+    public void setAuthenticationSessionId(String value) {
+        authenticationSessionId = value;
+    }
 
     private OffsetDateTime expiresAt;
 
@@ -56,14 +82,6 @@ public class UserLoginEntity {
 
     public void setLoginClient(String loginClient) {
         this.loginClient = loginClient;
-    }
-
-    public String getRefreshTokenHash() {
-        return refreshTokenHash;
-    }
-
-    public void setRefreshTokenHash(String refreshTokenHash) {
-        this.refreshTokenHash = refreshTokenHash;
     }
 
     public OffsetDateTime getExpiresAt() {

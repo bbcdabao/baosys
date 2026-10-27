@@ -1,15 +1,15 @@
 package baosys.manager.app.services.impl;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import baosys.common.api.PageResponse;
 import baosys.manager.api.dto.LoginSessionResponse;
 import baosys.manager.app.services.LoginSessionAppService;
 import baosys.manager.infra.database.entity.LoginSessionRow;
 import baosys.manager.infra.database.mapper.UserLoginMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LoginSessionAppServiceImpl implements LoginSessionAppService {
@@ -23,34 +23,39 @@ public class LoginSessionAppServiceImpl implements LoginSessionAppService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<LoginSessionResponse> list(
-            Long userId,
-            String userName,
-            int page,
-            int size) {
+        Long userId,
+        String userName,
+        int page,
+        int size
+    ) {
         String normalizedName = userName == null ? "" : userName.trim();
         var result = loginMapper.selectActiveSessions(
-                Page.of(page + 1L, size),
-                userId,
-                normalizedName,
-                OffsetDateTime.now(ZoneOffset.UTC));
-        var items = result.getRecords().stream()
-                .map(LoginSessionAppServiceImpl::toResponse)
-                .toList();
-        return PageResponse.of(
-                items,
-                result.getTotal(),
-                page,
-                size);
+            Page.of(page + 1L, size),
+            userId,
+            normalizedName,
+            OffsetDateTime.now(ZoneOffset.UTC)
+        );
+        var items = result
+            .getRecords()
+            .stream()
+            .map(LoginSessionAppServiceImpl::toResponse)
+            .toList();
+        return PageResponse.of(items, result.getTotal(), page, size);
     }
 
     private static LoginSessionResponse toResponse(LoginSessionRow row) {
         return new LoginSessionResponse(
-                row.getId(),
-                row.getUserId(),
-                row.getUserName(),
-                row.getSystemType(),
-                row.getLoginClient(),
-                row.getLoginAt(),
-                row.getExpiresAt());
+            row.getId(),
+            row.getUserId(),
+            row.getUserName(),
+            baosys.common.security.resource.PermissionSet.systems(
+                baosys.manager.infra.database.converter.PermissionPersistenceConverter.decode(
+                    row.getUserPermissions()
+                )
+            ),
+            row.getLoginClient(),
+            row.getLoginAt(),
+            row.getExpiresAt()
+        );
     }
 }

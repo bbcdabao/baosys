@@ -17,7 +17,7 @@ Jar 内 application.yml 默认值
 
 本文只描述当前代码已经使用或已经预留的配置。不同进程需要分别设置自己的环境变量。
 
-Common 配置类的完整属性及默认值见 [Common 模块说明](../../baosys-common/README.md#5-配置默认值)。本文表格列出的是应用 YAML 的实际默认值，例如 Manager 的 Access Token 有效期为 1800 秒，而 Common 类默认值为 7200 秒。
+Common 配置类的完整属性及默认值见 [Common 模块说明](../../baosys-common/README.md#5-配置默认值)。本文表格列出的是应用 YAML 的实际默认值，例如 Manager 的 Access Token 有效期为 1800 秒，签发属性默认值同样为 1800 秒。
 
 ## 2. Manager Service
 
@@ -67,48 +67,18 @@ $env:DB_PASSWORD="postgres123456"
 
 默认关闭管理员初始化；首次需要创建管理员时显式启用并设置至少 12 位密码。
 
-### 2.4 Cookie 与会话
-
-| 环境变量 | 默认值 | 说明 |
-|---|---:|---|
-| `AUTH_COOKIE_SECURE` | `false` | Cookie 是否仅通过 HTTPS 发送 |
-| `AUTH_ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS` | `1800` | Access Cookie 持久时间 |
-| `AUTH_REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS` | `2592000` | Refresh Cookie 持久时间 |
-| `AUTH_REFRESH_TOKEN_COOKIE_PATH` | `/api/baosys-manager/v1/auth` | Refresh Cookie Path |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | `30` | 登录会话绝对有效期，刷新不延长 |
-
-Max-Age 配置为 `0` 时，应用写出会话 Cookie。
-
-`AUTH_REFRESH_TOKEN_COOKIE_PATH` 面向浏览器经过网关的外部路径，不是 Manager Service 内部 `/v1/auth`。
-
-刷新要求会话存在、expires_at 晚于当前时间且账号已启用。事务中先锁用户再锁会话并复核旧摘要，每次刷新轮换摘要、更新 updated_at，但不延长登录时确定的 expires_at。空闲超过一天的会话仍由数据库任务清理。
-
-### 2.5 JWT
-
-| 环境变量 | 默认值 | 说明 |
-|---|---:|---|
-| `JWT_ISSUER` | `auth-server` | JWT issuer |
-| `ACCESS_TOKEN_EXPIRE_SECONDS` | `1800` | Access Token 有效期 |
-
-当前 RSA 公钥和私钥直接配置在 `application.yml` 的：
-
-```text
-security.jwt.public-key
-security.jwt.private-key
-```
-
-它们当前没有使用 `${JWT_PUBLIC_KEY}` / `${JWT_PRIVATE_KEY}` 占位符。需要外部化时，应提供外部 Spring 配置文件或修改 YAML 为显式环境变量占位符，Manager Web 默认通过 JWKS 获取对应公钥，也可显式配置本地公钥。
-
-### 2.6 CSRF
+### 2.4 OAuth2 与会话
 
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
-| `GATEWAY_CSRF_ENABLED` | `false` | 是否签发 CSRF Token Cookie |
+| JWT_ISSUER | http://localhost:9090/baosys-manager | 标准 issuer，须为可访问 URL |
+| JWT_JWK_SET_URI | http://localhost:9090/baosys-manager/oauth2/jwks | 资源服务器 JWKS 地址 |
+| JWT_JWK_SET_LOCATION | 必填 | 认证中心私有 JWKSet 文件资源位置 |
+| OAUTH2_CLIENT_SECRET | 必填 | 网关保管的随机客户端密钥 |
+| OAUTH2_CLIENT_SECRET_HASH | 必填 | 认证中心的对应 {bcrypt} 编码值 |
+| OAUTH2_REDIRECT_URI | http://localhost:8080/login/oauth2/code/baosys | 两端匹配的回调 URI |
 
-该变量需要同时设置给 Manager Service 和 Manager Web：
-
-- Manager Service 决定是否签发 CSRF Cookie/Header。
-- Manager Web 决定是否执行双提交校验。
+内部令牌期限沿用 spring.security.oauth2.authorizationserver.client.baosys-web.token 属性；共享 Cookie 通过 MANAGER_PUBLIC_ORIGIN、SHARED_LOGIN_ALLOWED_ORIGINS、SHARED_LOGIN_SECURE_COOKIE 配置部署规则，前端子系统使用 VITE_MANAGER_ORIGIN 指定统一入口。CSRF 由 Spring 管理，前端同源 GET /csrf 后提交掩码。详见 [共享登录配置](shared_login.md)。
 
 ## 3. Manager Web
 
@@ -124,34 +94,23 @@ baosys-manager-web/src/main/resources/application.yml
 |---|---|---|
 | `GATEWAY_PORT` | `8080` | 网关和 SPA 宿主端口 |
 | `MANAGER_SERVICE_URL` | `http://127.0.0.1:9090` | Manager 下游地址 |
-| `PLANT_SERVICE_URL` | `http://127.0.0.1:9091` | 预留 Plant 下游地址 |
 
-`PLANT_SERVICE_URL` 已出现在网关路由中，但当前仓库没有 Plant 服务。
+每个子系统使用自己的 API 网关；Manager Web 仅配置 Manager 服务的转发和入口权限规则。
 
 ### 3.2 JWT 和 CSRF
 
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
-| `JWT_ISSUER` | `auth-server` | 必须与签发端一致 |
+| `JWT_ISSUER` | `http://localhost:9090/baosys-manager` | 必须与签发端一致 |
 | `JWT_JWK_SET_URI` | `http://127.0.0.1:9090/baosys-manager/oauth2/jwks` | 固定可信 manager 公钥接口；更改端口/context-path 时同步修改 |
-| `SYSTEM_TYPE` | `MANAGER` | Manager 网关只接受该子系统的 JWT |
-| `GATEWAY_CSRF_ENABLED` | `false` | 是否启用网关 CSRF Filter |
 
-网关默认通过上述 JWKS 地址按请求懒获取，缓存 5 分钟；未知 kid 不提前刷新，失败退避 5 秒。显式设置 public-key 或 public-key-location 后始终使用本地公钥，完全停止远程获取。内联配置名称：
+网关与资源服务通过 Spring/Nimbus 原生 JWKS 支持获取并缓存公钥；未知 kid 可触发重新获取，不再维持旧自建缓存和失败退避约定。配置标准 issuer-uri、jwk-set-uri、jws-algorithms=[RS256]、audiences=[def]。本地离线公钥模式使用标准 public-key-location，并清空 jwk-set-uri，不支持本地优先远程回退。
 
-```text
-security.jwt.public-key
-```
-
-Manager Web 不需要私钥。子系统隔离使用 `security.system-type`：配置后要求令牌中的 `systemType` 与其一致。公钥接口在 manager 的 `/oauth2/jwks`，网关路径为 `/api/baosys-manager/oauth2/jwks`。轮换配置见 [JWT 配置方案](../superpowers/plans/2026-10-09-common-jwt-refactor.md)。
+Manager Web 不持有私钥。spring.security.gateway.access-rules 按路径声明访问要求：permission 有值时检查系统入口权限，未配置、空字符串或仅含空白字符时只要求登录。规则按顺序首次匹配，共享路径应放在子系统通配规则之前。后端资源服务验证 JWT，并通过 @PreAuthorize 校验具体 API 权限。账户权限数组中需包含相应入口编码。公钥端点为 /baosys-manager/oauth2/jwks，经网关为 /api/baosys-manager/oauth2/jwks。
 
 ## 4. 前端
 
-| 环境变量 | 默认值 | 说明 |
-|---|---|---|
-| `VITE_CSRF_COOKIE_NAME` | `BAOSYS_CSRF_TOKEN` | 前端读取的 CSRF Cookie 名称 |
-
-Vite 环境变量在前端构建时固化。修改后需要重新启动开发服务器或重新构建。
+不再配置 VITE_CSRF_COOKIE_NAME。写请求前通过 GET /csrf 获取标准 Token，按响应 headerName 提交；无需读取 Cookie 或本地存储。网关始终启用 CSRF，XSRF-TOKEN 为框架管理的 HttpOnly Cookie。
 
 当前 API 前缀不是环境变量，固定在：
 
@@ -205,6 +164,8 @@ spring.datasource.driver-class-name
 ### 7.1 Manager Service 终端
 
 ```powershell
+$env:JWT_JWK_SET_LOCATION = "file:D:/baosys/keys/signing-jwks.json"
+# 另设置两端对应的 OAUTH2_CLIENT_SECRET / OAUTH2_CLIENT_SECRET_HASH
 $env:MANAGER_PORT="9090"
 $env:DB_URL="jdbc:postgresql://localhost:5432/app_db"
 $env:DB_USERNAME="postgres"
@@ -212,7 +173,6 @@ $env:DB_PASSWORD="postgres123456"
 $env:DEFAULT_ADMIN_ENABLED="true"
 $env:DEFAULT_ADMIN_USERNAME="admin"
 $env:DEFAULT_ADMIN_PASSWORD="Admin123!test"
-$env:GATEWAY_CSRF_ENABLED="false"
 
 mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 ```
@@ -222,7 +182,6 @@ mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 ```powershell
 $env:GATEWAY_PORT="8080"
 $env:MANAGER_SERVICE_URL="http://127.0.0.1:9090"
-$env:GATEWAY_CSRF_ENABLED="false"
 
 mvn -f baosys-manager-web/pom.xml spring-boot:run "-Dskip.frontend=true"
 ```
@@ -232,6 +191,8 @@ mvn -f baosys-manager-web/pom.xml spring-boot:run "-Dskip.frontend=true"
 ## 8. Bash 配置示例
 
 ```shell
+export JWT_JWK_SET_LOCATION="file:/config/keys/signing-jwks.json"
+# 另设置两端对应的 OAuth2 客户端密钥
 export DB_URL='jdbc:postgresql://localhost:5432/app_db'
 export DB_USERNAME='postgres'
 export DB_PASSWORD='postgres123456'
@@ -249,10 +210,8 @@ mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 ```text
 [ ] Manager Web 的 MANAGER_SERVICE_URL 指向 Manager Service
 [ ] Manager Web 与 Manager Service 的 JWT_ISSUER 一致
-[ ] Manager Web 公钥与 Manager Service 签发私钥匹配
-[ ] 两个进程的 GATEWAY_CSRF_ENABLED 一致
+[ ] 两个服务的 JWKS 地址正确，JWK kid 与发布公钥一致
 [ ] AUTH_REFRESH_TOKEN_COOKIE_PATH 与外部认证路径一致
-[ ] VITE_CSRF_COOKIE_NAME 与后端 CSRF Cookie 名称一致
 [ ] DB_URL 指向已创建且可访问的 PostgreSQL 数据库
 ```
 

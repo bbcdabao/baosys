@@ -1,0 +1,28 @@
+spring:
+  security:
+    oauth2:
+      authorizationserver:
+        issuer: http://localhost:9090/baosys-manager
+        client:
+          baosys-web:
+            registration:
+              client-secret: '{noop}test-secret'
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9090/baosys-manager
+          jwk-set-uri: ""
+          public-key-location: classpath:test-public.pem
+          jws-algorithms: [RS256]
+          audiences: [def]
+  flyway:
+    enabled: true
+auth:
+  default-admin-enabled: true
+  default-admin-username: admin
+  default-admin-password: Admin123!test
+common:
+  password:
+    strength: 4
+baosys:
+  authorization:
+    jwk-set-location: classpath:test-jwks.json

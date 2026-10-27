@@ -51,6 +51,11 @@ export default {
     passwordRequired: '请输入密码'
   },
   user: {
+    authorizedSystems: '已授权子系统',
+    noSystemAccess: '当前账户尚未分配子系统权限',
+    systemAccessHint: '可访问的子系统由账户权限决定。管理功能请从左侧菜单进入。',
+    entryOnly: '仅子系统入口权限',
+    retiredPermissions: '以下已失效权限将被移除',
     title: '用户管理',
     description: '管理平台用户、权限及在线状态',
     name: '用户名称',

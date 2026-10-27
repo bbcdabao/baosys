@@ -1,5 +1,7 @@
 # BaoSys 本地开发指南
 
+内部子系统使用 [同域共享 Manager 登录](shared_login.md)，无需网关 OAuth2 Client 会话。账户通过统一 permissions 分配多个系统，外部 OAuth2 能力保留。启动需提供 JWK 文件及认证中心配置；Vite 5173 开发时须相应设置 MANAGER_PUBLIC_ORIGIN。数据库初始化说明见 [升级指南](oauth2_upgrade.md)。
+
 ## 1. 目标
 
 本文说明如何在本地启动当前完整链路：
@@ -93,7 +95,7 @@ postgres123456
 
 如本地参数不同，通过 `DB_URL`、`DB_USERNAME` 和 `DB_PASSWORD` 覆盖。
 
-启动 Manager Service 时，Flyway 从 `V1__init_manager.sql` 创建 `user_info`、`user_login`、`permission_change_audit` 和会话清理函数。默认使用独立的 `manager` schema，可通过 `MANAGER_DB_SCHEMA` 覆盖。
+启动 Manager Service 时，Flyway 从 `V1__init_manager.sql` 创建账户、登录、审计、OAuth2 授权和 Spring Session 表，以及会话清理函数和授权撤销触发器。默认使用独立的 `manager` schema，可通过 `MANAGER_DB_SCHEMA` 覆盖。
 
 ## 4. 首次构建
 
@@ -380,7 +382,7 @@ MANAGER_SERVICE_URL=http://127.0.0.1:9090
 检查：
 
 - Manager Web 和 Manager Service 的 JWT issuer、公钥是否一致。
-- 浏览器是否收到 `access_token` Cookie。
+- 浏览器是否收到共享 `BAOSYS_ACCESS_TOKEN` HttpOnly Cookie；Manager Origin 是否与浏览器地址一致。详见 [共享登录配置](shared_login.md)。
 - 请求是否经过 8080 网关，而不是直接访问错误端口。
 - Access Token 是否已过期。
 

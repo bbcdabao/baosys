@@ -1,70 +1,109 @@
 package baosys.common.security.jwt;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.security.interfaces.RSAPublicKey;
-import java.time.Duration;
 import java.util.List;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.security.oauth2.core.*;
-import org.springframework.security.oauth2.jwt.*;
-import baosys.common.security.config.SecurityProperties;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtTypeValidator;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.util.StringUtils;
 
-/** Shared policy only: no web stack, network client or security chain. */
+/**
+ * 网关和资源服务共用的 JWT 访问令牌校验规则。
+ *
+ * <p>校验分为两层：Spring Security 检查标准访问令牌字段，本类补充 BaoSys
+ * 的密钥标识和权限字段约束。两层均通过，令牌才有效。</p>
+ *
+ * <p>本类只校验已解码 JWT 的头部和声明；签名验证、算法限制及验签密钥选择由
+ * 配置本校验器的 JWT decoder 负责。校验通过也不代表具备某个接口的访问权限，
+ * 具体授权仍由后续安全规则处理。</p>
+ */
 public final class JwtVerification {
-    private JwtVerification() { }
-    public static void validate(SecurityProperties properties) {
-        var jwt = properties.getJwt();
-        if (!List.of("RS256").equals(jwt.getAllowedAlgorithms()))
-            throw new IllegalArgumentException("security.jwt.allowed-algorithms currently supports only [RS256]");
-        if (jwt.getExpectedIssuer() == null || jwt.getExpectedIssuer().isBlank())
-            throw new IllegalArgumentException("security.jwt issuer must not be blank");
-        if (jwt.getClockSkew() == null || jwt.getClockSkew().isNegative())
-            throw new IllegalArgumentException("security.jwt.clock-skew must be nonnegative");
+
+    private JwtVerification() {}
+
+    /**
+     * 创建标准校验器与平台契约校验器的组合。
+     * 受众统一使用 {@link JwtConstants#ACCESS_TOKEN_AUDIENCE}，由框架检查令牌的 aud 是否包含该值。
+     *
+     * @param issuer 可信签发者，必须是非空白文本
+     * @return 所有规则均须通过的组合校验器
+     * @throws IllegalArgumentException 配置缺失或不符合平台约定时抛出，使启动尽早失败
+     */
+    public static OAuth2TokenValidator<Jwt> validator(String issuer) {
+        OAuth2TokenValidator<Jwt> standardValidator = standardValidator(issuer);
+        OAuth2TokenValidator<Jwt> contractValidator = JwtVerification::validateAccessTokenContract;
+        return new DelegatingOAuth2TokenValidator<>(standardValidator, contractValidator);
     }
-    /** Explicitly empty local values are errors, never remote fallback. */
-    public static RSAPublicKey localKey(SecurityProperties.Jwt jwt) {
-        if (jwt.getPublicKey() != null && jwt.getPublicKeyLocation() != null)
-            throw new IllegalArgumentException("Configure only one of public-key and public-key-location");
-        if (jwt.getPublicKey() != null) return JwtKeyLoader.loadPublicKey(jwt.getPublicKey());
-        if (jwt.getPublicKeyLocation() == null) return null;
-        String location = jwt.getPublicKeyLocation();
-        if (!(location.startsWith("classpath:") || location.startsWith("file:")))
-            throw new IllegalArgumentException("public-key-location must use classpath: or file:");
-        try (var input = new DefaultResourceLoader().getResource(location).getInputStream()) {
-            return JwtKeyLoader.loadPublicKey(new String(input.readAllBytes(), StandardCharsets.UTF_8));
-        } catch (java.io.IOException exception) {
-            throw new IllegalArgumentException("Cannot read security.jwt.public-key-location", exception);
+
+    /**
+     * 框架负责 iss、aud、exp、nbf 等标准规则；此处收紧类型和必要文本字段要求。
+     * iat 的必填要求由框架保留，不额外限制它相对当前时间的偏移。
+     * typ 必须为 at+jwt；sub（主体）、jti（令牌标识）、client_id（客户端标识）
+     * 都必须是非空白字符串，不能仅仅存在。
+     */
+    private static OAuth2TokenValidator<Jwt> standardValidator(String issuer) {
+        return JwtValidators.createAtJwtValidator()
+            .issuer(issuer)
+            .audience(JwtConstants.ACCESS_TOKEN_AUDIENCE)
+            .validators(validators -> {
+                validators.put("typ", new JwtTypeValidator("at+jwt"));
+                for (String claim : List.of("sub", "jti", "client_id")) {
+                    validators.put(
+                        claim,
+                        new JwtClaimValidator<Object>(claim, JwtVerification::isNonBlankString)
+                    );
+                }
+            })
+            .build();
+    }
+
+    /**
+     * 检查平台自定义契约，用提前返回分别表达每一项拒绝条件。
+     * 对外保持统一的 invalid_token 错误，不暴露内部校验细节。
+     */
+    private static OAuth2TokenValidatorResult validateAccessTokenContract(Jwt jwt) {
+        try {
+            // permissions 必须是字符串列表；空列表合法，缺失、字符串或混合类型均非法。
+            Object rawPermissions = jwt.getClaims().get(JwtConstants.PERMISSIONS_CLAIM);
+            if (
+                !(rawPermissions instanceof List<?> permissions) ||
+                !permissions.stream().allMatch(String.class::isInstance)
+            ) {
+                return invalid();
+            }
+
+            // kid 必须是有效文本；是否对应可信密钥由 decoder 验签时确认。
+            if (!isNonBlankString(jwt.getHeaders().get("kid"))) {
+                return invalid();
+            }
+
+            return OAuth2TokenValidatorResult.success();
+        } catch (IllegalArgumentException exception) {
+            // 声明读取或转换产生的参数异常统一视为认证校验失败。
+            return invalid();
         }
     }
-    public static URI jwksUri(SecurityProperties.Jwt jwt) {
-        if (jwt.getJwkSetUri() == null || jwt.getJwkSetUri().isBlank())
-            throw new IllegalArgumentException("JWT requires a local public key or security.jwt.jwk-set-uri; issuer discovery is not enabled");
-        URI uri = URI.create(jwt.getJwkSetUri());
-        if (!("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))
-                || uri.getHost() == null || uri.getUserInfo() != null || uri.getFragment() != null)
-            throw new IllegalArgumentException("security.jwt.jwk-set-uri must be an HTTP(S) endpoint without credentials or fragment");
-        var cache = jwt.getJwks();
-        positive(cache.getCacheTtl(), "cache-ttl");
-        positive(cache.getFailureBackoff(), "failure-backoff");
-        positive(cache.getConnectTimeout(), "connect-timeout");
-        positive(cache.getReadTimeout(), "read-timeout");
-        return uri;
+
+    /**
+     * 同时限制字段类型和文本内容，不把数字等值隐式转换成字符串后接受。
+     * @param value
+     * @return
+     */
+    private static boolean isNonBlankString(Object value) {
+        return value instanceof String text && StringUtils.hasText(text);
     }
-    private static void positive(Duration duration, String name) {
-        if (duration == null || duration.toMillis() <= 0 || duration.toMillis() > Integer.MAX_VALUE)
-            throw new IllegalArgumentException("security.jwt.jwks." + name + " must be positive and fit milliseconds in an integer");
-    }
-    public static OAuth2TokenValidator<Jwt> validator(SecurityProperties properties) {
-        var config = properties.getJwt();
-        OAuth2TokenValidator<Jwt> claims = jwt -> {
-            boolean valid = jwt.getExpiresAt() != null && jwt.getSubject() != null && !jwt.getSubject().isBlank()
-                    && config.getExpectedIssuer().equals(jwt.getClaimAsString("iss"))
-                    && (properties.getSystemType() == null || properties.getSystemType().isBlank()
-                        || properties.getSystemType().trim().equals(jwt.getClaimAsString("systemType")));
-            return valid ? OAuth2TokenValidatorResult.success() : OAuth2TokenValidatorResult.failure(
-                    new OAuth2Error("invalid_token", "Required JWT claims are missing or invalid", null));
-        };
-        return new DelegatingOAuth2TokenValidator<>(new JwtTimestampValidator(config.getClockSkew()), claims);
+
+    /**
+     * 保持错误码和描述一致，供 Spring Security 处理认证失败。
+     * @return
+     */
+    private static OAuth2TokenValidatorResult invalid() {
+        return OAuth2TokenValidatorResult.failure(
+            new OAuth2Error("invalid_token", "Invalid access token contract", null)
+        );
     }
 }

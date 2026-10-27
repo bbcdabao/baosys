@@ -1,5 +1,8 @@
 package baosys.common.autoconfigure;
 
+import baosys.common.security.password.BCryptPasswordHasher;
+import baosys.common.security.password.PasswordHasher;
+import baosys.common.security.password.PasswordProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -7,10 +10,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import baosys.common.security.password.BCryptPasswordHasher;
-import baosys.common.security.password.PasswordHasher;
-import baosys.common.security.password.PasswordProperties;
 
 /**
  * 密码加密器自动配置。
@@ -23,10 +22,7 @@ import baosys.common.security.password.PasswordProperties;
 @AutoConfiguration
 @ConditionalOnClass(BCryptPasswordEncoder.class)
 @EnableConfigurationProperties(PasswordProperties.class)
-@ConditionalOnProperty(
-        prefix = "common.password",
-        name = "enabled",
-        havingValue = "true")
+@ConditionalOnProperty(prefix = "common.password", name = "enabled", havingValue = "true")
 public class PasswordAutoConfiguration {
 
     /**

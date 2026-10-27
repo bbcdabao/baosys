@@ -1,17 +1,18 @@
 package baosys.manager.app.controllers;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import baosys.common.security.jwt.JwtConstants;
+import static org.assertj.core.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.util.UUID;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-
+import baosys.manager.OAuth2TestClient;
+import baosys.manager.OAuth2TestClient.LoginRequest;
+import baosys.manager.PostgreSqlIntegrationTest;
+import baosys.manager.api.dto.*;
+import baosys.manager.app.services.*;
+import baosys.manager.infra.database.mapper.*;
+import com.nimbusds.jwt.SignedJWT;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,11 +20,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.mock.web.MockCookie;
-
-import baosys.manager.PostgreSqlIntegrationTest;
-import baosys.manager.infra.database.mapper.UserInfoMapper;
-import baosys.manager.infra.database.mapper.UserLoginMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -31,183 +27,168 @@ import baosys.manager.infra.database.mapper.UserLoginMapper;
 class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    MockMvc mvc;
 
     @Autowired
-    private UserInfoMapper userMapper;
+    OAuth2TestClient auth;
 
     @Autowired
-    private UserLoginMapper loginMapper;
+    UserAppService users;
 
-    @Test
-    void shouldGetCurrentUserFromAccessTokenSubject() throws Exception {
-        var admin = userMapper
-                .findByUserNameAndSystemType("admin", "MANAGER")
-                .orElseThrow();
+    @Autowired
+    UserInfoMapper userMapper;
 
-        mockMvc.perform(get("/v1/users/me")
-                        .with(jwt().jwt(token -> token
-                                .subject(Long.toString(admin.getId()))
-                                .claim("username", "ignored-token-username"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.userId").value(admin.getId()))
-                .andExpect(jsonPath("$.data.username").value("admin"))
-                .andExpect(jsonPath("$.data.displayName").value("admin"))
-                .andExpect(jsonPath("$.data.systemType").value("MANAGER"))
-                .andExpect(jsonPath("$.data.permissions").isArray());
+    @Autowired
+    UserLoginMapper loginMapper;
+
+    String adminToken() {
+        return auth.login(new LoginRequest("admin", "Admin123!test", "test")).accessToken();
     }
 
     @Test
-    void shouldRejectCurrentUserRequestWithoutAccessToken() throws Exception {
-        mockMvc.perform(get("/v1/users/me"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("AUTH_401_001"));
+    void currentUserResolvesLoginSubjectToUser() throws Exception {
+        var admin = userMapper.findByUserName("admin").orElseThrow();
+        var result = auth.login(new LoginRequest("admin", "Admin123!test", "test"));
+        // Deliberately obtain a session whose id differs from the user's id.
+        if (
+            SignedJWT.parse(result.accessToken())
+                .getJWTClaimsSet()
+                .getSubject()
+                .equals(admin.getId().toString())
+        ) {
+            result = auth.login(new LoginRequest("admin", "Admin123!test", "test-2"));
+        }
+        long loginId = Long.parseLong(
+            SignedJWT.parse(result.accessToken()).getJWTClaimsSet().getSubject()
+        );
+        assertThat(loginId).isNotEqualTo(admin.getId());
+        assertThat(loginMapper.selectById(loginId).getUserInfoId()).isEqualTo(admin.getId());
+        mvc.perform(get("/v1/users/me").header("Authorization", "Bearer " + result.accessToken()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.userId").value(admin.getId()))
+            .andExpect(jsonPath("$.data.systemTypes[0]").value("MGR"));
+        auth.logout(result.refreshToken());
+        mvc.perform(
+            get("/v1/users/me").header("Authorization", "Bearer " + result.accessToken())
+        ).andExpect(status().isUnauthorized());
     }
 
     @Test
-    void shouldCreateQueryAndDeleteUserWithHashedPassword() throws Exception {
-        String username = "user-" + UUID.randomUUID();
-        String response = mockMvc.perform(post("/v1/users")
-                        .with(jwt().jwt(token -> token.subject("1").claim("username", "admin"))
-                                .authorities(
-                                        () -> "user:add",
-                                        () -> "user:list",
-                                        () -> "user:delete"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name":"%s",
-                                  "pass":"secure123",
-                                  "systemType":"SIMULATORS",
-                                  "permissions":[]
-                                }
-                                """.formatted(username)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.name").value(username))
-                .andExpect(jsonPath("$.data.systemType").value("SIMULATORS"))
-                .andExpect(jsonPath("$.data.permissions").isArray())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        var user = userMapper
-                .findByUserNameAndSystemType(username, "SIMULATORS")
-                .orElseThrow();
+    void createMultiSystemAccountFilterAndDeleteThroughApi() throws Exception {
+        String admin = adminToken();
+        String name = "multi-" + UUID.randomUUID();
+        mvc.perform(
+            post("/v1/users")
+                .header("Authorization", "Bearer " + admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name":"%s","pass":"secure123","permissions":["MGR","SIM","MGR:user:list"]}
+                    """.formatted(name)
+                )
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.systemTypes.length()").value(2));
+        var user = userMapper.findByUserName(name).orElseThrow();
         assertThat(user.getUserPass()).isNotEqualTo("secure123");
-
-        mockMvc.perform(get("/v1/users/me")
-                        .with(jwt().jwt(token -> token
-                                .subject(Long.toString(user.getId())))))
+        var login = auth.login(new LoginRequest(name, "secure123", "test"));
+        var claims = SignedJWT.parse(login.accessToken()).getJWTClaimsSet();
+        assertThat(claims.getClaims()).doesNotContainKey("scope");
+        assertThat(claims.getStringListClaim(JwtConstants.PERMISSIONS_CLAIM)).containsExactly(
+            "MGR",
+            "MGR:user:list",
+            "SIM"
+        );
+        mvc.perform(
+            get("/v1/users").header("Authorization", "Bearer " + login.accessToken())
+        ).andExpect(status().isOk());
+        mvc.perform(
+            delete("/v1/users/" + user.getId()).header(
+                "Authorization",
+                "Bearer " + login.accessToken()
+            )
+        ).andExpect(status().isForbidden());
+        for (String type : List.of("MGR", "SIM")) {
+            mvc.perform(
+                get("/v1/users")
+                    .param("name", name)
+                    .param("systemType", type)
+                    .header("Authorization", "Bearer " + admin)
+            )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.systemType").value("SIMULATORS"));
-
-        mockMvc.perform(post("/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "username":"%s",
-                                  "password":"secure123",
-                                  "systemType":"SIMULATORS"
-                                }
-                                """.formatted(username)))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "username":"%s",
-                                  "password":"secure123",
-                                  "systemType":"MANAGER"
-                                }
-                                """.formatted(username)))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("AUTH_401_001"));
-        assertThat(loginMapper.countActiveByUserId(
-                user.getId(),
-                OffsetDateTime.now(ZoneOffset.UTC))).isEqualTo(1);
-
-        mockMvc.perform(get("/v1/login-sessions")
-                        .with(jwt().jwt(token -> token.subject("1").claim("username", "admin"))
-                                .authorities(() -> "user:session:list"))
-                        .param("userId", Long.toString(user.getId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[0].userId").value(user.getId()))
-                .andExpect(jsonPath("$.data.items[0].userName").value(username))
-                .andExpect(jsonPath("$.data.items[0].systemType").value("SIMULATORS"))
-                .andExpect(jsonPath("$.data.items[0].expiresAt").isNotEmpty())
                 .andExpect(jsonPath("$.data.total").value(1));
-
-        mockMvc.perform(get("/v1/users")
-                        .with(jwt().jwt(token -> token.subject("1").claim("username", "admin"))
-                                .authorities(() -> "user:list"))
-                        .param("name", username)
-                        .param("systemType", "SIMULATORS"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[0].name").value(username))
-                .andExpect(jsonPath("$.data.total").value(1));
-
-        mockMvc.perform(get("/v1/users")
-                        .with(jwt().jwt(token -> token.subject("1").claim("username", "admin"))
-                                .authorities(() -> "user:list"))
-                        .param("name", username)
-                        .param("systemType", "MANAGER"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items").isEmpty())
-                .andExpect(jsonPath("$.data.total").value(0));
-
-        mockMvc.perform(delete("/v1/users/{id}", user.getId())
-                        .with(jwt().jwt(token -> token.subject("1").claim("username", "admin"))
-                                .authorities(() -> "user:delete")))
-                .andExpect(status().isOk());
-        assertThat(userMapper.selectById(user.getId())).isNull();
-        assertThat(loginMapper.countActiveByUserId(
-                user.getId(),
-                OffsetDateTime.now(ZoneOffset.UTC))).isZero();
-        assertThat(response).contains("\"code\":\"SUCCESS\"");
+        }
+        mvc.perform(
+            get("/v1/users")
+                .param("name", name)
+                .param("systemType", "SMS")
+                .header("Authorization", "Bearer " + admin)
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.total").value(0));
+        mvc.perform(
+            get("/v1/login-sessions")
+                .param("userId", user.getId().toString())
+                .header("Authorization", "Bearer " + admin)
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.items[0].systemTypes.length()").value(2));
+        mvc.perform(
+            delete("/v1/users/" + user.getId()).header("Authorization", "Bearer " + admin)
+        ).andExpect(status().isOk());
+        assertThat(userMapper.findById(user.getId())).isEmpty();
     }
 
     @Test
-    void shouldRejectUnauthenticatedUserManagementRequest() throws Exception {
-        mockMvc.perform(get("/v1/users"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("AUTH_401_001"));
+    void subsystemEntryWithoutApiPermissionIsInsufficient() throws Exception {
+        var user = users.create(
+            new UserCreateRequest("entry-" + UUID.randomUUID(), "secure123", Set.of("MGR"), true),
+            1L
+        );
+        var login = auth.login(new LoginRequest(user.name(), "secure123", null));
+        mvc.perform(
+            get("/v1/users").header("Authorization", "Bearer " + login.accessToken())
+        ).andExpect(status().isForbidden());
+        users.delete(user.id(), 1L);
     }
 
     @Test
-    void shouldRejectUserWithoutListPermission() throws Exception {
-        mockMvc.perform(get("/v1/users")
-                        .with(jwt().jwt(token -> token.claim("username", "operator"))
-                                .authorities(() -> "user:add")))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("AUTH_403_001"));
+    void anotherSubsystemCanReadOwnProfileButNotManagerApis() throws Exception {
+        var user = users.create(
+            new UserCreateRequest("sim-" + UUID.randomUUID(), "secure123", Set.of("SIM"), true),
+            1L
+        );
+        var login = auth.login(new LoginRequest(user.name(), "secure123", null));
+        mvc.perform(get("/v1/users/me").header("Authorization", "Bearer " + login.accessToken()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.systemTypes[0]").value("SIM"));
+        mvc.perform(
+            get("/v1/users").header("Authorization", "Bearer " + login.accessToken())
+        ).andExpect(status().isForbidden());
+        users.delete(user.id(), 1L);
     }
 
     @Test
-    void shouldRejectInvalidPagination() throws Exception {
-        mockMvc.perform(get("/v1/users")
-                        .with(jwt().jwt(token -> token.subject("1").claim("username", "admin"))
-                                .authorities(() -> "user:list"))
-                        .param("page", "-1"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("REQUEST_400_001"));
+    void rejectsOrphanPermissionAndGloballyDuplicateUsername() throws Exception {
+        String admin = adminToken();
+        mvc.perform(
+            post("/v1/users")
+                .header("Authorization", "Bearer " + admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"name\":\"orphan\",\"pass\":\"secure123\",\"permissions\":[\"MGR:user:list\"]}"
+                )
+        ).andExpect(status().isBadRequest());
+        mvc.perform(
+            post("/v1/users")
+                .header("Authorization", "Bearer " + admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"admin\",\"pass\":\"secure123\",\"permissions\":[\"SIM\"]}")
+        ).andExpect(status().isConflict());
     }
 
     @Test
-    void shouldAcceptAccessTokenIssuedByLoginEndpoint() throws Exception {
-        var loginResult = mockMvc.perform(post("/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"admin","password":"Admin123!test","systemType":"MANAGER"}
-                                """))
-                .andExpect(status().isOk())
-                .andReturn();
-        MockCookie accessCookie = (MockCookie) loginResult.getResponse().getCookie("access_token");
-        assertThat(accessCookie).isNotNull();
-
-        mockMvc.perform(get("/v1/users")
-                        .header("Authorization", "Bearer " + accessCookie.getValue()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("SUCCESS"));
+    void missingTokenIsUnauthorized() throws Exception {
+        mvc.perform(get("/v1/users/me")).andExpect(status().isUnauthorized());
     }
 }

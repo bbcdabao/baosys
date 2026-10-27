@@ -1,9 +1,8 @@
 package baosys.managerweb;
 
+import baosys.common.security.annotation.EnableAuthenticationCheck;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import baosys.common.security.annotation.EnableAuthenticationCheck;
 
 @SpringBootApplication
 @EnableAuthenticationCheck

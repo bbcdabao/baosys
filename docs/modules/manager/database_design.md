@@ -1,5 +1,7 @@
 # Manager 数据库设计
 
+V1__init_manager.sql 直接创建最终账户模型：用户名全局唯一，user_permissions 使用 TEXT 保存系统入口和接口权限，user_login 包含 client_id 和授权关联字段。初始化仅适用于空库，详见 [部署指南](../../deployment/oauth2_upgrade.md)。
+
 ## 1. 范围
 
 Manager 当前使用 PostgreSQL，数据库结构由 Flyway 管理。首个迁移：
@@ -20,10 +22,9 @@ erDiagram
     USER_INFO {
         bigint id PK
         varchar user_name
-        varchar system_type
         varchar user_pass
         boolean enabled
-        varchar user_permissions
+        text user_permissions
         timestamptz created_at
         timestamptz updated_at
         varchar created_by
@@ -34,7 +35,8 @@ erDiagram
         bigint id PK
         bigint user_info_id FK
         varchar login_client
-        varchar refresh_token_hash
+        varchar authorization_id
+        varchar authentication_session_id
         timestamptz expires_at
         timestamptz created_at
         timestamptz updated_at
@@ -65,9 +67,8 @@ erDiagram
 |---|---|---|---|
 | `id` | BIGINT | PK、IDENTITY | 用户主键 |
 | `user_name` | VARCHAR(128) | NOT NULL | 用户名 |
-| `system_type` | VARCHAR(32) | NOT NULL、CHECK | 所属系统 |
 | `user_pass` | VARCHAR(512) | NOT NULL | BCrypt 密码摘要 |
-| `user_permissions` | VARCHAR(1024) | NOT NULL | 逗号分隔权限编码 |
+| `user_permissions` | TEXT | NOT NULL | 逗号分隔权限编码 |
 | `enabled` | BOOLEAN | NOT NULL、DEFAULT TRUE | 是否允许登录和刷新 |
 | `created_at` | TIMESTAMPTZ | NOT NULL | 创建时间 |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | 修改时间 |
@@ -77,11 +78,8 @@ erDiagram
 约束：
 
 ```text
-ck_user_info_system_type_format
-  system_type ~ '^[A-Z][A-Z0-9_]{0,31}$'
-
-uk_user_info_user_name_system_type
-  UNIQUE (user_name, system_type)
+uk_user_info_user_name
+  UNIQUE (user_name)
 ```
 
 同一用户名允许在不同系统中存在，但同一系统中必须唯一。
@@ -96,8 +94,10 @@ V2 迁移移除 V1 的固定系统名单，系统是否注册由根目录 `baosy
 |---|---|---|---|
 | `id` | BIGINT | PK、IDENTITY | 登录会话主键 |
 | `user_info_id` | BIGINT | FK、NOT NULL | 所属用户 |
+| `client_id` | VARCHAR(128) | NOT NULL | OAuth2 客户端标识，与授权子系统无关 |
 | `login_client` | VARCHAR(512) | NOT NULL | 客户端描述 |
-| `refresh_token_hash` | VARCHAR(64) | UNIQUE、NOT NULL | Refresh Token SHA-256 十六进制摘要 |
+| `authorization_id` | VARCHAR(100) | UNIQUE、NOT NULL、FK | 官方 OAuth2Authorization ID，删除授权级联登录记录 |
+| `authentication_session_id` | VARCHAR(36) | 可空 | 认证中心 Spring Session ID |
 | `expires_at` | TIMESTAMPTZ | NOT NULL | 登录时确定的绝对过期时间，刷新时强制校验 |
 | `created_at` | TIMESTAMPTZ | NOT NULL | 登录时间 |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | 最近更新时间 |
@@ -167,32 +167,20 @@ user_permissions
 示例：
 
 ```text
-user:list,user:add,user:update
+MGR:user:list,MGR:user:add,MGR:user:update
 ```
 
 该格式是当前第一阶段实现。角色权限演进参见 [权限模型](permission_model.md)。
 
 ## 7. 会话生命周期
 
-### 7.1 创建
+### 7.1 创建、刷新与撤销
 
-登录成功时：
+官方 oauth2_authorization 表保存协议授权与令牌，oauth2_authorization_consent 保存授权确认，spring_session / spring_session_attributes 保存认证中心登录会话。V1 初始化脚本包含对应的 PostgreSQL 表结构。
 
-1. 生成随机 Refresh Token。
-2. 计算 SHA-256 摘要。
-3. 插入 `user_login`。
-4. `expires_at = 当前 UTC 时间 + REFRESH_TOKEN_EXPIRE_DAYS`，作为会话绝对有效期，刷新不延长。
+user_login 作为业务投影保存账户、数字登录 ID、客户端、官方 authorization_id 及认证会话 ID。刷新后同步官方 Refresh Token 的到期时间。踢下线或空闲清理删除投影时，触发器同步撤销授权和认证会话；删除官方授权也会级联删除投影。账户密码、用户名、权限、启停变更及删除时，触发器清理其全部授权和认证会话。
 
-### 7.2 刷新
-
-刷新要求会话存在、expires_at 晚于当前时间且账号已启用。事务中先锁用户再锁会话并复核旧摘要，每次刷新轮换摘要、更新 updated_at，但不延长登录时确定的 expires_at。空闲超过一天的会话仍由数据库任务清理。
-
-### 7.3 注销与下线
-
-- 当前客户端注销：按 Refresh Token 摘要删除。
-- 指定客户端下线：按 `id + user_info_id` 删除。
-- 全部客户端下线：按 `user_info_id` 删除。
-- 删除用户：外键级联删除。
+当前初始化结构不包含旧刷新摘要列。官方授权数据包含令牌，应限制库访问权限。
 
 ### 7.4 空闲清理
 
@@ -232,7 +220,6 @@ PostgreSQL 可使用项目内的 `db/scheduler/pg_cron_user_login_cleanup.sql`
 
 ```text
 user_name = ?
-AND system_type = ?
 ```
 
 由唯一约束保证最多一条记录。
@@ -243,7 +230,7 @@ AND system_type = ?
 
 ```text
 user_name LIKE %name%
-system_type = ?
+'MGR' = ANY(string_to_array(user_permissions, ','))
 ```
 
 按 `id ASC` 排序，页码由外部 0 基转换为 MyBatis Plus 1 基。
@@ -289,7 +276,7 @@ OffsetDateTime.now(ZoneOffset.UTC)
 | `id` | BIGINT IDENTITY | 主键 |
 | `operator_user_id` | BIGINT | 操作者 ID |
 | `target_user_id` | BIGINT | 目标用户 ID |
-| `before_permissions` / `after_permissions` | VARCHAR(1024) | 稳定顺序编码的变更前后权限 |
+| `before_permissions` / `after_permissions` | TEXT | 稳定顺序编码的变更前后权限 |
 | `before_enabled` / `after_enabled` | BOOLEAN | 变更前后启停状态 |
 | `trace_id` | VARCHAR(128) | 请求追踪标识 |
 | `occurred_at` | TIMESTAMPTZ | 发生时间 |

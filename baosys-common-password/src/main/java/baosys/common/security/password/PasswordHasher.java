@@ -6,7 +6,6 @@ package baosys.common.security.password;
  * <p>业务代码依赖该接口而不是具体算法，便于后续统一升级密码算法或调整参数。</p>
  */
 public interface PasswordHasher {
-
     /**
      * 对原始密码生成不可逆摘要。
      *

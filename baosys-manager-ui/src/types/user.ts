@@ -4,7 +4,7 @@ export type SystemType = string
 export interface UserSummary {
   id: number
   name: string
-  systemType: SystemType
+  systemTypes: SystemType[]
   permissions: string[]
   enabled: boolean
   status: boolean
@@ -13,7 +13,6 @@ export interface UserSummary {
 export interface UserCreateRequest {
   name: string
   pass: string
-  systemType: SystemType
   permissions: string[]
   enabled: boolean
 }

@@ -1,12 +1,10 @@
 package baosys.manager.infra.config;
 
+import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
-
-import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 
 @Component
 public class MybatisPlusAuditHandler implements MetaObjectHandler {
@@ -20,7 +18,12 @@ public class MybatisPlusAuditHandler implements MetaObjectHandler {
         strictInsertFill(metaObject, "updatedAt", OffsetDateTime.class, now);
         strictInsertFill(metaObject, "createdBy", String.class, SYSTEM_USER);
         String createdBy = (String) getFieldValByName("createdBy", metaObject);
-        strictInsertFill(metaObject, "updatedBy", String.class, createdBy == null ? SYSTEM_USER : createdBy);
+        strictInsertFill(
+            metaObject,
+            "updatedBy",
+            String.class,
+            createdBy == null ? SYSTEM_USER : createdBy
+        );
     }
 
     @Override

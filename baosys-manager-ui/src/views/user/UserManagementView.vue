@@ -4,15 +4,26 @@
       <div>
         <p>{{ t('user.description') }}</p>
       </div>
-      <a-button v-if="canCreate" type="primary" @click="openCreate">
+      <a-button
+        v-if="canCreate"
+        type="primary"
+        @click="openCreate"
+      >
         <template #icon><icon-plus /></template>
         {{ t('common.create') }}
       </a-button>
     </div>
 
     <a-card :bordered="false">
-      <a-form :model="filters" layout="inline" class="filter-form">
-        <a-form-item field="name" :label="t('user.name')">
+      <a-form
+        :model="filters"
+        layout="inline"
+        class="filter-form"
+      >
+        <a-form-item
+          field="name"
+          :label="t('user.name')"
+        >
           <a-input
             v-model="filters.name"
             allow-clear
@@ -20,7 +31,10 @@
             @press-enter="searchUsers"
           />
         </a-form-item>
-        <a-form-item field="systemType" :label="t('user.systemType')">
+        <a-form-item
+          field="systemType"
+          :label="t('user.systemType')"
+        >
           <a-select
             v-model="filters.systemType"
             allow-clear
@@ -37,7 +51,11 @@
         </a-form-item>
         <a-form-item>
           <a-space>
-            <a-button type="primary" :loading="loading" @click="searchUsers">
+            <a-button
+              type="primary"
+              :loading="loading"
+              @click="searchUsers"
+            >
               <template #icon><icon-search /></template>
               {{ t('common.query') }}
             </a-button>
@@ -55,14 +73,21 @@
         @page-change="changePage"
       >
         <template #systemType="{ record }">
-          <a-tag color="arcoblue">
-            {{ systemLabel(record.systemType) }}
+          <a-tag
+            v-for="type in record.systemTypes"
+            :key="type"
+            color="arcoblue"
+          >
+            {{ systemLabel(type) }}
           </a-tag>
         </template>
         <template #permissions="{ record }">
           <a-space wrap>
-            <a-tag v-for="permission in record.permissions" :key="permission">
-              {{ permissionLabel(record.systemType, permission) }}
+            <a-tag
+              v-for="permission in record.permissions"
+              :key="permission"
+            >
+              {{ permissionLabel(permission) }}
             </a-tag>
           </a-space>
         </template>
@@ -120,18 +145,42 @@
       :title="t(editingId === null ? 'user.createTitle' : 'user.editTitle')"
       :unmount-on-close="true"
     >
-      <a-form ref="formRef" :model="form" :rules="formRules" layout="vertical">
-        <a-form-item field="name" :label="t('user.name')">
-          <a-input v-model="form.name" :placeholder="t('user.namePlaceholder')" />
-        </a-form-item>
-        <a-form-item field="pass" :label="t('user.password')">
-          <a-input-password
-            v-model="form.pass"
-            :placeholder="t(editingId === null ? 'user.passwordPlaceholder' : 'user.editPasswordPlaceholder')"
+      <a-form
+        ref="formRef"
+        :model="form"
+        :rules="formRules"
+        layout="vertical"
+      >
+        <a-form-item
+          field="name"
+          :label="t('user.name')"
+        >
+          <a-input
+            v-model="form.name"
+            :placeholder="t('user.namePlaceholder')"
           />
         </a-form-item>
-        <a-form-item field="systemType" :label="t('user.systemType')">
-          <a-select v-model="form.systemType" @change="clearSelectedPermissions">
+        <a-form-item
+          field="pass"
+          :label="t('user.password')"
+        >
+          <a-input-password
+            v-model="form.pass"
+            :placeholder="
+              t(editingId === null ? 'user.passwordPlaceholder' : 'user.editPasswordPlaceholder')
+            "
+          />
+        </a-form-item>
+        <a-form-item
+          field="systemTypes"
+          :label="t('user.systemType')"
+        >
+          <a-select
+            v-model="form.systemTypes"
+            multiple
+            allow-clear
+            @change="clearSelectedPermissions"
+          >
             <a-option
               v-for="option in systemOptions"
               :key="option.value"
@@ -141,23 +190,29 @@
             </a-option>
           </a-select>
         </a-form-item>
-        <a-form-item field="permissions" :label="t('user.permissions')">
-          <a-select
+        <a-form-item
+          v-for="type in form.systemTypes"
+          :key="type"
+          :label="systemLabel(type)"
+        >
+          <a-checkbox-group
+            v-if="permissionOptionsFor(type).length"
             v-model="form.permissions"
-            multiple
-            allow-clear
-            :disabled="currentPermissionOptions.length === 0"
           >
-            <a-option
-              v-for="permission in currentPermissionOptions"
+            <a-checkbox
+              v-for="permission in permissionOptionsFor(type)"
               :key="permission.code"
               :value="permission.code"
             >
               {{ permission.label }}
-            </a-option>
-          </a-select>
+            </a-checkbox>
+          </a-checkbox-group>
+          <span v-else>{{ t('user.entryOnly') }}</span>
         </a-form-item>
-        <a-form-item field="enabled" :label="t('user.accountStatus')">
+        <a-form-item
+          field="enabled"
+          :label="t('user.accountStatus')"
+        >
           <a-switch v-model="form.enabled" />
           <span class="field-hint">{{ t('user.enabledHint') }}</span>
         </a-form-item>
@@ -165,7 +220,11 @@
       <template #footer>
         <a-space>
           <a-button @click="editorVisible = false">{{ t('common.cancel') }}</a-button>
-          <a-button type="primary" :loading="saving" @click="saveUser">
+          <a-button
+            type="primary"
+            :loading="saving"
+            @click="saveUser"
+          >
             {{ t('common.save') }}
           </a-button>
         </a-space>
@@ -210,19 +269,19 @@ const filters = reactive<{ name: string; systemType?: SystemType }>({
 const form = reactive({
   name: '',
   pass: '',
-  systemType: 'MANAGER' as SystemType,
+  systemTypes: [] as SystemType[],
   permissions: [] as string[],
   enabled: true
 })
 
 const hasPermission = (permission: string): boolean =>
   authStore.currentUser?.permissions.includes(permission) === true
-const canCreate = computed(() => hasPermission('user:add'))
-const canUpdate = computed(() => hasPermission('user:update'))
-const canDelete = computed(() => hasPermission('user:delete'))
-const canViewSessions = computed(() => hasPermission('user:session:list'))
+const canCreate = computed(() => hasPermission('MGR:user:add'))
+const canUpdate = computed(() => hasPermission('MGR:user:update'))
+const canDelete = computed(() => hasPermission('MGR:user:delete'))
+const canViewSessions = computed(() => hasPermission('MGR:user:session:list'))
 const currentPermissionOptions = computed(() =>
-  permissionOptionsFor(form.systemType)
+  form.systemTypes.flatMap((type) => permissionOptionsFor(type))
 )
 
 const columns = computed<TableColumnData[]>(() => [
@@ -241,13 +300,11 @@ const pagination = computed(() => ({
 }))
 const formRules = computed(() => ({
   name: [{ required: true, message: t('user.nameRequired') }],
-  pass: editingId.value === null
-    ? [{ required: true, minLength: 8, message: t('user.passwordRequired') }]
-    : [{ minLength: 8, message: t('user.passwordRequired') }],
-  systemType: [{ required: true, message: t('user.systemTypeRequired') }],
-  permissions: currentPermissionOptions.value.length > 0
-    ? [{ required: true, message: t('user.permissionsRequired') }]
-    : []
+  pass:
+    editingId.value === null
+      ? [{ required: true, minLength: 8, message: t('user.passwordRequired') }]
+      : [{ minLength: 8, message: t('user.passwordRequired') }],
+  permissions: []
 }))
 
 const errorMessage = (error: unknown): string =>
@@ -288,8 +345,8 @@ const changePage = async (page: number): Promise<void> => {
 }
 
 const clearSelectedPermissions = (): void => {
-  // 权限不能跨系统沿用，切换平台后必须基于新平台的权限目录重新选择。
-  form.permissions = []
+  const available = new Set(currentPermissionOptions.value.map((permission) => permission.code))
+  form.permissions = form.permissions.filter((permission) => available.has(permission))
 }
 
 const openCreate = (): void => {
@@ -298,8 +355,8 @@ const openCreate = (): void => {
   Object.assign(form, {
     name: '',
     pass: '',
-    systemType: 'MANAGER',
-    permissions: ['user:list'],
+    systemTypes: [],
+    permissions: [],
     enabled: true
   })
   editorVisible.value = true
@@ -308,40 +365,55 @@ const openCreate = (): void => {
 const openEdit = (user: UserSummary): void => {
   editingId.value = user.id
   originalUser.value = { ...user, permissions: [...user.permissions] }
+  const availableSystems = new Set(systemOptions.value.map((option) => option.value))
+  const selectedSystems = user.systemTypes.filter((type) => availableSystems.has(type))
   const availablePermissionCodes = new Set(
-    permissionOptionsFor(user.systemType).map(permission => permission.code)
+    selectedSystems
+      .flatMap((type) => permissionOptionsFor(type))
+      .map((permission) => permission.code)
   )
+  const validGrants = new Set([...selectedSystems, ...availablePermissionCodes])
+  const unknown = user.permissions.filter((permission) => !validGrants.has(permission))
+  if (unknown.length) {
+    Message.warning(`${t('user.retiredPermissions')}: ${unknown.join(', ')}`)
+  }
   Object.assign(form, {
     enabled: user.enabled,
     name: user.name,
     pass: '',
-    systemType: user.systemType,
+    systemTypes: selectedSystems,
     // 过滤历史数据，避免已不属于当前系统的权限被编辑表单再次提交。
-    permissions: user.permissions.filter(permission =>
-      availablePermissionCodes.has(permission)
-    )
+    permissions: user.permissions.filter((permission) => availablePermissionCodes.has(permission))
   })
   editorVisible.value = true
 }
 
 const saveUser = async (): Promise<void> => {
   const validation = await formRef.value?.validate()
-  if (validation) return
+  if (validation) {
+    return
+  }
 
+  const payload = {
+    name: form.name,
+    pass: form.pass,
+    enabled: form.enabled,
+    permissions: [...form.systemTypes, ...form.permissions]
+  }
   saving.value = true
   try {
     if (editingId.value === null) {
-      await createUser({ ...form })
+      await createUser(payload)
       Message.success(t('user.created'))
     } else {
-      await updateUser({ ...form, id: editingId.value })
+      await updateUser({ ...payload, id: editingId.value })
       const original = originalUser.value
-      const accessChanged = original && (
-        original.enabled !== form.enabled ||
-        original.systemType !== form.systemType ||
-        form.pass.trim().length > 0 ||
-        JSON.stringify([...original.permissions].sort()) !== JSON.stringify([...form.permissions].sort())
-      )
+      const accessChanged =
+        original &&
+        (original.enabled !== form.enabled ||
+          form.pass.trim().length > 0 ||
+          JSON.stringify([...original.permissions].sort()) !==
+            JSON.stringify([...payload.permissions].sort()))
       Message.success(t(accessChanged ? 'user.accessChangeSessionsRevoked' : 'user.updated'))
     }
     editorVisible.value = false
@@ -356,7 +428,9 @@ const saveUser = async (): Promise<void> => {
 const removeUser = async (user: UserSummary): Promise<void> => {
   try {
     await deleteUser(user.id)
-    if (users.value.length === 1 && currentPage.value > 1) currentPage.value--
+    if (users.value.length === 1 && currentPage.value > 1) {
+      currentPage.value--
+    }
     await loadUsers()
     Message.success(t('user.deleted'))
   } catch (error) {
@@ -376,12 +450,37 @@ onMounted(loadUsers)
 </script>
 
 <style scoped>
-.field-hint { margin-left: 12px; color: var(--color-text-3); font-size: 12px; }
-.page-section { display: grid; gap: 18px; }
-.page-heading { display: flex; justify-content: space-between; align-items: center; }
-.page-heading h2 { margin: 0; color: var(--color-text-1); font-size: 22px; }
-.page-heading p { margin: 6px 0 0; color: var(--color-text-3); }
-.filter-form { margin-bottom: 18px; }
-.filter-form :deep(.arco-form-item) { margin-bottom: 12px; }
-.filter-form :deep(.arco-input-wrapper), .filter-form :deep(.arco-select-view) { width: 220px; }
+.field-hint {
+  margin-left: 12px;
+  color: var(--color-text-3);
+  font-size: 12px;
+}
+.page-section {
+  display: grid;
+  gap: 18px;
+}
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.page-heading h2 {
+  margin: 0;
+  color: var(--color-text-1);
+  font-size: 22px;
+}
+.page-heading p {
+  margin: 6px 0 0;
+  color: var(--color-text-3);
+}
+.filter-form {
+  margin-bottom: 18px;
+}
+.filter-form :deep(.arco-form-item) {
+  margin-bottom: 12px;
+}
+.filter-form :deep(.arco-input-wrapper),
+.filter-form :deep(.arco-select-view) {
+  width: 220px;
+}
 </style>

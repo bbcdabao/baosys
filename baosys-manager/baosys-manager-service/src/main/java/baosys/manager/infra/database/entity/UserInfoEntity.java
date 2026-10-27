@@ -1,13 +1,11 @@
 package baosys.manager.infra.database.entity;
 
-import java.time.OffsetDateTime;
-
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
+import java.time.OffsetDateTime;
 
 @TableName("user_info")
 public class UserInfoEntity {
@@ -16,8 +14,6 @@ public class UserInfoEntity {
     private Long id;
 
     private String userName;
-
-    private String systemType;
 
     private String userPass;
 
@@ -53,14 +49,6 @@ public class UserInfoEntity {
         this.userName = userName;
     }
 
-    public String getSystemType() {
-        return systemType;
-    }
-
-    public void setSystemType(String systemType) {
-        this.systemType = systemType;
-    }
-
     public String getUserPass() {
         return userPass;
     }
@@ -84,5 +72,4 @@ public class UserInfoEntity {
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
-
 }

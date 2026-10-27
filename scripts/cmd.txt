@@ -1,0 +1,1 @@
+jshell '-R-Dsigning.key.output=signing-jwks.json' ..\scripts\generate-signing-key.jsh

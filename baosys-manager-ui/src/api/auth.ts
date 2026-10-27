@@ -1,16 +1,8 @@
-import { MANAGER_API_PREFIX } from '@/constants/api'
-import type { LoginRequest } from '@/types/auth'
+export { logout } from '@/utils/request'
 import { post } from '@/utils/request'
 
-export const login = (payload: LoginRequest): Promise<void> =>
-  post<void, LoginRequest>(
-    `${MANAGER_API_PREFIX}/v1/auth/login`,
-    payload,
-    { skipAuthRefresh: true }
-  )
-
-export const logout = (): Promise<void> =>
-  post<void, undefined>(
-    `${MANAGER_API_PREFIX}/v1/auth/logout`,
-    undefined
+export const login = (username: string, password: string, redirectUrl?: string) =>
+  post<{ redirectUrl: string }, { username: string; password: string; redirectUrl?: string }>(
+    '/api/baosys-manager/v1/browser-auth/login',
+    { username, password, redirectUrl }
   )

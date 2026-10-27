@@ -1,0 +1,82 @@
+server:
+  port: ${MANAGER_PORT:9090}
+  shutdown: graceful
+  servlet:
+    context-path: ${MANAGER_CONTEXT_PATH:/baosys-manager}
+spring:
+  application:
+    name: baosys-manager
+  config:
+    import: ${BAOSYS_SYSTEMS_CONFIG:classpath:baosys-systems.yml}
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  security:
+    resource:
+      permit-all-paths:
+        - /actuator/health/**
+        - /actuator/info
+        - /swagger-ui/**
+        - /v3/api-docs/**
+    oauth2:
+      authorizationserver:
+        issuer: ${JWT_ISSUER:http://localhost:9090/baosys-manager}
+        client:
+          baosys-web:
+            registration:
+              client-id: baosys-web
+              client-secret: ${OAUTH2_CLIENT_SECRET_HASH}
+              client-authentication-methods: [client_secret_basic]
+              authorization-grant-types: [authorization_code, refresh_token]
+              redirect-uris: ["${OAUTH2_REDIRECT_URI:http://localhost:8080/login/oauth2/code/baosys}"]
+              scopes: [openid, profile]
+            require-proof-key: true
+            require-authorization-consent: false
+            token:
+              access-token-time-to-live: 30m
+              refresh-token-time-to-live: 30d
+              reuse-refresh-tokens: false
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER:http://localhost:9090/baosys-manager}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:9090/baosys-manager/oauth2/jwks}
+          jws-algorithms: [RS256]
+          audiences: [def]
+  session:
+    jdbc:
+      initialize-schema: never
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/app_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres123456}
+    hikari:
+      schema: ${MANAGER_DB_SCHEMA:manager}
+  flyway:
+    enabled: true
+    create-schemas: true
+    default-schema: ${MANAGER_DB_SCHEMA:manager}
+    schemas: ${MANAGER_DB_SCHEMA:manager}
+    locations: classpath:db/migration
+    table: flyway_schema_history_manager
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+auth:
+  default-admin-enabled: ${DEFAULT_ADMIN_ENABLED:false}
+  default-admin-username: ${DEFAULT_ADMIN_USERNAME:admin}
+  default-admin-password: ${DEFAULT_ADMIN_PASSWORD:}
+common:
+  password:
+    enabled: true
+    strength: 10
+baosys:
+  authorization:
+    jwk-set-location: ${JWT_JWK_SET_LOCATION}

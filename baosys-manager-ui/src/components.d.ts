@@ -11,14 +11,17 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AAlert: typeof import('@arco-design/web-vue')['Alert']
     ABadge: typeof import('@arco-design/web-vue')['Badge']
     ABreadcrumb: typeof import('@arco-design/web-vue')['Breadcrumb']
     ABreadcrumbItem: typeof import('@arco-design/web-vue')['BreadcrumbItem']
     AButton: typeof import('@arco-design/web-vue')['Button']
     ACard: typeof import('@arco-design/web-vue')['Card']
     ACheckbox: typeof import('@arco-design/web-vue')['Checkbox']
+    ACheckboxGroup: typeof import('@arco-design/web-vue')['CheckboxGroup']
     AConfigProvider: typeof import('@arco-design/web-vue')['ConfigProvider']
     ADrawer: typeof import('@arco-design/web-vue')['Drawer']
+    AEmpty: typeof import('@arco-design/web-vue')['Empty']
     AForm: typeof import('@arco-design/web-vue')['Form']
     AFormItem: typeof import('@arco-design/web-vue')['FormItem']
     AInput: typeof import('@arco-design/web-vue')['Input']
@@ -41,7 +44,6 @@ declare module 'vue' {
     ATooltip: typeof import('@arco-design/web-vue')['Tooltip']
     IconDesktop: typeof import('@arco-design/web-vue/es/icon')['IconDesktop']
     IconExport: typeof import('@arco-design/web-vue/es/icon')['IconExport']
-    IconLock: typeof import('@arco-design/web-vue/es/icon')['IconLock']
     IconMoonFill: typeof import('@arco-design/web-vue/es/icon')['IconMoonFill']
     IconPlus: typeof import('@arco-design/web-vue/es/icon')['IconPlus']
     IconSearch: typeof import('@arco-design/web-vue/es/icon')['IconSearch']

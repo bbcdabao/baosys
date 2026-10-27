@@ -43,10 +43,10 @@ flowchart LR
 `baosys-manager-web` 基于 Spring Cloud Gateway WebFlux，负责：
 
 - `/api/{service}/**` 路由。
-- Cookie 中访问令牌的识别和校验。
+- 内部同域 Token Cookie 认证；统一登录、刷新及退出由 Manager 管理，外部 OAuth2 接入保留。
 - 向下游转发标准 Bearer Token。
-- 可选双提交 CSRF 校验。
-- 统一认证失败响应。
+- Spring CsrfWebFilter 与 CookieServerCsrfTokenRepository，保护浏览器写请求和退出。
+- Spring 标准 Bearer 401/403 响应。
 - Vue 构建产物托管和 SPA 路由回退。
 
 接入层不包含业务 CRUD，不直接访问业务数据库。
@@ -98,7 +98,6 @@ flowchart TD
     Root["baosys root pom"]
     CommonApi["baosys-common-api"]
     Core["baosys-common-security-core"]
-    Issuer["baosys-common-security-issuer"]
     Resource["baosys-common-security-resource"]
     Gateway["baosys-common-security-gateway"]
     Password["baosys-common-password"]
@@ -113,7 +112,6 @@ flowchart TD
     Root --> ManagerService
     Root --> ManagerWeb
 
-    Issuer --> Core
     Resource --> Core
     Resource --> CommonApi
     Gateway --> Core
@@ -122,7 +120,6 @@ flowchart TD
     ManagerService --> ManagerApi
     ManagerService --> CommonApi
     ManagerService --> Core
-    ManagerService --> Issuer
     ManagerService --> Resource
     ManagerService --> Password
     ManagerWeb --> Gateway
@@ -153,31 +150,9 @@ flowchart TD
 
 ## 6. 认证请求链路
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant G as Manager Web
-    participant M as Manager Service
-    participant D as PostgreSQL
+内部浏览器在 API 401 后跳转 Manager 统一登录页，携带 redirect_url。Manager 登录成功覆盖同域共享 HttpOnly Token Cookie 并返回原页面；各端口网关直接校验 Cookie 中的 JWT，按目标子系统 hasAuthority 授权，再转发 Bearer 到后端方法权限检查。内部不使用独立网关会话或 PKCE。外部 OAuth2 Authorization Server 接入继续保留。详见 [共享登录](../deployment/shared_login.md)。
 
-    B->>G: POST /api/baosys-manager/v1/auth/login
-    G->>M: POST /baosys-manager/v1/auth/login
-    M->>D: 查询 user_info
-    D-->>M: 用户与密码摘要
-    M->>D: 写入 user_login
-    M-->>G: Set-Cookie access_token / refresh_token
-    G-->>B: 登录成功
-
-    B->>G: GET /api/baosys-manager/v1/users
-    G->>G: 校验 access_token 的签名、issuer 和 systemType=MANAGER
-    G->>M: Authorization: Bearer ...
-    M->>M: 再次校验 JWT 与方法权限
-    M->>D: 查询用户数据
-    D-->>M: 分页结果
-    M-->>B: ApiResponse<PageResponse<UserResponse>>
-```
-
-认证和会话细节参见 [认证与会话设计](../modules/manager/auth_and_session.md)。
+Manager 的官方 JDBC 授权存储与 Spring Session JDBC 提供协议状态持久化；user_login 仍承担账户登录记录与踢下线功能。详见 [认证与会话](../modules/manager/auth_and_session.md)。
 
 ## 7. 数据所有权
 
@@ -196,7 +171,8 @@ sequenceDiagram
 | 能力 | 当前实现位置 |
 |---|---|
 | 统一响应 | `baosys-common-api` |
-| 密码和 JWT | `baosys-common-password`、`baosys-common-security-issuer` |
+| 密码哈希 | `baosys-common-password` |
+| JWT 签发与签名密钥 | `baosys-manager-service`（`infra.security.SigningKeysConfiguration`） |
 | 网关认证 | `baosys-common-security-gateway` + `baosys-manager-web` |
 | 服务授权 | `baosys-common-security-resource` + `@PreAuthorize` |
 | Trace ID | Manager Service `TraceIdFilter` |

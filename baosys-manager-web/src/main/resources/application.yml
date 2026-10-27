@@ -5,6 +5,25 @@ server:
     enabled: true
 
 spring:
+  security:
+    gateway:
+      access-rules:
+        # 全局共享接口：省略 permission 表示仅要求登录，须放在子系统规则之前。
+        - path: /api/baosys-manager/v1/users/me
+        - path: /api/baosys-manager/v1/systems
+        - path: /api/baosys-manager/**
+          permission: MGR
+      permit-all-paths:
+        - /api/baosys-manager/v1/browser-auth/**
+        - /actuator/health/**
+        - /actuator/info
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER:baosys-manager}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://127.0.0.1:9090/baosys-manager/oauth2/jwks}
+          jws-algorithms: [RS256]
+          audiences: [def]
   application:
     name: baosys-manager-web
   cloud:
@@ -18,18 +37,11 @@ spring:
                 - Path=/api/baosys-manager/**
               filters:
                 - StripPrefix=1
-            - id: baosys-plant
-              uri: ${PLANT_SERVICE_URL:http://127.0.0.1:9091}
-              predicates:
-                - Path=/api/baosys-plant/**
-              filters:
-                - StripPrefix=1
 
     # 启用 Nacos 服务发现时：
     # 1. 放开 pom.xml 中的 Nacos Discovery 依赖。
     # 2. 放开下面的 nacos 配置。
-    # 3. 配置 MANAGER_SERVICE_URL=lb://baosys-manager、
-    #    PLANT_SERVICE_URL=lb://baosys-plant。
+    # 3. 配置 MANAGER_SERVICE_URL=lb://baosys-manager。
     # nacos:
     #   discovery:
     #     server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
@@ -57,24 +69,3 @@ management:
         enabled: true
     gateway:
       access: read-only
-
-security:
-  jwt:
-    issuer: ${JWT_ISSUER:auth-server}
-    # Set security.jwt.public-key or public-key-location externally to pin a local key.
-    jwk-set-uri: ${JWT_JWK_SET_URI:http://127.0.0.1:9090/baosys-manager/oauth2/jwks}
-  access-token-cookie-name: access_token
-  permissions-claim-name: permissions
-  system-type: ${SYSTEM_TYPE:MANAGER}
-  authority-prefix: ""
-  gateway:
-    csrf:
-      enabled: ${GATEWAY_CSRF_ENABLED:false}
-      cookie-name: BAOSYS_CSRF_TOKEN
-    permit-all-paths:
-      - /api/baosys-manager/oauth2/jwks
-      - /api/baosys-manager/v1/auth/login
-      - /api/baosys-manager/v1/auth/refresh
-      - /api/baosys-manager/v1/auth/logout
-      - /actuator/health/**
-      - /actuator/info

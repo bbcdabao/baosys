@@ -1,7 +1,6 @@
 package baosys.common.security.password;
 
 import java.util.Objects;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**

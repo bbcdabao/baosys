@@ -1,16 +1,8 @@
-import {
-  createRouter,
-  createWebHistory,
-  type RouteLocationRaw
-} from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 import { useAuthStore } from '@/store/auth'
 
-const loginRedirect = (redirect: string): RouteLocationRaw => ({
-  name: 'login',
-  query: redirect === '/users-management' ? {} : { redirect },
-  replace: true
-})
+import { goToManagerLogin } from '@/utils/loginRedirect'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +18,12 @@ export const router = createRouter({
       component: () => import('@/layouts/AdminLayout.vue'),
       children: [
         {
+          path: 'authorized-systems',
+          name: 'authorized-systems',
+          component: () => import('@/views/system/AuthorizedSystemsView.vue'),
+          meta: { titleKey: 'user.authorizedSystems' }
+        },
+        {
           path: '',
           redirect: { name: 'user-management' }
         },
@@ -35,7 +33,8 @@ export const router = createRouter({
           component: () => import('@/views/user/UserManagementView.vue'),
           meta: {
             menuTitleKey: 'menu.user',
-            titleKey: 'menu.userManagement'
+            titleKey: 'menu.userManagement',
+            requiredPermission: 'MGR:user:list'
           }
         },
         {
@@ -44,7 +43,8 @@ export const router = createRouter({
           component: () => import('@/views/user/LoginManagementView.vue'),
           meta: {
             menuTitleKey: 'menu.user',
-            titleKey: 'menu.loginManagement'
+            titleKey: 'menu.loginManagement',
+            requiredPermission: 'MGR:user:session:list'
           }
         },
         {
@@ -53,7 +53,8 @@ export const router = createRouter({
           component: () => import('@/views/system/SystemConfigView.vue'),
           meta: {
             menuTitleKey: 'menu.system',
-            titleKey: 'menu.systemConfig'
+            titleKey: 'menu.systemConfig',
+            requiredPermission: 'MGR'
           }
         }
       ]
@@ -65,13 +66,11 @@ export const router = createRouter({
   ]
 })
 
-router.beforeEach(async to => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
 
   if (to.meta.public) {
-    return authStore.isAuthenticated
-      ? { name: 'user-management', replace: true }
-      : true
+    return true
   }
 
   // 用户快照不落盘，每次刷新后由守卫恢复，确保后台布局拿到可信用户信息。
@@ -79,9 +78,20 @@ router.beforeEach(async to => {
     try {
       await authStore.restoreSession()
     } catch {
-      return loginRedirect(to.fullPath)
+      goToManagerLogin(new URL(to.fullPath, window.location.origin).href)
+      return false
     }
   }
 
+  // 管理页面同时要求系统入口权限和页面权限；否则展示可访问的系统。
+  if (to.name !== 'authorized-systems') {
+    const permissions = authStore.currentUser?.permissions || []
+    if (
+      !permissions.includes('MGR') ||
+      (to.meta.requiredPermission && !permissions.includes(String(to.meta.requiredPermission)))
+    ) {
+      return { name: 'authorized-systems', replace: true }
+    }
+  }
   return true
 })

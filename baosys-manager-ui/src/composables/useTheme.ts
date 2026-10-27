@@ -4,11 +4,12 @@ export type ThemeMode = 'light' | 'dark'
 
 const THEME_STORAGE_KEY = 'baosys-theme'
 const savedTheme = localStorage.getItem(THEME_STORAGE_KEY)
-const initialTheme: ThemeMode = savedTheme === 'light' || savedTheme === 'dark'
-  ? savedTheme
-  : window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light'
+const initialTheme: ThemeMode =
+  savedTheme === 'light' || savedTheme === 'dark'
+    ? savedTheme
+    : window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
 const theme = ref<ThemeMode>(initialTheme)
 
 // Arco 通过 body 上的 arco-theme 属性切换整套 Design Token。

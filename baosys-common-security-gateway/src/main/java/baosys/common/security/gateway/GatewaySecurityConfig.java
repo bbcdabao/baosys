@@ -1,114 +1,131 @@
 package baosys.common.security.gateway;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import baosys.common.security.config.SecurityProperties;
+import baosys.common.security.resource.JwtPermissionConverter;
+import baosys.common.security.resource.SharedTokenCookies;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.http.HttpCookie;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
+import org.springframework.security.web.server.authentication.AuthenticationConverterServerWebExchangeMatcher;
+import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
+import org.springframework.security.web.server.csrf.CsrfWebFilter;
+import org.springframework.security.web.server.util.matcher.AndServerWebExchangeMatcher;
+import org.springframework.security.web.server.util.matcher.NegatedServerWebExchangeMatcher;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
+import org.springframework.util.StringUtils;
+import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import reactor.core.publisher.Mono;
-
-import baosys.common.security.config.SecurityProperties;
-import baosys.common.security.resource.JwtPermissionConverter;
 
 /**
  * Spring Cloud Gateway 安全配置。
  *
  * <p>网关负责保护 {@code /api/**}，优先读取标准 {@code Authorization} 请求头，
- * 没有请求头时再读取平台 access token Cookie。公开路径由各网关服务通过配置声明。
+ * 浏览器通过同域共享 HttpOnly Cookie 提供令牌。公开路径由各网关服务通过配置声明。
  * 该配置只处理网关入口认证，转发给下游服务时的请求头补齐由
- * {@link CookieTokenToAuthorizationFilter} 完成。</p>
+ * {@link JwtTokenRelayFilter} 完成。</p>
  */
 @ConditionalOnClass(ServerHttpSecurity.class)
 public class GatewaySecurityConfig {
 
+    private static final String API_PATH_PATTERN = "/api/**";
+
     /**
      * 创建网关安全过滤链。
      *
-     * <p>默认只要求 {@code /api/**} 认证，其余静态资源、前端路由和健康检查等路径
-     * 允许通过。服务可以通过 {@code security.gateway.permit-all-paths} 精确声明
+     * <p>API 按目标路由检查系统入口权限，未配置的 API 拒绝访问，其余静态资源、前端路由和健康检查等路径
+     * 允许通过。服务可以通过 {@code spring.security.gateway.permit-all-paths} 精确声明
      * 额外公开 API。</p>
      */
     @Bean
     @ConditionalOnMissingBean
     SecurityWebFilterChain gatewaySecurityWebFilterChain(
-            ServerHttpSecurity http,
-            SecurityProperties properties,
-            ObjectMapper objectMapper) {
-        GatewaySecurityErrorHandler errorHandler = new GatewaySecurityErrorHandler(objectMapper);
-        String[] permitAllPaths = properties.getGateway().getPermitAllPaths().toArray(String[]::new);
+        ServerHttpSecurity http,
+        SecurityProperties properties,
+        ObjectProvider<BrowserOAuth2Configuration> browser
+    ) {
+        String[] permitAllPaths = properties
+            .getGateway()
+            .getPermitAllPaths()
+            .toArray(String[]::new);
+        ServerWebExchangeMatcher publicPaths =
+            permitAllPaths.length == 0
+                ? exchange -> ServerWebExchangeMatcher.MatchResult.notMatch()
+                : ServerWebExchangeMatchers.pathMatchers(permitAllPaths);
+        var protectedApi = new AndServerWebExchangeMatcher(
+            ServerWebExchangeMatchers.pathMatchers(API_PATH_PATTERN),
+            new NegatedServerWebExchangeMatcher(publicPaths)
+        );
+        var headerBearer = new AuthenticationConverterServerWebExchangeMatcher(
+            new ServerBearerTokenAuthenticationConverter()
+        );
+        // 仅豁免显式携带 Bearer 令牌的 API 请求；浏览器注销仍受 CSRF 保护。
+        var bearerApi = new AndServerWebExchangeMatcher(headerBearer, protectedApi);
+        browser.ifAvailable(config -> config.configure(http));
         return http
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .authorizeExchange(authorize -> {
-                    if (permitAllPaths.length > 0) {
-                        authorize.pathMatchers(permitAllPaths).permitAll();
+            .csrf(csrf ->
+                csrf
+                    .csrfTokenRepository(new CookieServerCsrfTokenRepository())
+                    .requireCsrfProtectionMatcher(
+                        new AndServerWebExchangeMatcher(
+                            CsrfWebFilter.DEFAULT_CSRF_MATCHER,
+                            new NegatedServerWebExchangeMatcher(bearerApi)
+                        )
+                    )
+            )
+            .authorizeExchange(authorize -> {
+                if (permitAllPaths.length > 0) {
+                    authorize.pathMatchers(permitAllPaths).permitAll();
+                }
+                for (var route : properties.getGateway().getAccessRules()) {
+                    // 按配置顺序首次匹配；共享接口只校验登录身份。
+                    var path = authorize.pathMatchers(route.getPath());
+                    if (StringUtils.hasText(route.getPermission())) {
+                        path.hasAuthority(route.getPermission());
+                    } else {
+                        path.authenticated();
                     }
-                    authorize.pathMatchers("/api/**")
-                            .authenticated()
-                            .anyExchange()
-                            .permitAll();
-                })
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(errorHandler)
-                        .accessDeniedHandler(errorHandler))
-                .oauth2ResourceServer(resourceServer -> resourceServer
-                        // 统一支持请求头和 Cookie 两种 token 来源，便于浏览器端使用 HttpOnly Cookie。
-                        .bearerTokenConverter(cookieBearerTokenConverter(properties))
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter(properties))))
-                .build();
+                }
+                authorize.pathMatchers(API_PATH_PATTERN).denyAll().anyExchange().permitAll();
+            })
+            .oauth2ResourceServer(resourceServer ->
+                resourceServer
+                    // 显式 Authorization 请求头优先；即使无效，也不回退到 Cookie 认证。
+                    .bearerTokenConverter(exchange ->
+                        protectedApi.matches(exchange).flatMap(match ->
+                            !match.isMatch()
+                                ? Mono.empty()
+                                : exchange.getRequest().getHeaders().containsKey("Authorization")
+                                  ? new ServerBearerTokenAuthenticationConverter().convert(exchange)
+                                  : Mono.justOrEmpty(
+                                        exchange
+                                            .getRequest()
+                                            .getCookies()
+                                            .getFirst(
+                                                SharedTokenCookies.ACCESS
+                                            )
+                                    )
+                                        .filter(cookie -> !cookie.getValue().isBlank())
+                                        .map(cookie ->
+                                            new BearerTokenAuthenticationToken(
+                                                cookie.getValue()
+                                            )
+                                        )
+                        )
+                    )
+                    .jwt(jwt ->
+                        jwt.jwtAuthenticationConverter(
+                            new ReactiveJwtAuthenticationConverterAdapter(
+                                JwtPermissionConverter.create()
+                            )
+                        )
+                    )
+            )
+            .build();
     }
-
-    /**
-     * 将 JWT 中的权限编码转换为响应式认证对象。
-     *
-     * <p>转换逻辑与 Servlet 资源服务共用 {@link JwtPermissionConverter}，保证网关和
-     * 下游服务看到的权限集合一致。</p>
-     */
-    private static Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter(
-            SecurityProperties properties) {
-        return new ReactiveJwtAuthenticationConverterAdapter(JwtPermissionConverter.create(
-                properties.getPermissionsClaimName(),
-                properties.getAuthorityPrefix()));
-    }
-
-    /**
-     * 网关 token 提取规则：公开路径不提取，其他路径优先请求头，其次 access token Cookie。
-     *
-     * <p>公开路径直接返回空认证结果，避免无意义地解析 Cookie，也避免登录、健康检查等
-     * 接口因携带过期 Cookie 而被误判为认证失败。</p>
-     */
-    private static ServerAuthenticationConverter cookieBearerTokenConverter(SecurityProperties properties) {
-        ServerBearerTokenAuthenticationConverter headerConverter = new ServerBearerTokenAuthenticationConverter();
-        PermitAllPathMatcher permitAllPathMatcher = new PermitAllPathMatcher(
-                properties.getGateway().getPermitAllPaths());
-        return exchange -> {
-            String path = exchange.getRequest().getURI().getPath();
-            if (!isProtectedApiPath(path) || permitAllPathMatcher.matches(path)) {
-                return Mono.empty();
-            }
-            return headerConverter.convert(exchange)
-                    .switchIfEmpty(Mono.defer(() -> {
-                        // 浏览器请求通常依赖 HttpOnly Cookie；没有 Authorization 时再从 Cookie 兜底读取。
-                        HttpCookie cookie = exchange.getRequest().getCookies()
-                                .getFirst(properties.getAccessTokenCookieName());
-                        if (cookie == null || cookie.getValue().isBlank()) {
-                            return Mono.empty();
-                        }
-                        return Mono.just(new BearerTokenAuthenticationToken(cookie.getValue()));
-                    }));
-        };
-    }
-
-    private static boolean isProtectedApiPath(String path) {
-        return path.startsWith("/api/");
-    }
-
 }

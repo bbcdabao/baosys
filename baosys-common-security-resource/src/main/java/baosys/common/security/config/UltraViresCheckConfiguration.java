@@ -1,14 +1,13 @@
 package baosys.common.security.config;
 
+import baosys.common.security.resource.JwtPermissionConverter;
+import baosys.common.security.resource.ResourceServerSecurityConfig;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-
-import baosys.common.security.resource.JwtPermissionConverter;
-import baosys.common.security.resource.ResourceServerSecurityConfig;
 
 /**
  * 资源服务越权检查组合配置。
@@ -20,7 +19,7 @@ import baosys.common.security.resource.ResourceServerSecurityConfig;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableMethodSecurity
 @EnableConfigurationProperties(SecurityProperties.class)
-@Import({JwtDecoderConfiguration.class, ResourceServerSecurityConfig.class})
+@Import({ JwtDecoderConfiguration.class, ResourceServerSecurityConfig.class })
 public class UltraViresCheckConfiguration {
 
     /**
@@ -31,10 +30,7 @@ public class UltraViresCheckConfiguration {
      */
     @Bean
     @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
-    JwtAuthenticationConverter jwtAuthenticationConverter(SecurityProperties properties) {
-        return JwtPermissionConverter.create(
-                properties.getPermissionsClaimName(),
-                properties.getAuthorityPrefix());
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        return JwtPermissionConverter.create();
     }
 }
-

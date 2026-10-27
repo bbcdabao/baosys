@@ -1,12 +1,12 @@
 baosys:
   systems:
-    - system-type: MANAGER
+    - system-type: MGR
       name: { zh-CN: 后台管理, en-US: Management }
       permissions:
-        - code: user:list
+        - code: MGR:user:list
           name: { zh-CN: 查看用户, en-US: View users }
     - system-type: LAB
       name: { zh-CN: 实验系统, en-US: Laboratory }
       permissions:
-        - code: experiment:run
+        - code: LAB:experiment:run
           name: { zh-CN: 执行实验, en-US: Run experiment }
