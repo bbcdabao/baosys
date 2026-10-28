@@ -173,7 +173,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             Long.class,
             name,
             passwords.encode("Other123!test"),
-            "SIM"
+            "MGR"
         );
         try {
             var first = login();
@@ -201,7 +201,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
                 )
             ).isEqualTo(userId);
             assertThat(jwt.getJWTClaimsSet().getStringListClaim(JwtConstants.PERMISSIONS_CLAIM)).containsExactly(
-                "SIM"
+                "MGR"
             );
         } finally {
             jdbc.update("DELETE FROM user_info WHERE id=?", userId);

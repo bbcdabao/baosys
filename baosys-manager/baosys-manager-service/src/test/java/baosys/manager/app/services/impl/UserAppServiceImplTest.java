@@ -35,32 +35,31 @@ class UserAppServiceImplTest {
     );
 
     @Test
-    void shouldLoadCurrentSystemTypeFromPersistedUser() {
+    void shouldLoadFlatPermissionsFromPersistedUser() {
         UserInfoEntity user = new UserInfoEntity();
         user.setId(1001L);
-        user.setUserName("simulator");
-        user.setUserPermissions("SMS");
+        user.setUserName("manager-user");
+        user.setUserPermissions("MGR:user:list,MGR");
         when(userMapper.findById(1001L)).thenReturn(Optional.of(user));
 
         var currentUser = userAppService.currentUser(1001L);
 
         assertThat(currentUser.userId()).isEqualTo(1001L);
-        assertThat(currentUser.systemTypes()).containsExactly("SMS");
-        assertThat(currentUser.permissions()).containsExactly("SMS");
+        assertThat(currentUser.permissions()).containsExactly("MGR", "MGR:user:list");
     }
 
     @Test
-    void shouldAllowEmptyPermissionsWhenSystemPermissionCatalogIsEmpty() {
-        UserInfoEntity user = user("SIM", "");
+    void shouldAllowManagerEntryWithoutApiPermissions() {
+        UserInfoEntity user = user("MGR", "");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         var updated = userAppService.update(
-            new UserUpdateRequest(1001L, "simulation-user", "", Set.of("SIM"), true),
+            new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR"), true),
             9001L
         );
 
-        assertThat(updated.permissions()).containsExactly("SIM");
-        assertThat(user.getUserPermissions()).isEqualTo("SIM");
+        assertThat(updated.permissions()).containsExactly("MGR");
+        assertThat(user.getUserPermissions()).isEqualTo("MGR");
     }
 
     @Test

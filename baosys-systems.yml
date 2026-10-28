@@ -18,9 +18,6 @@ baosys:
           name: { zh-CN: 查看登录会话, en-US: View sessions }
         - code: MGR:user:session:kick
           name: { zh-CN: 撤销登录会话, en-US: Revoke sessions }
-    - system-type: SIM
-      name: { zh-CN: 仿真平台, en-US: Simulation }
-      permissions: []
-    - system-type: SMS
-      name: { zh-CN: 试验平台, en-US: Simulators }
+    - system-type: CAT
+      name: { zh-CN: 拨测平台, en-US: Automated }
       permissions: []

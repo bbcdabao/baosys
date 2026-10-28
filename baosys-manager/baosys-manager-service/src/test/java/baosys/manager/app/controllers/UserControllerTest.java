@@ -22,8 +22,7 @@ class UserControllerTest {
             1001L,
             "admin",
             "admin",
-            List.of("MGR"),
-            List.of("MGR:user:list")
+            List.of("MGR", "MGR:user:list")
         );
         when(userAppService.currentUser(1001L)).thenReturn(expected);
         UserController controller = new UserController(userAppService);

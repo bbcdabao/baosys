@@ -5,12 +5,12 @@ import java.util.List;
 /**
  * 当前登录用户的可信快照。
  *
- * <p>账号信息由服务端根据访问令牌中的用户标识重新查询，避免前端依赖可能已过期的令牌声明。
+ * <p>服务端由访问令牌中的登录记录标识定位账号，重新查询当前信息。
+ * permissions 同时包含系统入口和接口权限，不再重复返回派生的系统列表。
  */
 public record CurrentUserResponse(
     long userId,
     String username,
     String displayName,
-    java.util.List<String> systemTypes,
     List<String> permissions
 ) {}

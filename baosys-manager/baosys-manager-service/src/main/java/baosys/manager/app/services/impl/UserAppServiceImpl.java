@@ -82,7 +82,7 @@ public class UserAppServiceImpl implements UserAppService {
     @Override
     @Transactional(readOnly = true)
     public CurrentUserResponse currentUser(long userId) {
-        // 令牌只负责提供用户标识；系统归属和权限以数据库当前配置为准。
+        // 调用方已将令牌中的登录记录标识解析为用户 ID；权限以数据库和当前目录为准。
         UserInfoEntity user = requireUser(userId);
         List<String> permissions = catalog
             .effectiveGrants(PermissionPersistenceConverter.decode(user.getUserPermissions()))
@@ -93,7 +93,6 @@ public class UserAppServiceImpl implements UserAppService {
             user.getId(),
             user.getUserName(),
             user.getUserName(),
-            baosys.common.security.resource.PermissionSet.systems(permissions),
             permissions
         );
     }

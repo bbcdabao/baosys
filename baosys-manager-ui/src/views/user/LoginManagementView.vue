@@ -55,7 +55,7 @@
       >
         <template #systemType="{ record }">
           <a-tag
-            v-for="type in record.systemTypes"
+            v-for="type in systemTypesFromPermissions(record.permissions)"
             :key="type"
             color="arcoblue"
             >{{ systemLabel(type) }}</a-tag
@@ -94,6 +94,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { listLoginSessions } from '@/api/loginSession'
 import { kickAllLoginClients, kickLoginClient } from '@/api/user'
 import { useSystemCatalog } from '@/composables/useSystemCatalog'
+import { systemTypesFromPermissions } from '@/utils/permissions'
 import { useLocale } from '@/composables/useLocale'
 import { useAuthStore } from '@/store/auth'
 import type { LoginSession } from '@/types/loginSession'

@@ -26,8 +26,8 @@ class JwtPermissionConverterTest {
             .subject("1001")
             .issuedAt(Instant.now())
             .expiresAt(Instant.now().plusSeconds(300))
-            .claim("scope", "MGR SIM")
-            .claim(JwtConstants.PERMISSIONS_CLAIM, List.of("MGR", "SIM", "MGR:user:list"))
+            .claim("scope", "MGR")
+            .claim(JwtConstants.PERMISSIONS_CLAIM, List.of("MGR", "MGR:user:list"))
             .build();
 
         var authentication = JwtPermissionConverter.create().convert(jwt);
@@ -36,7 +36,7 @@ class JwtPermissionConverterTest {
         assertThat(authentication.getName()).isEqualTo("1001");
         assertThat(authentication.getAuthorities())
             .extracting("authority")
-            .containsExactly("MGR", "SIM", "MGR:user:list");
+            .containsExactly("MGR", "MGR:user:list");
     }
 
     @Test

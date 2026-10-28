@@ -13,7 +13,7 @@ public final class CatalogFixture {
         try {
             var sources = new YamlPropertySourceLoader().load(
                 "catalog",
-                new ClassPathResource("baosys-systems.yml")
+                new ClassPathResource("manager-catalog-test.yml")
             );
             return new Binder(ConfigurationPropertySources.from(sources))
                 .bind("baosys", SystemCatalog.class)

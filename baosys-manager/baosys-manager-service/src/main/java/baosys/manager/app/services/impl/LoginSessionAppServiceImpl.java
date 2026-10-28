@@ -3,6 +3,7 @@ package baosys.manager.app.services.impl;
 import baosys.common.api.PageResponse;
 import baosys.manager.api.dto.LoginSessionResponse;
 import baosys.manager.app.services.LoginSessionAppService;
+import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.LoginSessionRow;
 import baosys.manager.infra.database.mapper.UserLoginMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -48,11 +49,7 @@ public class LoginSessionAppServiceImpl implements LoginSessionAppService {
             row.getId(),
             row.getUserId(),
             row.getUserName(),
-            baosys.common.security.resource.PermissionSet.systems(
-                baosys.manager.infra.database.converter.PermissionPersistenceConverter.decode(
-                    row.getUserPermissions()
-                )
-            ),
+            PermissionPersistenceConverter.decode(row.getUserPermissions()).stream().sorted().toList(),
             row.getLoginClient(),
             row.getLoginAt(),
             row.getExpiresAt()

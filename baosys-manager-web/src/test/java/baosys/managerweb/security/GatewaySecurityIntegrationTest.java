@@ -153,11 +153,11 @@ class GatewaySecurityIntegrationTest {
     }
 
     @Test
-    void rejectsOtherSystemEvenWhenApiPermissionMatches() {
+    void rejectsMissingManagerEntryEvenWhenApiPermissionMatches() {
         webTestClient
             .get()
             .uri("/api/baosys-manager/v1/users")
-            .headers(headers -> headers.setBearerAuth("other-system"))
+            .headers(headers -> headers.setBearerAuth("api-without-entry"))
             .exchange()
             .expectStatus()
             .isForbidden();
@@ -193,11 +193,11 @@ class GatewaySecurityIntegrationTest {
             webTestClient
                 .get()
                 .uri(path)
-                .headers(headers -> headers.setBearerAuth("other-system"))
+                .headers(headers -> headers.setBearerAuth("api-without-entry"))
                 .exchange()
                 .expectStatus()
                 .isNoContent();
-            assertThat(FORWARDED_AUTH.get()).isEqualTo("Bearer other-system");
+            assertThat(FORWARDED_AUTH.get()).isEqualTo("Bearer api-without-entry");
             // 即使没有任何系统权限，有效登录身份也应能访问全局共享接口。
             webTestClient
                 .get()
@@ -207,39 +207,6 @@ class GatewaySecurityIntegrationTest {
                 .expectStatus()
                 .isNoContent();
         }
-    }
-
-    @Test
-    void routesUseTheirOwnSystemEntryAndSupportMultipleSystems() {
-        // Other subsystems have their own gateways; Manager must not expose their APIs.
-        webTestClient
-            .get()
-            .uri("/api/baosys-plant/v1/demo")
-            .headers(headers -> headers.setBearerAuth("other-system"))
-            .exchange()
-            .expectStatus()
-            .isForbidden();
-        webTestClient
-            .get()
-            .uri("/api/baosys-plant/v1/demo")
-            .headers(headers -> headers.setBearerAuth("user-token"))
-            .exchange()
-            .expectStatus()
-            .isForbidden();
-        webTestClient
-            .get()
-            .uri("/api/baosys-manager/v1/users")
-            .headers(headers -> headers.setBearerAuth("multi-system"))
-            .exchange()
-            .expectStatus()
-            .isNoContent();
-        webTestClient
-            .get()
-            .uri("/api/baosys-plant/v1/demo")
-            .headers(headers -> headers.setBearerAuth("multi-system"))
-            .exchange()
-            .expectStatus()
-            .isForbidden();
     }
 
     @Test
@@ -308,7 +275,7 @@ class GatewaySecurityIntegrationTest {
 
     @Test
     void browserSessionUsesJwtBusinessAuthorities() {
-        var session = browserSession("other-system");
+        var session = browserSession("api-without-entry");
         webTestClient
             .get()
             .uri("/api/baosys-manager/v1/users")
@@ -323,7 +290,7 @@ class GatewaySecurityIntegrationTest {
             .exchange()
             .expectStatus()
             .isNoContent();
-        assertThat(FORWARDED_AUTH.get()).isEqualTo("Bearer other-system");
+        assertThat(FORWARDED_AUTH.get()).isEqualTo("Bearer api-without-entry");
     }
 
     @Test
@@ -417,7 +384,7 @@ class GatewaySecurityIntegrationTest {
         webTestClient
             .get()
             .uri("/api/baosys-manager/v1/users")
-            .cookie("BAOSYS_ACCESS_TOKEN", "other-system")
+            .cookie("BAOSYS_ACCESS_TOKEN", "api-without-entry")
             .exchange()
             .expectStatus()
             .isForbidden();
@@ -489,7 +456,7 @@ class GatewaySecurityIntegrationTest {
         webTestClient
             .get()
             .uri("/api/baosys-manager/v1/users")
-            .headers(headers -> headers.setBearerAuth("other-system"))
+            .headers(headers -> headers.setBearerAuth("api-without-entry"))
             .exchange()
             .expectStatus()
             .isForbidden()
@@ -629,10 +596,8 @@ class GatewaySecurityIntegrationTest {
                     JwtConstants.PERMISSIONS_CLAIM,
                     token.equals("no-permissions") || token.equals("scope-only")
                         ? List.of()
-                        : token.equals("multi-system")
-                        ? List.of("MGR", "SIM")
-                        : token.equals("other-system")
-                          ? List.of("SIM", "MGR:user:list")
+                        : token.equals("api-without-entry")
+                          ? List.of("MGR:user:list")
                           : List.of("MGR")
                 )
                 .build();

@@ -74,7 +74,7 @@
       >
         <template #systemType="{ record }">
           <a-tag
-            v-for="type in record.systemTypes"
+            v-for="type in systemTypesFromPermissions(record.permissions)"
             :key="type"
             color="arcoblue"
           >
@@ -243,6 +243,7 @@ import { useRouter } from 'vue-router'
 
 import { createUser, deleteUser, listUsers, updateUser } from '@/api/user'
 import { useSystemCatalog } from '@/composables/useSystemCatalog'
+import { systemTypesFromPermissions } from '@/utils/permissions'
 
 import { useAuthStore } from '@/store/auth'
 import type { SystemType, UserSummary } from '@/types/user'
@@ -366,7 +367,9 @@ const openEdit = (user: UserSummary): void => {
   editingId.value = user.id
   originalUser.value = { ...user, permissions: [...user.permissions] }
   const availableSystems = new Set(systemOptions.value.map((option) => option.value))
-  const selectedSystems = user.systemTypes.filter((type) => availableSystems.has(type))
+  const selectedSystems = systemTypesFromPermissions(user.permissions).filter((type) =>
+    availableSystems.has(type)
+  )
   const availablePermissionCodes = new Set(
     selectedSystems
       .flatMap((type) => permissionOptionsFor(type))

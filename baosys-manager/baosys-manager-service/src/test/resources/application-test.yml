@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: classpath:manager-catalog-test.yml
   security:
     oauth2:
       authorizationserver:

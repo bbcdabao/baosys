@@ -13,10 +13,10 @@ class PermissionSetTest {
         assertThat(PermissionSet.systems(null)).isEmpty();
         assertThat(PermissionSet.normalize(null)).isEmpty();
 
-        var permissions = Arrays.asList("SIM", null, "MGR:user:list", "MGR", "SIM");
-        assertThat(PermissionSet.systems(permissions)).containsExactly("MGR", "SIM");
+        var permissions = Arrays.asList("MGR", null, "MGR:user:list", "MGR");
+        assertThat(PermissionSet.systems(permissions)).containsExactly("MGR");
         assertThat(PermissionSet.normalize(permissions))
-            .containsExactly("MGR", "MGR:user:list", "SIM");
+            .containsExactly("MGR", "MGR:user:list");
     }
 
     @Test
@@ -28,10 +28,10 @@ class PermissionSetTest {
     }
 
     @Test
-    void normalizesMultipleSystemsAndAllowsEmptyGrants() {
-        var grants = PermissionSet.normalize(List.of("SIM", "MGR:user:list", "MGR", "MGR"));
-        assertThat(grants).containsExactly("MGR", "MGR:user:list", "SIM");
-        assertThat(PermissionSet.systems(grants)).containsExactly("MGR", "SIM");
+    void normalizesManagerGrantsAndAllowsEmptyGrants() {
+        var grants = PermissionSet.normalize(List.of("MGR:user:list", "MGR", "MGR"));
+        assertThat(grants).containsExactly("MGR", "MGR:user:list");
+        assertThat(PermissionSet.systems(grants)).containsExactly("MGR");
         assertThat(PermissionSet.normalize(List.of())).isEmpty();
     }
 

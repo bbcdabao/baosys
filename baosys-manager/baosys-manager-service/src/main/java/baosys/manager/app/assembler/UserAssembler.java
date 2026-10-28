@@ -12,9 +12,6 @@ public final class UserAssembler {
         return new UserResponse(
             user.getId(),
             user.getUserName(),
-            baosys.common.security.resource.PermissionSet.systems(
-                PermissionPersistenceConverter.decode(user.getUserPermissions())
-            ),
             PermissionPersistenceConverter.decode(user.getUserPermissions())
                 .stream()
                 .sorted()

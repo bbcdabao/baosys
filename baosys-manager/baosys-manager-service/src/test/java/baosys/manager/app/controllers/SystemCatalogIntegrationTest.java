@@ -42,36 +42,36 @@ class SystemCatalogIntegrationTest extends PostgreSqlIntegrationTest {
     MockMvc mvc;
 
     @Test
-    void configAloneEnablesNewSystemThroughDatabaseLoginAndRefresh() throws Exception {
+    void managerCatalogSupportsDatabaseLoginAndRefresh() throws Exception {
         assertThat(catalog.systems())
             .extracting(system -> system.systemType())
-            .containsExactly("MGR", "LAB");
+            .containsExactly("MGR");
         var user = users.create(
             new UserCreateRequest(
-                "lab-" + UUID.randomUUID(),
+                "manager-" + UUID.randomUUID(),
                 "secure123",
-                Set.of("LAB", "LAB:experiment:run"),
+                Set.of("MGR", "MGR:user:list"),
                 true
             ),
             1L
         );
-        assertThat(users.list(user.name(), "LAB", 0, 20).items()).hasSize(1);
+        assertThat(users.list(user.name(), "MGR", 0, 20).items()).hasSize(1);
         var login = auth.login(new LoginRequest(user.name(), "secure123", null));
         var claims = SignedJWT.parse(login.accessToken()).getJWTClaimsSet();
         assertThat(claims.getClaims()).doesNotContainKey("scope");
         assertThat(claims.getStringListClaim(JwtConstants.PERMISSIONS_CLAIM)).containsExactly(
-            "LAB",
-            "LAB:experiment:run"
+            "MGR",
+            "MGR:user:list"
         );
         assertThat(auth.refresh(login.refreshToken()).accessToken()).isNotBlank();
         users.delete(user.id(), 1L);
     }
 
     @Test
-    void rejectsUnknownSystemAndCrossSystemPermissions() {
+    void rejectsUnknownSystemAndOrphanPermissions() {
         for (var request : List.of(
             new UserCreateRequest("unknown", "secure123", Set.of("UNKNOWN"), true),
-            new UserCreateRequest("lab", "secure123", Set.of("LAB", "MGR:user:list"), true)
+            new UserCreateRequest("orphan", "secure123", Set.of("MGR:user:list"), true)
         )) {
             assertThatThrownBy(() -> users.create(request, 1L)).isInstanceOf(
                 BusinessException.class
@@ -92,11 +92,11 @@ class SystemCatalogIntegrationTest extends PostgreSqlIntegrationTest {
             .accessToken();
         mvc.perform(get("/v1/systems").header("Authorization", "Bearer " + manager))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data[1].systemType").value("LAB"))
-            .andExpect(jsonPath("$.data[1].name['zh-CN']").value("实验系统"))
-            .andExpect(jsonPath("$.data[1].permissions[0].name['en-US']").value("Run experiment"));
-        String lab = auth.login(new LoginRequest("admin", "Admin123!test", "test")).accessToken();
-        mvc.perform(get("/v1/systems").header("Authorization", "Bearer " + lab)).andExpect(
+            .andExpect(jsonPath("$.data[0].systemType").value("MGR"))
+            .andExpect(jsonPath("$.data[0].name['zh-CN']").value("后台管理"))
+            .andExpect(jsonPath("$.data[0].permissions[0].name['en-US']").value("View users"));
+        String token = auth.login(new LoginRequest("admin", "Admin123!test", "test")).accessToken();
+        mvc.perform(get("/v1/systems").header("Authorization", "Bearer " + token)).andExpect(
             status().isOk()
         );
     }

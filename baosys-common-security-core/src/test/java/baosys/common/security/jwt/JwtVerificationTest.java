@@ -27,7 +27,7 @@ class JwtVerificationTest {
 
     @Test
     void acceptsUnsortedDuplicatePermissionsWithoutChangingClaims() {
-        List<String> permissions = List.of("SIM", "MGR:user:list", "MGR", "MGR");
+        List<String> permissions = List.of("MGR:user:list", "MGR", "MGR");
         Jwt jwt = token().claim(JwtConstants.PERMISSIONS_CLAIM, permissions).build();
 
         assertThat(validator.validate(jwt).hasErrors()).isFalse();
@@ -83,7 +83,7 @@ class JwtVerificationTest {
 
     @Test
     void ignoresScopeForBusinessPermissionValidation() {
-        for (Object scope : List.of(" MGR", "MGR ", "MGR SIM", List.of("MGR"))) {
+        for (Object scope : List.of(" MGR", "MGR ", "MGR MGR", List.of("MGR"))) {
             assertThat(
                 validator.validate(token().claim("scope", scope).build()).hasErrors()
             ).isFalse();

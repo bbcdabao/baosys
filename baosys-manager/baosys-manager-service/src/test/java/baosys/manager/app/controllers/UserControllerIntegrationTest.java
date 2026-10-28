@@ -66,7 +66,8 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
         mvc.perform(get("/v1/users/me").header("Authorization", "Bearer " + result.accessToken()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.userId").value(admin.getId()))
-            .andExpect(jsonPath("$.data.systemTypes[0]").value("MGR"));
+            .andExpect(jsonPath("$.data.permissions[0]").value("MGR"))
+            .andExpect(jsonPath("$.data.systemTypes").doesNotExist());
         auth.logout(result.refreshToken());
         mvc.perform(
             get("/v1/users/me").header("Authorization", "Bearer " + result.accessToken())
@@ -74,21 +75,22 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
-    void createMultiSystemAccountFilterAndDeleteThroughApi() throws Exception {
+    void createManagerAccountFilterAndDeleteThroughApi() throws Exception {
         String admin = adminToken();
-        String name = "multi-" + UUID.randomUUID();
+        String name = "manager-" + UUID.randomUUID();
         mvc.perform(
             post("/v1/users")
                 .header("Authorization", "Bearer " + admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                    {"name":"%s","pass":"secure123","permissions":["MGR","SIM","MGR:user:list"]}
+                    {"name":"%s","pass":"secure123","permissions":["MGR","MGR:user:list"]}
                     """.formatted(name)
                 )
         )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.systemTypes.length()").value(2));
+            .andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.contains("MGR", "MGR:user:list")))
+            .andExpect(jsonPath("$.data.systemTypes").doesNotExist());
         var user = userMapper.findByUserName(name).orElseThrow();
         assertThat(user.getUserPass()).isNotEqualTo("secure123");
         var login = auth.login(new LoginRequest(name, "secure123", "test"));
@@ -96,8 +98,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
         assertThat(claims.getClaims()).doesNotContainKey("scope");
         assertThat(claims.getStringListClaim(JwtConstants.PERMISSIONS_CLAIM)).containsExactly(
             "MGR",
-            "MGR:user:list",
-            "SIM"
+            "MGR:user:list"
         );
         mvc.perform(
             get("/v1/users").header("Authorization", "Bearer " + login.accessToken())
@@ -108,31 +109,24 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
                 "Bearer " + login.accessToken()
             )
         ).andExpect(status().isForbidden());
-        for (String type : List.of("MGR", "SIM")) {
-            mvc.perform(
-                get("/v1/users")
-                    .param("name", name)
-                    .param("systemType", type)
-                    .header("Authorization", "Bearer " + admin)
-            )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.total").value(1));
-        }
         mvc.perform(
             get("/v1/users")
                 .param("name", name)
-                .param("systemType", "SMS")
+                .param("systemType", "MGR")
                 .header("Authorization", "Bearer " + admin)
         )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.total").value(0));
+            .andExpect(jsonPath("$.data.total").value(1))
+            .andExpect(jsonPath("$.data.items[0].permissions").value(org.hamcrest.Matchers.contains("MGR", "MGR:user:list")))
+            .andExpect(jsonPath("$.data.items[0].systemTypes").doesNotExist());
         mvc.perform(
             get("/v1/login-sessions")
                 .param("userId", user.getId().toString())
                 .header("Authorization", "Bearer " + admin)
         )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.items[0].systemTypes.length()").value(2));
+            .andExpect(jsonPath("$.data.items[0].permissions").value(org.hamcrest.Matchers.contains("MGR", "MGR:user:list")))
+            .andExpect(jsonPath("$.data.items[0].systemTypes").doesNotExist());
         mvc.perform(
             delete("/v1/users/" + user.getId()).header("Authorization", "Bearer " + admin)
         ).andExpect(status().isOk());
@@ -146,22 +140,6 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
             1L
         );
         var login = auth.login(new LoginRequest(user.name(), "secure123", null));
-        mvc.perform(
-            get("/v1/users").header("Authorization", "Bearer " + login.accessToken())
-        ).andExpect(status().isForbidden());
-        users.delete(user.id(), 1L);
-    }
-
-    @Test
-    void anotherSubsystemCanReadOwnProfileButNotManagerApis() throws Exception {
-        var user = users.create(
-            new UserCreateRequest("sim-" + UUID.randomUUID(), "secure123", Set.of("SIM"), true),
-            1L
-        );
-        var login = auth.login(new LoginRequest(user.name(), "secure123", null));
-        mvc.perform(get("/v1/users/me").header("Authorization", "Bearer " + login.accessToken()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.systemTypes[0]").value("SIM"));
         mvc.perform(
             get("/v1/users").header("Authorization", "Bearer " + login.accessToken())
         ).andExpect(status().isForbidden());
@@ -183,7 +161,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
             post("/v1/users")
                 .header("Authorization", "Bearer " + admin)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"admin\",\"pass\":\"secure123\",\"permissions\":[\"SIM\"]}")
+                .content("{\"name\":\"admin\",\"pass\":\"secure123\",\"permissions\":[\"MGR\"]}")
         ).andExpect(status().isConflict());
     }
 
