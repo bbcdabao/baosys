@@ -15,7 +15,7 @@
 
 统一使用 `ApiResponse` 和 `PageResponse`。分页从 0 开始，限制每页最多 200 条；错误由统一异常处理返回稳定错误码和 traceId，不向客户端暴露堆栈。
 
-业务接口的参数与映射写在 API 契约，Controller 实现契约并声明授权。浏览器认证等实现专属端点放 Service。网关入口路径保持 `/api/baosys-manager`，变更 context-path 时同步修改转发、前端和认证配置。
+业务接口及浏览器共享登录接口的参数、映射和请求/响应 DTO 写在 API 契约，Controller 实现契约并声明授权。Cookie 设置和认证流程实现保留在 Service；框架提供的 OAuth2/OIDC 端点由安全配置装配。网关入口路径保持 `/api/baosys-manager`，变更 context-path 时同步修改转发、前端和认证配置。
 
 权限统一登记在根目录 `baosys-systems.yml`，采用 `MGR` 入口和 `MGR:<资源>:<操作>` 接口命名。增加接口时同步目录、方法鉴权和前端操作控制；前端隐藏按钮不能替代后端鉴权。新权限不会自动提升已有账号。
 

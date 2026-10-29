@@ -10,7 +10,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 由现有资源服务器保护，登录账户可读取，用于显示已授权系统。 */
+/**
+ * 由现有资源服务器保护，登录账户可读取，用于显示已授权系统。
+ * SystemCatalogController
+ */
 @RestController
 @RequestMapping(SystemCatalogApi.PREFIX)
 public class SystemCatalogController implements SystemCatalogApi {

@@ -9,7 +9,10 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.*;
 
-/** 关联账户与业务会话的生命周期；OAuth2 令牌存储和序列化交由框架 JDBC 服务处理。 */
+/**
+ * 关联账户与业务会话的生命周期；OAuth2 令牌存储和序列化交由框架 JDBC 服务处理。
+ * AccountAuthorizationService
+ */
 public class AccountAuthorizationService implements OAuth2AuthorizationService {
 
     private final JdbcOAuth2AuthorizationService delegate;
@@ -28,7 +31,10 @@ public class AccountAuthorizationService implements OAuth2AuthorizationService {
         delegate = new JdbcOAuth2AuthorizationService(jdbc, clients);
     }
 
-    /** 保存授权并同步业务会话；禁止已撤销的授权重新写入访问令牌。 */
+    /**
+     * 保存授权并同步业务会话；禁止已撤销的授权重新写入访问令牌。
+     * @see OAuth2AuthorizationService#save(OAuth2Authorization)
+     */
     @Override
     @Transactional
     public void save(OAuth2Authorization authorization) {

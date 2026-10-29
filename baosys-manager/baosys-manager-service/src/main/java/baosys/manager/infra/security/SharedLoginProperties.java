@@ -4,7 +4,13 @@ import java.net.URI;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** 浏览器可访问的公开来源配置，用于校验共享登录的返回地址。 */
+/**
+ * 浏览器可访问的公开来源配置，用于校验共享登录的返回地址。
+ * SharedLoginProperties
+ * @param managerOrigin
+ * @param allowedOrigins
+ * @param secureCookie
+ */
 @ConfigurationProperties("baosys.shared-login")
 public record SharedLoginProperties(
     String managerOrigin,

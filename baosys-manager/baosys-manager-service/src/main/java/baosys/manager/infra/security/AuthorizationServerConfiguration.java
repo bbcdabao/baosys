@@ -27,11 +27,20 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.transaction.PlatformTransactionManager;
 
-/** 配置标准 OAuth2/OIDC 端点、账户认证和平台访问令牌声明。 */
+/**
+ * 配置标准 OAuth2/OIDC 端点、账户认证和平台访问令牌声明。
+ * AuthorizationServerConfiguration
+ */
 @Configuration(proxyBeanMethods = false)
 public class AuthorizationServerConfiguration {
 
-    /** 优先匹配授权服务器端点，令牌签发与撤销在同一事务内处理。 */
+    /**
+     * 优先匹配授权服务器端点，令牌签发与撤销在同一事务内处理。
+     * @param http
+     * @param transactions
+     * @return
+     * @throws Exception
+     */
     @Bean
     @Order(1)
     SecurityFilterChain authorizationServerChain(
@@ -56,7 +65,12 @@ public class AuthorizationServerConfiguration {
             .build();
     }
 
-    /** 为授权码流程提供表单登录入口。 */
+    /**
+     * 为授权码流程提供表单登录入口。
+     * @param http
+     * @return
+     * @throws Exception
+     */
     @Bean
     @Order(2)
     SecurityFilterChain loginChain(HttpSecurity http) throws Exception {
@@ -108,7 +122,13 @@ public class AuthorizationServerConfiguration {
         return new JdbcOAuth2AuthorizationConsentService(jdbc, clients);
     }
 
-    /** 仅定制访问令牌：使用业务会话 ID 作为主体，并写入当前有效权限。 */
+    /**
+     * 仅定制访问令牌：使用业务会话 ID 作为主体，并写入当前有效权限。
+     * @param jdbc
+     * @param users
+     * @param catalog
+     * @return
+     */
     @Bean
     OAuth2TokenCustomizer<JwtEncodingContext> accountClaims(
         JdbcTemplate jdbc,

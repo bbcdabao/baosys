@@ -2,20 +2,22 @@ package baosys.manager.app.controllers;
 
 import baosys.common.api.ApiResponse;
 import baosys.common.security.resource.SharedTokenCookies;
+import baosys.manager.api.BrowserAuthApi;
+import baosys.manager.api.dto.BrowserLoginRequest;
+import baosys.manager.api.dto.BrowserLoginResponse;
 import baosys.manager.app.config.web.TraceIds;
 import baosys.manager.infra.security.*;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.*;
-import java.util.Map;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-/** 共享登录接口：通过 HttpOnly Cookie 下发令牌，响应正文仅返回业务结果。 */
+/**
+ * 共享登录接口：通过 HttpOnly Cookie 下发令牌，响应正文仅返回业务结果。
+ * SharedLoginController
+ */
 @RestController
-@RequestMapping("/v1/browser-auth")
-public class SharedLoginController {
+@RequestMapping(BrowserAuthApi.PREFIX)
+public class SharedLoginController implements BrowserAuthApi {
 
     private final SharedLoginService service;
     private final SharedLoginProperties properties;
@@ -25,38 +27,28 @@ public class SharedLoginController {
         this.properties = properties;
     }
 
-    public record Login(
-        @NotBlank @Size(max = 128) String username,
-        @NotBlank @Size(max = 256) String password,
-        @Size(max = 8192) String redirectUrl
-    ) {}
-
-    @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<Map<String, String>>> login(
-        @Valid @RequestBody Login login,
-        @CookieValue(name = SharedTokenCookies.REFRESH, required = false) String previous
+    @Override
+    public ResponseEntity<ApiResponse<BrowserLoginResponse>> login(
+        BrowserLoginRequest login,
+        String previous
     ) {
         // 在创建会话前验证返回地址，避免无效跳转请求留下新授权。
         String redirect = properties.returnUrl(login.redirectUrl());
         var tokens = service.login(login.username(), login.password(), previous);
         return response(tokens).body(
-            ApiResponse.success(Map.of("redirectUrl", redirect), TraceIds.current())
+            ApiResponse.success(new BrowserLoginResponse(redirect), TraceIds.current())
         );
     }
 
-    @PostMapping(value = "/refresh", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<Void>> refresh(
-        @CookieValue(name = SharedTokenCookies.REFRESH, required = false) String refresh
-    ) {
+    @Override
+    public ResponseEntity<ApiResponse<Void>> refresh(String refresh) {
         return response(service.refresh(refresh)).body(
             ApiResponse.success(null, TraceIds.current())
         );
     }
 
-    @PostMapping(value = "/logout", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<Void>> logout(
-        @CookieValue(name = SharedTokenCookies.REFRESH, required = false) String refresh
-    ) {
+    @Override
+    public ResponseEntity<ApiResponse<Void>> logout(String refresh) {
         service.revoke(refresh);
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noStore())

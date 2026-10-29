@@ -12,7 +12,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** 为共享 Cookie 登录端点配置无状态认证链和来源检查。 */
+/**
+ * 为共享 Cookie 登录端点配置无状态认证链和来源检查。
+ * SharedLoginConfiguration
+ */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SharedLoginProperties.class)
 public class SharedLoginConfiguration {

@@ -7,7 +7,10 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** 将框架的令牌处理和账户锁置于同一事务中，保持授权状态更新的一致性。 */
+/**
+ * 将框架的令牌处理和账户锁置于同一事务中，保持授权状态更新的一致性。
+ * AuthorizationTransactionFilter
+ */
 final class AuthorizationTransactionFilter extends OncePerRequestFilter {
 
     private final TransactionTemplate transactions;

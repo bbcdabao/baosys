@@ -3,7 +3,13 @@ package baosys.manager.api.dto;
 import java.util.List;
 import java.util.Map;
 
-/** 子系统目录；名称按语言标识索引，权限列表顺序即展示顺序。 */
+/**
+ * 子系统目录；名称按语言标识索引，权限列表顺序即展示顺序。
+ * SystemDefinition
+ * @param systemType
+ * @param name
+ * @param permissions
+ */
 public record SystemDefinition(
     String systemType,
     Map<String, String> name,

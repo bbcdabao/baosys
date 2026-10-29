@@ -21,7 +21,10 @@ import org.springframework.security.oauth2.server.authorization.settings.Authori
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 浏览器共享登录服务，与 OAuth2 共用持久化授权和会话撤销流程。 */
+/**
+ * 浏览器共享登录服务，与 OAuth2 共用持久化授权和会话撤销流程。
+ * SharedLoginService
+ */
 @Service
 public class SharedLoginService {
 

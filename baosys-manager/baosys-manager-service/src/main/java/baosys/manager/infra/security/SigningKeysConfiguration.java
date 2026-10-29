@@ -12,7 +12,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StringUtils;
 
-/** 加载外部持久化 JWK 密钥；签名及公开 JWKS 的发布交由授权服务器处理。 */
+/**
+ * 加载外部持久化 JWK 密钥；签名及公开 JWKS 的发布交由授权服务器处理。
+ * SigningKeysConfiguration
+ */
 @Configuration(proxyBeanMethods = false)
 public class SigningKeysConfiguration {
 
