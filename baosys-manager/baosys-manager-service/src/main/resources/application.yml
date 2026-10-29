@@ -37,7 +37,7 @@ spring:
               reuse-refresh-tokens: false
       resourceserver:
         jwt:
-          issuer-uri: ${JWT_ISSUER:http://localhost:9090/baosys-manager}
+          issuer-uri: ${JWT_ISSUER:baosys-manager}
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:9090/baosys-manager/oauth2/jwks}
           jws-algorithms: [RS256]
           audiences: [def]

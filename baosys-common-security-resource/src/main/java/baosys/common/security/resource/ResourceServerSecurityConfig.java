@@ -10,7 +10,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.CollectionUtils;
 import org.springframework.core.annotation.Order;
 
-/** 资源服务负责 JWT 认证，具体 API 权限由方法级鉴权校验；子系统入口权限由网关校验。 */
+/**
+ * 资源服务负责 JWT 认证，具体 API 权限由方法级鉴权校验；子系统入口权限由网关校验。
+ */
 public class ResourceServerSecurityConfig {
 
     @Bean

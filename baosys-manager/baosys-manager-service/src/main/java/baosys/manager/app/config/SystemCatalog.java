@@ -11,7 +11,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-/** 启动时加载并校验目录；不依赖数据库，不提供运行时修改入口。 */
+/**
+ * 启动时加载并校验目录；不依赖数据库，不提供运行时修改入口。
+ * @param systems
+ */
 @ConfigurationProperties("baosys")
 public record SystemCatalog(List<SystemDefinition> systems) {
     public SystemCatalog {
@@ -58,7 +61,12 @@ public record SystemCatalog(List<SystemDefinition> systems) {
         }
     }
 
-    /** 校验中英文名称，并复制为不可变映射，防止配置加载后被修改。 */
+    /**
+     * 校验中英文名称，并复制为不可变映射，防止配置加载后被修改。
+     * @param names
+     * @param owner
+     * @return
+     */
     private static Map<String, String> names(Map<String, String> names, String owner) {
         if (
             CollectionUtils.isEmpty(names) ||
@@ -74,7 +82,11 @@ public record SystemCatalog(List<SystemDefinition> systems) {
         return systems.stream().anyMatch(system -> system.systemType().equals(systemType));
     }
 
-    /** 返回指定系统声明的接口权限，不包含系统入口权限。 */
+    /**
+     * 返回指定系统声明的接口权限，不包含系统入口权限。
+     * @param systemType
+     * @return
+     */
     public Set<String> codes(String systemType) {
         return systems
             .stream()
@@ -84,7 +96,11 @@ public record SystemCatalog(List<SystemDefinition> systems) {
             .collect(Collectors.toUnmodifiableSet());
     }
 
-    /** 汇总系统入口与接口权限；未知系统直接拒绝。 */
+    /**
+     * 汇总系统入口与接口权限；未知系统直接拒绝。
+     * @param type
+     * @return
+     */
     public Set<String> grantsFor(String type) {
         if (!contains(type)) {
             throw new IllegalArgumentException("Unknown system: " + type);
@@ -94,7 +110,11 @@ public record SystemCatalog(List<SystemDefinition> systems) {
         return Set.copyOf(grants);
     }
 
-    /** 签发时过滤未知或已停用的权限；接口写入权限时使用严格校验。 */
+    /**
+     * 签发时过滤未知或已停用的权限；接口写入权限时使用严格校验。
+     * @param grants
+     * @return
+     */
     public Set<String> effectiveGrants(Set<String> grants) {
         var effective = new HashSet<String>();
         for (var system : systems) {
@@ -112,7 +132,11 @@ public record SystemCatalog(List<SystemDefinition> systems) {
         return Set.copyOf(effective);
     }
 
-    /** 写入前校验权限目录归属，并要求接口权限具备对应的系统入口权限。 */
+    /**
+     * 写入前校验权限目录归属，并要求接口权限具备对应的系统入口权限。
+     * @param grants
+     * @return
+     */
     public Set<String> validateGrants(Set<String> grants) {
         var normalized = Set.copyOf(
             baosys.common.security.resource.PermissionSet.normalize(grants)

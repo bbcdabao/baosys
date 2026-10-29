@@ -65,7 +65,11 @@ public class SharedLoginController implements BrowserAuthApi {
             .body(ApiResponse.success(null, TraceIds.current()));
     }
 
-    /** 禁止缓存令牌响应，并分别设置访问令牌和刷新令牌的 Cookie 生命周期。 */
+    /**
+     * 禁止缓存令牌响应，并分别设置访问令牌和刷新令牌的 Cookie 生命周期。
+     * @param tokens
+     * @return
+     */
     private ResponseEntity.BodyBuilder response(SharedLoginService.Tokens tokens) {
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noStore())
@@ -86,7 +90,14 @@ public class SharedLoginController implements BrowserAuthApi {
             );
     }
 
-    /** 统一 Cookie 安全属性；已过期的令牌以零有效期清除。 */
+    /**
+     * 统一 Cookie 安全属性；已过期的令牌以零有效期清除。
+     * @param name
+     * @param value
+     * @param path
+     * @param age
+     * @return
+     */
     private String cookie(String name, String value, String path, Duration age) {
         return ResponseCookie.from(name, value)
             .httpOnly(true)

@@ -62,7 +62,13 @@ public class SharedLoginService {
         this.dummyPassword = passwords.encode(UUID.randomUUID().toString());
     }
 
-    /** 本次签发的令牌及各自到期时间，供控制器设置 Cookie 有效期。 */
+    /**
+     * 本次签发的令牌及各自到期时间，供控制器设置 Cookie 有效期。
+     * @param accessToken
+     * @param refreshToken
+     * @param accessExpiry
+     * @param refreshExpiry
+     */
     public record Tokens(
         String accessToken,
         String refreshToken,
@@ -70,7 +76,13 @@ public class SharedLoginService {
         Instant refreshExpiry
     ) {}
 
-    /** 校验账户凭证，撤销浏览器旧授权，并为新登录创建独立会话。 */
+    /**
+     * 校验账户凭证，撤销浏览器旧授权，并为新登录创建独立会话。
+     * @param username
+     * @param password
+     * @param previousRefresh
+     * @return
+     */
     @Transactional
     public Tokens login(String username, String password, String previousRefresh) {
         var found = users.findByUserName(username.trim());
@@ -104,7 +116,11 @@ public class SharedLoginService {
         );
     }
 
-    /** 轮换刷新令牌，但保留最初的刷新到期时间，不无限延长会话。 */
+    /**
+     * 轮换刷新令牌，但保留最初的刷新到期时间，不无限延长会话。
+     * @param refresh
+     * @return
+     */
     @Transactional
     public Tokens refresh(String refresh) {
         var authorization = find(refresh);
@@ -114,7 +130,10 @@ public class SharedLoginService {
         return issue(authorization, authorization.getRefreshToken().getToken().getExpiresAt());
     }
 
-    /** 撤销本登录模式的授权；缺失或已失效的令牌无需额外处理。 */
+    /**
+     * 撤销本登录模式的授权；缺失或已失效的令牌无需额外处理。
+     * @param refresh
+     */
     @Transactional
     public void revoke(String refresh) {
         var authorization = find(refresh);
@@ -123,7 +142,11 @@ public class SharedLoginService {
         }
     }
 
-    /** 仅接受共享登录授权的刷新令牌，避免混用标准 OAuth2 授权。 */
+    /**
+     * 仅接受共享登录授权的刷新令牌，避免混用标准 OAuth2 授权。
+     * @param refresh
+     * @return
+     */
     private OAuth2Authorization find(String refresh) {
         if (refresh == null || refresh.isBlank()) {
             return null;
@@ -132,7 +155,12 @@ public class SharedLoginService {
         return value != null && GRANT.equals(value.getAuthorizationGrantType()) ? value : null;
     }
 
-    /** 在账户锁内读取最新权限，签发访问令牌并保存轮换后的刷新令牌。 */
+    /**
+     * 在账户锁内读取最新权限，签发访问令牌并保存轮换后的刷新令牌。
+     * @param authorization
+     * @param refreshExpiry
+     * @return
+     */
     private Tokens issue(OAuth2Authorization authorization, Instant refreshExpiry) {
         var user = users
             .findByIdForUpdate(Long.parseLong(authorization.getPrincipalName()))

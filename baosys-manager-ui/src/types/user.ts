@@ -1,4 +1,6 @@
-/** 由根目录 baosys-systems.yml 声明、后端校验的业务系统标识。 */
+/**
+ * 由根目录 baosys-systems.yml 声明、后端校验的业务系统标识。
+ */
 export type SystemType = string
 
 export interface UserSummary {

@@ -19,7 +19,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-/** 验证接口注解继承后，HTTP 映射、Cookie 绑定和请求体校验保持兼容。 */
+/**
+ * 验证接口注解继承后，HTTP 映射、Cookie 绑定和请求体校验保持兼容。
+ */
 class SharedLoginControllerTest {
     private SharedLoginService service;
     private MockMvc mvc;

@@ -37,7 +37,11 @@ public record SharedLoginProperties(
         }
     }
 
-    /** 配置项必须是纯来源地址，不接受路径、用户信息、查询参数或片段。 */
+    /**
+     * 配置项必须是纯来源地址，不接受路径、用户信息、查询参数或片段。
+     * @param value
+     * @return
+     */
     private static URI origin(String value) {
         URI uri = URI.create(value);
         if (
@@ -53,7 +57,11 @@ public record SharedLoginProperties(
         return uri;
     }
 
-    /** 校验登录返回地址，限制在同协议、同主机且显式允许的来源内。 */
+    /**
+     * 校验登录返回地址，限制在同协议、同主机且显式允许的来源内。
+     * @param value
+     * @return
+     */
     public String returnUrl(String value) {
         if (value == null || value.isBlank()) {
             return managerOrigin + "/users-management";

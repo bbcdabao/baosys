@@ -11,7 +11,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.util.StringUtils;
 
-/** 组装 at+jwt 访问令牌校验规则；JWKS 的加载和密钥选择由 Spring/Nimbus 处理。 */
+/**
+ * 组装 at+jwt 访问令牌校验规则；JWKS 的加载和密钥选择由 Spring/Nimbus 处理。
+ */
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(OAuth2ResourceServerProperties.class)
 public class JwtDecoderConfiguration {

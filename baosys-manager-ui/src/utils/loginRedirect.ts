@@ -1,4 +1,6 @@
-/** 所有子系统须配置相同的 Manager 公开来源，以便统一跳转到共享登录入口。 */
+/**
+ * 所有子系统须配置相同的 Manager 公开来源，以便统一跳转到共享登录入口。
+ */
 export const managerOrigin = new URL(import.meta.env.VITE_MANAGER_ORIGIN || window.location.origin)
   .origin
 let navigating = false

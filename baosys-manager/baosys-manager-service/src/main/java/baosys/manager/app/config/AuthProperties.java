@@ -2,7 +2,9 @@ package baosys.manager.app.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** 仅配置业务初始化参数；OAuth2 客户端和令牌使用 Spring Boot 配置。 */
+/**
+ * 仅配置业务初始化参数；OAuth2 客户端和令牌使用 Spring Boot 配置。
+ */
 @ConfigurationProperties("auth")
 public class AuthProperties {
 

@@ -11,7 +11,9 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.util.UriComponentsBuilder;
 
-/** Exercises official endpoints, never invokes a custom signer or token service. */
+/**
+ * Exercises official endpoints, never invokes a custom signer or token service.
+ */
 public class OAuth2TestClient {
 
     private final MockMvc mvc;

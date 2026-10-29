@@ -26,6 +26,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 
 /**
  * 配置标准 OAuth2/OIDC 端点、账户认证和平台访问令牌声明。
@@ -60,7 +61,7 @@ public class AuthorizationServerConfiguration {
             )
             .addFilterBefore(
                 new AuthorizationTransactionFilter(transactions),
-                org.springframework.security.web.authentication.logout.LogoutFilter.class
+                LogoutFilter.class
             )
             .build();
     }

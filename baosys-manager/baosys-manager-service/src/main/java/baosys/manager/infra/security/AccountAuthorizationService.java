@@ -101,7 +101,12 @@ public class AccountAuthorizationService implements OAuth2AuthorizationService {
         return delegate.findById(id);
     }
 
-    /** 查询令牌时锁定账户并复查状态，与刷新、禁用和强制下线互斥。 */
+    /**
+     * 查询令牌时锁定账户并复查状态，与刷新、禁用和强制下线互斥。
+     * @param token
+     * @param type
+     * @return
+     */
     @Override
     @Transactional
     public OAuth2Authorization findByToken(String token, OAuth2TokenType type) {
