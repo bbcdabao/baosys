@@ -4,7 +4,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-/** 将可选 HTTP 上下文转换为持久化元数据；后台调用不要求存在请求。 */
+/**
+ * 将可选 HTTP 上下文转换为持久化元数据；后台调用不要求存在请求。
+ */
 @Component
 public class LoginRequestMetadata {
     public record Metadata(String sessionId, String agent) {}

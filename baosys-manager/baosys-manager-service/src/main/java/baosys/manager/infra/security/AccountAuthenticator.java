@@ -6,7 +6,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-/** 密码校验不持有事务或账户行锁；快照仅供锁内再次校验。 */
+/**
+ * 密码校验不持有事务或账户行锁；快照仅供锁内再次校验。
+ */
 @Component
 public class AccountAuthenticator {
     private final UserInfoMapper users;

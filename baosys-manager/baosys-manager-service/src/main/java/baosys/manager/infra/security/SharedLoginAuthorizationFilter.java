@@ -11,7 +11,9 @@ import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.WebUtils;
 
-/** 授权端点复用框架的 Bearer 认证流程，只适配内部 Cookie 和账户身份。 */
+/**
+ * 授权端点复用框架的 Bearer 认证流程，只适配内部 Cookie 和账户身份。
+ */
 public final class SharedLoginAuthorizationFilter extends BearerTokenAuthenticationFilter {
     public SharedLoginAuthorizationFilter(
         JwtDecoder decoder, InternalLoginAuthenticator subjects, AuthorizationServerSettings settings,

@@ -9,7 +9,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.stereotype.Service;
 
-/** 浏览器认证用例入口；事务提交后才向 Controller 返回令牌。 */
+/**
+ * 浏览器认证用例入口；事务提交后才向 Controller 返回令牌。
+ */
 @Service
 public class BrowserAuthAppService {
     private final AccountAuthenticator accounts;

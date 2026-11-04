@@ -16,7 +16,9 @@ import org.springframework.security.oauth2.server.authorization.settings.Authori
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 认证成功后的持久化事务；所有账户锁先于授权与会话写入。 */
+/**
+ * 认证成功后的持久化事务；所有账户锁先于授权与会话写入。
+ */
 @Service
 public class BrowserLoginTransaction {
     private final UserInfoMapper users;

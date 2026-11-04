@@ -1,4 +1,6 @@
-/** 同源标签页认证操作协调。版本标记不代表身份，不存储任何凭据。 */
+/**
+ * 同源标签页认证操作协调。版本标记不代表身份，不存储任何凭据。
+ */
 export type AuthVersion = {
   accountEpoch: string
   refreshRevision: string

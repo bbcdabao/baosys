@@ -9,7 +9,9 @@ import org.springframework.security.oauth2.core.*;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.stereotype.Component;
 
-/** 签发时解析登录记录主体与锁内最新权限，不负责浏览器身份认证。 */
+/**
+ * 签发时解析登录记录主体与锁内最新权限，不负责浏览器身份认证。
+ */
 @Component
 public class AccountTokenSubjectResolver {
     private final UserLoginMapper logins;

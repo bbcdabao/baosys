@@ -7,12 +7,16 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 
-/** 已验签内部 JWT 到认证中心账户身份的适配。 */
+/**
+ * 已验签内部 JWT 到认证中心账户身份的适配。
+ */
 @Component
 public class InternalLoginAuthenticator {
     private final UserLoginMapper logins;
     public InternalLoginAuthenticator(UserLoginMapper logins) { this.logins = logins; }
-    /** JWT 已由框架验签；仅内部共享登录可以转换为认证中心用户身份。 */
+    /**
+     * JWT 已由框架验签；仅内部共享登录可以转换为认证中心用户身份。
+     */
     public UsernamePasswordAuthenticationToken authenticateInternalLogin(Jwt jwt) {
         long loginId;
         try {

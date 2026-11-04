@@ -112,7 +112,9 @@ public class AccountAuthorizationService implements OAuth2AuthorizationService {
         return delegate.findByToken(token, type);
     }
 
-    /** 仅用于账户切换：发现账户、排序加锁、重新读取；调用方必须持有外层事务。 */
+    /**
+     * 仅用于账户切换：发现账户、排序加锁、重新读取；调用方必须持有外层事务。
+     */
     @Transactional(propagation = Propagation.MANDATORY)
     public OAuth2Authorization lockForInternalReplacement(long accountId, String refresh) {
         var candidate = findInternalWithoutLock(refresh);

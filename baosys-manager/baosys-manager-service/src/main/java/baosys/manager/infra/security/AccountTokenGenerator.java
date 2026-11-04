@@ -8,7 +8,9 @@ import org.springframework.security.oauth2.server.authorization.authentication.O
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.token.*;
 
-/** 将授权服务器的令牌上下文适配到公共签发器，协议校验仍交由框架执行。 */
+/**
+ * 将授权服务器的令牌上下文适配到公共签发器，协议校验仍交由框架执行。
+ */
 public final class AccountTokenGenerator implements OAuth2TokenGenerator<OAuth2Token> {
     private final TokenIssuer issuer;
     private final AccountTokenSubjectResolver subjects;

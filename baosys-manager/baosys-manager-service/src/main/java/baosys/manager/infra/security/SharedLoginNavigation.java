@@ -10,7 +10,9 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-/** 共用 Vue 登录页，登录成功只允许恢复到配置中的授权端点。 */
+/**
+ * 共用 Vue 登录页，登录成功只允许恢复到配置中的授权端点。
+ */
 @Component
 public class SharedLoginNavigation implements AuthenticationEntryPoint {
     private final SharedLoginProperties properties;
