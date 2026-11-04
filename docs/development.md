@@ -30,23 +30,20 @@ Manager Service 终端：
 
 ```powershell
 $env:JWT_JWK_SET_LOCATION = ([System.Uri](Join-Path $HOME '.baosys/signing-jwks.json')).AbsoluteUri
-$env:JWT_ISSUER = "http://localhost:9090/baosys-manager"
 $env:MANAGER_PUBLIC_ORIGIN = "http://localhost:5173"
-$env:OAUTH2_CLIENT_SECRET_HASH = "{noop}local-dev-client-secret"
 $env:DEFAULT_ADMIN_ENABLED = "true"
 $env:DEFAULT_ADMIN_USERNAME = "admin"
 $env:DEFAULT_ADMIN_PASSWORD = "LocalAdmin123!"
 mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 ```
 
-`{noop}` 客户端密钥和示例密码仅用于本地开发。正式部署将客户端密钥配置为带 `{bcrypt}` 前缀的编码值，并使用独立管理员密码。当前页面登录仍复用 `baosys-web` 注册配置，因此 Service 需要此配置；网关不需要客户端密钥。
+客户端密钥默认使用 `{noop}local-dev-client-secret`，本地开发无需设置 `OAUTH2_CLIENT_SECRET_HASH`。该默认值和示例密码仅用于本地开发。正式部署通过 `OAUTH2_CLIENT_SECRET_HASH` 将客户端密钥覆盖为带 `{bcrypt}` 前缀的编码值，并使用独立管理员密码。当前页面登录仍复用 `baosys-web` 注册配置；网关不需要客户端密钥。
 
 管理员默认不自动创建；启用时密码至少 12 位，仅在用户名不存在时创建，不覆盖已有密码或权限。首次创建完成后关闭初始化开关。Flyway 自动执行 V1，无需手动逐个执行 SQL。
 
 Manager Web 终端：
 
 ```powershell
-$env:JWT_ISSUER = "http://localhost:9090/baosys-manager"
 mvn -f baosys-manager-web/pom.xml spring-boot:run "-Dskip.frontend=true"
 ```
 
@@ -69,7 +66,7 @@ npm --prefix baosys-manager-ui run dev
 | `MANAGER_DB_SCHEMA` | Service | `manager`，用户需有建 schema 权限 |
 | `MANAGER_PORT / MANAGER_CONTEXT_PATH` | Service | `9090 / /baosys-manager` |
 | `JWT_JWK_SET_LOCATION` | Service | 必填，私有 JWKSet 文件资源 URI |
-| `OAUTH2_CLIENT_SECRET_HASH` | Service | 必填，注册客户端的编码密钥 |
+| `OAUTH2_CLIENT_SECRET_HASH` | Service | 默认 `{noop}local-dev-client-secret`；正式部署覆盖为独立的编码密钥 |
 | `DEFAULT_ADMIN_ENABLED` | Service | `false` |
 | `DEFAULT_ADMIN_USERNAME / DEFAULT_ADMIN_PASSWORD` | Service | `admin / 空` |
 | `MANAGER_PUBLIC_ORIGIN` | Service | `http://localhost:8080`；Vite 开发改为 5173，不带路径或尾斜杠 |
@@ -78,7 +75,7 @@ npm --prefix baosys-manager-ui run dev
 | `BAOSYS_SYSTEMS_CONFIG` | Service | `classpath:baosys-systems.yml`；可改为完整外部目录文件 URI |
 | `GATEWAY_PORT` | Web | `8080` |
 | `MANAGER_SERVICE_URL` | Web | `http://127.0.0.1:9090` |
-| `JWT_ISSUER` | 两者 | 显式设置相同 URL；现有签发端和资源服务默认值不一致 |
+| `JWT_ISSUER` | 两者 | 默认均为 `http://localhost:9090/baosys-manager`，本地无需设置；覆盖时两者保持一致 |
 | `JWT_JWK_SET_URI` | 两者 | Service 默认 localhost:9090、Web 默认 127.0.0.1:9090 的 `/baosys-manager/oauth2/jwks` |
 
 目录文件构建时从根目录打包；修改后重新构建，或用 `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` 覆盖并重启。保留 `MGR` 及其接口权限；其他目录项仅为预留配置。
@@ -92,6 +89,8 @@ mvn test "-Dskip.frontend=true"
 mvn -Pintegration-tests verify "-Dskip.frontend=true"
 # 前端类型检查和生产构建
 npm --prefix baosys-manager-ui run build
+# 同源双标签页认证协调测试（默认本机 Edge，HTTP 接口使用测试替身）
+npm --prefix baosys-manager-ui run test:browser
 # 包含前端的完整打包；verify 同时复制应用 Jar 到 out
 mvn clean verify
 ```
@@ -107,7 +106,7 @@ mvn clean verify
 
 ## 定时清理与排错
 
-V1 创建 `cleanup_inactive_user_login_sessions()`，但不自动安排执行。需要清理空闲会话时，配置数据库调度每天调用 `SELECT manager.cleanup_inactive_user_login_sessions();`（自定义 schema 时相应替换）。使用 pg_cron 可参考 [调度脚本](../baosys-manager/baosys-manager-service/src/main/resources/db/scheduler/pg_cron_user_login_cleanup.sql)，需先安装并启用扩展；调度时间以数据库调度器时区为准。
+V1 创建 `cleanup_inactive_user_login_sessions()`，但不自动安排执行。需要清理到期会话时，配置数据库调度每五分钟调用 `SELECT manager.cleanup_inactive_user_login_sessions();`（自定义 schema 时相应替换）。使用 pg_cron 可参考 [调度脚本](../baosys-manager/baosys-manager-service/src/main/resources/db/scheduler/pg_cron_user_login_cleanup.sql)，需先安装并启用扩展；调度时间以数据库调度器时区为准。每次最多处理 100 个账户，先锁账户并跳过忙碌账户；根据积压量调整执行频率。函数名和 pg_cron 任务名保留兼容，但不再按一天未更新删除会话。
 
 | 现象 | 检查 |
 |---|---|
@@ -120,3 +119,5 @@ V1 创建 `cleanup_inactive_user_login_sessions()`，但不自动安排执行。
 | 修改公共模块后启动仍用旧代码 | 在根目录重新执行 install 后重启服务 |
 
 本地数据库容器用 `docker stop baosys-postgres` 停止、`docker start baosys-postgres` 恢复。
+
+浏览器测试默认使用已安装的 Edge；其他环境可设置 `PLAYWRIGHT_CHANNEL=chromium` 并在 UI 目录执行 `npx playwright install chromium`。测试在本机 5178 端口启动独立 Vite 服务，覆盖真实 Cookie、Web Locks、跨标签页通知和自动重试；不替代后端 PostgreSQL 集成测试。生产协调依赖同源和浏览器能力，无 Web Locks/可用存储时降级为单页协调。

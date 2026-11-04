@@ -22,13 +22,13 @@ class UserLoginCleanupFunctionIntegrationTest extends PostgreSqlIntegrationTest 
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void shouldDeleteLoginRowsNotUpdatedForOneDay() {
+    void shouldDeleteOnlyExpiredRowsAndCascadeAuthorization() {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         Long userId = createUser(now);
         String inactiveHash = "inactive-" + UUID.randomUUID();
         String activeHash = "active-" + UUID.randomUUID();
-        insertLogin(userId, inactiveHash, now.minusDays(2));
-        insertLogin(userId, activeHash, now);
+        insertLogin(userId, inactiveHash, now, now.minusSeconds(1));
+        insertLogin(userId, activeHash, now.minusDays(2), now.plusDays(28));
 
         Integer deleted = jdbcTemplate.queryForObject(
             "SELECT cleanup_inactive_user_login_sessions()",
@@ -37,6 +37,8 @@ class UserLoginCleanupFunctionIntegrationTest extends PostgreSqlIntegrationTest 
 
         assertThat(deleted).isNotNull().isGreaterThanOrEqualTo(1);
         assertThat(countLogin(inactiveHash)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth2_authorization WHERE id=?",
+            Integer.class, inactiveHash)).isZero();
         assertThat(countLogin(activeHash)).isOne();
     }
 
@@ -61,7 +63,7 @@ class UserLoginCleanupFunctionIntegrationTest extends PostgreSqlIntegrationTest 
         );
     }
 
-    private void insertLogin(Long userId, String refreshTokenHash, OffsetDateTime updatedAt) {
+    private void insertLogin(Long userId, String refreshTokenHash, OffsetDateTime updatedAt, OffsetDateTime expiresAt) {
         jdbcTemplate.update(
             """
             INSERT INTO oauth2_authorization (
@@ -89,7 +91,7 @@ class UserLoginCleanupFunctionIntegrationTest extends PostgreSqlIntegrationTest 
             userId,
             JwtConstants.BROWSER_CLIENT_ID,
             refreshTokenHash,
-            updatedAt.plusDays(30),
+            expiresAt,
             updatedAt,
             updatedAt
         );

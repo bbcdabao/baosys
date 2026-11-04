@@ -31,7 +31,7 @@ class AuthorizationServerIntegrationTest extends PostgreSqlIntegrationTest {
 
     @Test
     void issuesContractThroughOfficialEndpointsAndRevokesPersistentSession() throws Exception {
-        var tokens = client.login(
+        var tokens = client.loginWithPkce(
             new OAuth2TestClient.LoginRequest("admin", "Admin123!test", "test")
         );
         var jwt = SignedJWT.parse(tokens.accessToken());
@@ -56,7 +56,7 @@ class AuthorizationServerIntegrationTest extends PostgreSqlIntegrationTest {
             String.class,
             loginId
         );
-        assertThat(sessionId).isNotBlank();
+        assertThat(sessionId).isNull();
         var renewed = client.refresh(tokens.refreshToken());
         assertThat(renewed.refreshToken()).isNotEqualTo(tokens.refreshToken());
         assertThat(SignedJWT.parse(renewed.accessToken()).getJWTClaimsSet().getSubject()).isEqualTo(

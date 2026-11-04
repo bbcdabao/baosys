@@ -45,9 +45,13 @@ Controller 调用应用服务，应用服务直接编排 Mapper、Assembler 和�
 | UserAppServiceImpl | 账户 CRUD、登录 ID 解析、当前用户、在线状态、用户客户端下线、审计 |
 | LoginSessionAppServiceImpl | 跨用户有效登录会话分页 |
 | SystemCatalog | 启动加载目录、写入权限校验、有效授权过滤 |
-| SharedLoginService | 内部账号密码登录、随机 Refresh Token 轮换、撤销 |
+| BrowserAuthAppService / BrowserLoginTransaction | 内部登录用例、排序账户锁、刷新与撤销事务 |
+| AccountAuthenticator / InternalLoginAuthenticator | 事务外密码校验 / 已验签内部登录身份转换 |
 | AccountAuthorizationService | 委托官方 JDBC 授权存储，同步 user_login，查询令牌时锁定账户并复查 |
-| AuthorizationServerConfiguration | OAuth2/OIDC 端点、账号认证、Access Token claims 定制 |
+| AuthorizationServerConfiguration | OAuth2/OIDC 端点、账号认证、公共令牌签发器装配 |
+| AccountTokenSubjectResolver | 两条签发流程共用的账户状态、登录记录和权限查询 |
+| AccountTokenGenerator | 将 OAuth2 令牌上下文适配到公共 TokenIssuer |
+| TokenIssuer（common-security-core） | 统一业务 Access JWT 声明与签名、随机 Refresh Token 生成 |
 | SigningKeysConfiguration | 外部持久化 JWK 加载与 JwtEncoder |
 | DefaultAdminInitializer | 可选默认管理员创建与初始化审计 |
 
@@ -120,7 +124,7 @@ UserResponse.status 表示是否存在未过期登录记录，enabled 表示账�
 |---|---|
 | 用户、当前身份、会话查询 | 应用服务 @Transactional(readOnly=true) |
 | 用户新增/更新/删除、客户端下线 | 应用服务 @Transactional |
-| 内部登录/刷新/退出 | SharedLoginService @Transactional |
+| 内部登录完成/刷新/退出 | BrowserLoginTransaction @Transactional；密码校验在事务外 |
 | 授权保存/删除/令牌查找 | AccountAuthorizationService 的事务方法 |
 | 官方 POST /oauth2/token、/oauth2/revoke | AuthorizationTransactionFilter 包裹事务 |
 | 默认管理员初始化 | 初始化器 @Transactional |
@@ -151,7 +155,7 @@ JWT 认证/授权失败由 Spring Security 处理，采用标准 401/403 及适�
 
 默认 application.name=baosys-manager，端口 9090，context-path=/baosys-manager。配置入口见 [application.yml](../../../baosys-manager/baosys-manager-service/src/main/resources/application.yml)。
 
-必须提供 JWT_JWK_SET_LOCATION、OAUTH2_CLIENT_SECRET_HASH，并显式统一 JWT_ISSUER。当前授权服务器默认 issuer 与 Service 资源服务器默认 issuer 不同；详细说明见 [认证与会话配置](auth_and_session.md#6-关键配置)。
+必须提供 JWT_JWK_SET_LOCATION；正式部署覆盖 OAUTH2_CLIENT_SECRET_HASH，并保持两端 JWT_ISSUER 一致。默认 issuer 已统一；详细说明见 [认证与会话配置](auth_and_session.md#6-关键配置)。
 
 系统目录由 BAOSYS_SYSTEMS_CONFIG 指定，默认 classpath:baosys-systems.yml。数据库默认使用 app_db/manager，Flyway 执行统一 V1 初始化。
 

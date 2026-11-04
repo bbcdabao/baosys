@@ -92,6 +92,7 @@
           </div>
           <a-button
             type="text"
+            :loading="loggingOut"
             @click="logout"
           >
             <template #icon><icon-export /></template>
@@ -108,6 +109,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { Message } from '@arco-design/web-vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -136,9 +138,18 @@ const handleMenuClick = (key: string): void => {
   void router.push(key)
 }
 
+const loggingOut = ref(false)
 const logout = async (): Promise<void> => {
-  await authStore.logout()
-  await router.replace({ name: 'login' })
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try {
+    await authStore.logout()
+    await router.replace({ name: 'login' })
+  } catch (error) {
+    Message.error(error instanceof Error ? error.message : '退出失败，请重试')
+  } finally {
+    loggingOut.value = false
+  }
 }
 </script>
 

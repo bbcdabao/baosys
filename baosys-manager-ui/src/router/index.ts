@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import { useAuthStore } from '@/store/auth'
 
-import { goToManagerLogin } from '@/utils/loginRedirect'
+import { Message } from '@arco-design/web-vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -77,8 +77,9 @@ router.beforeEach(async (to) => {
   if (!authStore.isAuthenticated) {
     try {
       await authStore.restoreSession()
-    } catch {
-      goToManagerLogin(new URL(to.fullPath, window.location.origin).href)
+    } catch (error) {
+      // 明确失效由认证拦截器发出 go-login；网络/服务故障不能当成退出。
+      Message.error(error instanceof Error ? error.message : '加载登录状态失败，请重试')
       return false
     }
   }

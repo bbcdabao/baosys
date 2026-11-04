@@ -246,7 +246,7 @@ public class UserAppServiceImpl implements UserAppService {
     @Override
     @Transactional
     public void kickClient(long userId, long loginId) {
-        requireUser(userId);
+        requireUserForUpdate(userId);
         var login = loginMapper
             .findActiveByIdAndUserId(loginId, userId, now())
             .orElseThrow(() ->
@@ -263,7 +263,7 @@ public class UserAppServiceImpl implements UserAppService {
     @Override
     @Transactional
     public void kickAllClients(long userId) {
-        requireUser(userId);
+        requireUserForUpdate(userId);
         long count = loginMapper.deleteByUserId(userId);
         LOGGER.info("module=user action=kick-all userId={} count={} result=success", userId, count);
     }

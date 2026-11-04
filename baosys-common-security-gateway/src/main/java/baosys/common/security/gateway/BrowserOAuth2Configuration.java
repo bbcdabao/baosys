@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
  *
  * <p>仅在 {@code baosys.browser-oauth2.enabled=true} 时启用，并需要配置 Spring OAuth2 客户端注册。
  * 当前 manager-web 默认配置未启用此模式；其共享 Cookie 登录通过前端收到 401 后调用
- * {@code /api/baosys-manager/v1/browser-auth/refresh}，由 manager 的 SharedLoginService 刷新，
+ * {@code /api/baosys-manager/v1/browser-auth/refresh}，由 manager 的 BrowserAuthAppService 刷新，
  * 不经过本类的客户端管理器。</p>
  *
  * <p>本类启用后的刷新链路：</p>

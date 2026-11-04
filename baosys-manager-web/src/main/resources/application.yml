@@ -20,7 +20,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${JWT_ISSUER:baosys-manager}
+          issuer-uri: ${JWT_ISSUER:http://localhost:9090/baosys-manager}
           jwk-set-uri: ${JWT_JWK_SET_URI:http://127.0.0.1:9090/baosys-manager/oauth2/jwks}
           jws-algorithms: [RS256]
           audiences: [def]

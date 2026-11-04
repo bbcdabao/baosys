@@ -12,6 +12,7 @@ import emitter from '@/event-bus'
 import { router } from '@/router'
 import { useAuthStore } from '@/store/auth'
 import { goToManagerLogin } from '@/utils/loginRedirect'
+import { onAccountChange } from '@/utils/authCoordinator'
 
 const authStore = useAuthStore()
 const { arcoLocale } = useLocale()
@@ -47,8 +48,15 @@ const checkIdentity = async (): Promise<void> => {
 }
 onMounted(() => document.addEventListener('visibilitychange', checkIdentity))
 
+const stopAccountChanges = onAccountChange(version => {
+  authStore.clearSession()
+  if (router.currentRoute.value.meta.public) return
+  if (version.lastOperation === 'logout' || version.lastOperation === 'invalid') goLogin()
+  else window.location.reload()
+})
 emitter.on('go-login', goLogin)
 onUnmounted(() => {
+  stopAccountChanges()
   emitter.off('go-login', goLogin)
   document.removeEventListener('visibilitychange', checkIdentity)
 })

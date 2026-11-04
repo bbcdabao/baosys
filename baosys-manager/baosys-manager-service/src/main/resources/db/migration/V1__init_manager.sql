@@ -114,18 +114,28 @@ LANGUAGE plpgsql
 SET search_path FROM CURRENT
 AS $$
 DECLARE
-    deleted_count integer;
+    deleted_count integer := 0;
+    batch_count integer;
+    account_id bigint;
 BEGIN
-    DELETE FROM user_login
-     WHERE updated_at < CURRENT_TIMESTAMP - INTERVAL '1 day';
-
-    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    -- 每次最多处理 100 个账户，先锁账户再删除登录与授权；忙碌账户留给下次调度。
+    FOR account_id IN
+        SELECT u.id FROM user_info u
+        WHERE EXISTS (SELECT 1 FROM user_login l
+                      WHERE l.user_info_id=u.id AND l.expires_at<=clock_timestamp())
+        ORDER BY u.id LIMIT 100 FOR UPDATE OF u SKIP LOCKED
+    LOOP
+        DELETE FROM user_login
+         WHERE user_info_id=account_id AND expires_at<=clock_timestamp();
+        GET DIAGNOSTICS batch_count = ROW_COUNT;
+        deleted_count := deleted_count + batch_count;
+    END LOOP;
     RETURN deleted_count;
 END;
 $$;
 
 COMMENT ON FUNCTION cleanup_inactive_user_login_sessions()
-    IS 'Delete user_login rows whose updated_at has not changed for more than one day.';
+    IS 'Delete expired user_login rows for up to 100 accounts, locking accounts first and skipping busy accounts.';
 
 COMMENT ON COLUMN user_info.enabled IS '账号是否允许登录和刷新令牌';
 

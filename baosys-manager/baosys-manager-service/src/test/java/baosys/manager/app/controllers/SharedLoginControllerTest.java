@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import baosys.common.security.resource.SharedTokenCookies;
 import baosys.manager.app.error.GlobalExceptionHandler;
 import baosys.manager.infra.security.SharedLoginProperties;
-import baosys.manager.infra.security.SharedLoginService;
+import baosys.manager.app.services.BrowserAuthAppService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
@@ -23,16 +23,20 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
  * 验证接口注解继承后，HTTP 映射、Cookie 绑定和请求体校验保持兼容。
  */
 class SharedLoginControllerTest {
-    private SharedLoginService service;
+    private BrowserAuthAppService service;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
-        service = mock(SharedLoginService.class);
+        service = mock(BrowserAuthAppService.class);
         mvc = MockMvcBuilders.standaloneSetup(
             new SharedLoginController(
                 service,
-                new SharedLoginProperties("http://localhost:8080", List.of(), false)
+                new SharedLoginProperties("http://localhost:8080", List.of(), false),
+                new baosys.manager.infra.security.SharedLoginNavigation(
+                    new SharedLoginProperties("http://localhost:8080", List.of(), false),
+                    org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings.builder()
+                        .issuer("http://localhost:9090/baosys-manager").build())
             )
         ).setControllerAdvice(new GlobalExceptionHandler()).build();
     }
@@ -105,8 +109,8 @@ class SharedLoginControllerTest {
         verify(service).revoke(null);
     }
 
-    private static SharedLoginService.Tokens tokens() {
-        return new SharedLoginService.Tokens(
+    private static BrowserAuthAppService.Tokens tokens() {
+        return new BrowserAuthAppService.Tokens(
             "access", "renewed", Instant.now().plusSeconds(1800), Instant.now().plusSeconds(86400)
         );
     }

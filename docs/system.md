@@ -90,4 +90,4 @@ Cookie 为 host-only、SameSite=Lax；Access 路径为 `/`，Refresh 路径为 `
 
 默认 schema 为 `manager`，Flyway 历史表为 `flyway_schema_history_manager`。无旧 `system_type` 和 `refresh_token_hash` 字段，也无需 V2～V4 升级脚本。
 
-审计记录不设用户外键，删除账号后仍保留历史。在线状态按是否存在未过期登录记录计算，不是用户表字段。清理函数删除 `updated_at` 超过一天未更新的登录记录，并触发授权撤销；Flyway 只创建函数，不负责定时调度，部署配置见 [启动与部署](development.md)。
+审计记录不设用户外键，删除账号后仍保留历史。在线状态按是否存在未过期登录记录计算，不是用户表字段。清理函数仅删除 `expires_at` 已到期的登录记录，先按账户 ID 顺序加锁、跳过忙碌账户，每次最多处理 100 个账户，并触发授权撤销；Flyway 只创建函数，不负责定时调度，部署配置见 [启动与部署](development.md)。

@@ -7,6 +7,7 @@ import baosys.manager.api.dto.BrowserLoginRequest;
 import baosys.manager.api.dto.BrowserLoginResponse;
 import baosys.manager.app.config.web.TraceIds;
 import baosys.manager.infra.security.*;
+import baosys.manager.app.services.BrowserAuthAppService;
 import java.time.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -19,12 +20,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(BrowserAuthApi.PREFIX)
 public class SharedLoginController implements BrowserAuthApi {
 
-    private final SharedLoginService service;
+    private final BrowserAuthAppService service;
     private final SharedLoginProperties properties;
+    private final SharedLoginNavigation navigation;
 
-    public SharedLoginController(SharedLoginService service, SharedLoginProperties properties) {
+    public SharedLoginController(BrowserAuthAppService service, SharedLoginProperties properties, SharedLoginNavigation navigation) {
         this.service = service;
         this.properties = properties;
+        this.navigation = navigation;
     }
 
     @Override
@@ -33,7 +36,7 @@ public class SharedLoginController implements BrowserAuthApi {
         String previous
     ) {
         // 在创建会话前验证返回地址，避免无效跳转请求留下新授权。
-        String redirect = properties.returnUrl(login.redirectUrl());
+        String redirect = navigation.returnUrl(login.redirectUrl());
         var tokens = service.login(login.username(), login.password(), previous);
         return response(tokens).body(
             ApiResponse.success(new BrowserLoginResponse(redirect), TraceIds.current())
@@ -70,7 +73,7 @@ public class SharedLoginController implements BrowserAuthApi {
      * @param tokens
      * @return
      */
-    private ResponseEntity.BodyBuilder response(SharedLoginService.Tokens tokens) {
+    private ResponseEntity.BodyBuilder response(BrowserAuthAppService.Tokens tokens) {
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noStore())
             .header(

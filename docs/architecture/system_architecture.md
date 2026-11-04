@@ -27,7 +27,7 @@ flowchart LR
 | 网关安全 | common-security-gateway | 响应式 JWT decoder、安全链、CSRF 端点、Token relay、可选外部 OAuth2 客户端适配 |
 | 密码 | common-password | BCrypt 与密码接口/自动配置 |
 
-Manager Service 使用 `app + infra` 分层：Controller 调用应用服务，应用服务编排 Mapper 和基础设施。共享登录的事务服务位于 `infra/security/SharedLoginService`。当前没有独立 Domain/Agent 层。
+Manager Service 使用 `app + infra` 分层：Controller 调用应用服务，应用服务编排 Mapper 和基础设施。共享登录由 `app/services/BrowserAuthAppService` 编排，`app/services/impl/BrowserLoginTransaction` 承担登录完成、刷新和退出事务，`infra/security/AccountAuthenticator` 负责事务外密码校验。当前没有独立 Domain/Agent 层。
 
 JWT 签发位于 Manager Service，当前没有独立 issuer 模块或 `baosys-common` 兼容入口。网关不访问业务数据库，前端权限展示也不构成可信授权边界。
 

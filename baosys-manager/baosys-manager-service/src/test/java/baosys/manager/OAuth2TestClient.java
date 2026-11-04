@@ -27,17 +27,35 @@ public class OAuth2TestClient {
     public record Tokens(String accessToken, String refreshToken) {}
 
     public Tokens login(LoginRequest request) {
+        return login(request, false);
+    }
+
+    public Tokens loginWithPkce(LoginRequest request) {
+        return login(request, true);
+    }
+
+    private Tokens login(LoginRequest request, boolean pkce) {
         try {
-            var login = mvc
-                .perform(
-                    post("/login")
-                        .with(csrf())
-                        .param("username", request.username())
-                        .param("password", request.password())
+            String verifier = UUID.randomUUID().toString() + UUID.randomUUID();
+            String challenge = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                java.security.MessageDigest.getInstance("SHA-256").digest(
+                    verifier.getBytes(java.nio.charset.StandardCharsets.US_ASCII)
                 )
-                .andExpect(status().is3xxRedirection())
+            );
+            var authorizationParameters = new org.springframework.util.LinkedMultiValueMap<String, String>();
+            var tokenParameters = new org.springframework.util.LinkedMultiValueMap<String, String>();
+            if (pkce) {
+                authorizationParameters.add("code_challenge", challenge);
+                authorizationParameters.add("code_challenge_method", "S256");
+                tokenParameters.add("code_verifier", verifier);
+            }
+            var login = mvc.perform(post("/v1/browser-auth/login")
+                .header("Origin", "http://localhost:8080")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(java.util.Map.of(
+                    "username", request.username(), "password", request.password()))))
                 .andReturn();
-            if (login.getResponse().getRedirectedUrl().contains("error")) {
+            if (login.getResponse().getStatus() != 200) {
                 throw new OAuth2AuthenticationException("invalid_grant");
             }
             var cookies = login.getResponse().getCookies();
@@ -52,6 +70,7 @@ public class OAuth2TestClient {
                             "http://localhost:8080/login/oauth2/code/baosys"
                         )
                         .queryParam("scope", "openid profile")
+                        .queryParams(authorizationParameters)
                         .queryParam("state", UUID.randomUUID().toString())
                 )
                 .andExpect(status().is3xxRedirection())
@@ -71,6 +90,7 @@ public class OAuth2TestClient {
                             .servletPath("/oauth2/token")
                             .with(httpBasic(JwtConstants.BROWSER_CLIENT_ID, "test-secret"))
                             .param("grant_type", "authorization_code")
+                            .params(tokenParameters)
                             .param("code", code)
                             .param("redirect_uri", "http://localhost:8080/login/oauth2/code/baosys")
                     )
@@ -121,6 +141,14 @@ public class OAuth2TestClient {
         var json = new ObjectMapper().readTree(result.getResponse().getContentAsString());
         if (result.getResponse().getStatus() != 200) {
             throw new OAuth2AuthenticationException(json.path("error").asText("invalid_grant"));
+        }
+        if ("authorization_code".equals(result.getRequest().getParameter("grant_type"))) {
+            org.assertj.core.api.Assertions.assertThat(json.hasNonNull("id_token")).isTrue();
+            var idToken = com.nimbusds.jwt.SignedJWT.parse(json.get("id_token").asText());
+            org.assertj.core.api.Assertions.assertThat(idToken.getJWTClaimsSet().getAudience())
+                .containsExactly(JwtConstants.BROWSER_CLIENT_ID);
+            org.assertj.core.api.Assertions.assertThat(idToken.getJWTClaimsSet().getClaims())
+                .doesNotContainKey(JwtConstants.PERMISSIONS_CLAIM);
         }
         return new Tokens(json.get("access_token").asText(), json.get("refresh_token").asText());
     }

@@ -1,29 +1,23 @@
 package baosys.manager.infra.security;
 
-import baosys.common.security.jwt.JwtConstants;
-
-import baosys.common.security.resource.PermissionSet;
-import baosys.manager.app.config.SystemCatalog;
-import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
+import baosys.common.security.jwt.TokenIssuer;
 import baosys.manager.infra.database.mapper.UserInfoMapper;
-import java.util.List;
 import org.springframework.context.annotation.*;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.*;
+import java.time.Clock;
+import baosys.manager.infra.database.mapper.UserLoginMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.*;
-import org.springframework.security.oauth2.core.*;
 import org.springframework.security.oauth2.server.authorization.*;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.token.*;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
@@ -46,7 +40,11 @@ public class AuthorizationServerConfiguration {
     @Order(1)
     SecurityFilterChain authorizationServerChain(
         HttpSecurity http,
-        PlatformTransactionManager transactions
+        PlatformTransactionManager transactions,
+        org.springframework.security.oauth2.jwt.JwtDecoder decoder,
+        InternalLoginAuthenticator subjects,
+        SharedLoginNavigation navigation,
+        org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings settings
     ) throws Exception {
         var server = OAuth2AuthorizationServerConfigurer.authorizationServer();
         return http
@@ -55,9 +53,13 @@ public class AuthorizationServerConfiguration {
             .authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
             .exceptionHandling(errors ->
                 errors.defaultAuthenticationEntryPointFor(
-                    new LoginUrlAuthenticationEntryPoint("/login"),
+                    navigation,
                     new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
                 )
+            )
+            .addFilterBefore(
+                new SharedLoginAuthorizationFilter(decoder, subjects, settings, navigation),
+                LogoutFilter.class
             )
             .addFilterBefore(
                 new AuthorizationTransactionFilter(transactions),
@@ -67,35 +69,23 @@ public class AuthorizationServerConfiguration {
     }
 
     /**
-     * 为授权码流程提供表单登录入口。
+     * 旧登录地址跳转到共用 Vue 登录页，不再生成框架默认表单。
      * @param http
      * @return
      * @throws Exception
      */
     @Bean
     @Order(2)
-    SecurityFilterChain loginChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain loginChain(HttpSecurity http, SharedLoginNavigation navigation) throws Exception {
         return http
             .securityMatcher("/login", "/logout", "/error")
             .authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
-            .formLogin(form -> form.permitAll())
+            .exceptionHandling(errors -> errors.authenticationEntryPoint(navigation))
             .build();
     }
 
     @Bean
-    UserDetailsService accountUsers(UserInfoMapper users) {
-        return username ->
-            users
-                .findByUserName(username.trim())
-                .map(user ->
-                    User.withUsername(Long.toString(user.getId()))
-                        .password(user.getUserPass())
-                        .disabled(!user.isEnabled())
-                        .authorities("ACCOUNT")
-                        .build()
-                )
-                .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
-    }
+    Clock authClock() { return Clock.systemUTC(); }
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -107,12 +97,12 @@ public class AuthorizationServerConfiguration {
     }
 
     @Bean
-    OAuth2AuthorizationService authorizationService(
+    AccountAuthorizationService authorizationService(
         JdbcTemplate jdbc,
         RegisteredClientRepository clients,
-        UserInfoMapper users
+        UserInfoMapper users, UserLoginMapper logins, LoginRequestMetadata metadata, Clock clock
     ) {
-        return new AccountAuthorizationService(jdbc, clients, users);
+        return new AccountAuthorizationService(jdbc, clients, users, logins, metadata, clock);
     }
 
     @Bean
@@ -123,58 +113,21 @@ public class AuthorizationServerConfiguration {
         return new JdbcOAuth2AuthorizationConsentService(jdbc, clients);
     }
 
-    /**
-     * 仅定制访问令牌：使用业务会话 ID 作为主体，并写入当前有效权限。
-     * @param jdbc
-     * @param users
-     * @param catalog
-     * @return
-     */
     @Bean
-    OAuth2TokenCustomizer<JwtEncodingContext> accountClaims(
-        JdbcTemplate jdbc,
-        UserInfoMapper users,
-        SystemCatalog catalog
+    TokenIssuer tokenIssuer(org.springframework.security.oauth2.jwt.JwtEncoder encoder) {
+        return new TokenIssuer(encoder);
+    }
+
+    @Bean
+    OAuth2TokenGenerator<?> tokenGenerator(
+        TokenIssuer issuer,
+        AccountTokenSubjectResolver subjects,
+        org.springframework.security.oauth2.jwt.JwtEncoder encoder, Clock clock
     ) {
-        return context -> {
-            if (!OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
-                return;
-            }
-            var authorization = context.getAuthorization();
-            if (authorization == null) {
-                throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_GRANT);
-            }
-            var user = users
-                .findByIdForUpdate(Long.parseLong(authorization.getPrincipalName()))
-                .filter(u -> u.isEnabled())
-                .orElseThrow(() ->
-                    new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_GRANT)
-                );
-            var loginIds = jdbc.queryForList(
-                "SELECT id FROM user_login WHERE authorization_id=? AND expires_at>now()",
-                Long.class,
-                authorization.getId()
-            );
-            if (loginIds.size() != 1) {
-                throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_GRANT);
-            }
-            var grants = PermissionSet.normalize(
-                catalog.effectiveGrants(
-                    PermissionPersistenceConverter.decode(user.getUserPermissions())
-                )
-            );
-            context
-                .getJwsHeader()
-                .type("at+jwt")
-                .algorithm(org.springframework.security.oauth2.jose.jws.SignatureAlgorithm.RS256);
-            context
-                .getClaims()
-                .subject(Long.toString(loginIds.get(0)))
-                .audience(new java.util.ArrayList<>(List.of(JwtConstants.ACCESS_TOKEN_AUDIENCE)))
-                .claim("client_id", context.getRegisteredClient().getClientId())
-                .claim(JwtConstants.PERMISSIONS_CLAIM, new java.util.ArrayList<>(grants))
-                // 移除框架预填的 scope，业务访问令牌仅用 permissions 表达权限。
-                .claims(claims -> claims.remove("scope"));
-        };
+        // 业务 Access/Refresh Token 统一签发；OIDC ID Token 保留框架实现。
+        return new DelegatingOAuth2TokenGenerator(
+            new AccountTokenGenerator(issuer, subjects, clock),
+            new JwtGenerator(encoder)
+        );
     }
 }

@@ -17,6 +17,32 @@ import org.apache.ibatis.annotations.Select;
 import org.springframework.util.CollectionUtils;
 
 public interface UserLoginMapper extends BaseMapper<UserLoginEntity> {
+    @Select("SELECT id FROM user_login WHERE authorization_id=#{authorizationId} AND expires_at>clock_timestamp()")
+    List<Long> findActiveIdsByAuthorization(@Param("authorizationId") String authorizationId);
+
+    @Select("""
+        SELECT u.id FROM user_login l
+        JOIN user_info u ON u.id=l.user_info_id
+        JOIN oauth2_authorization a ON a.id=l.authorization_id
+        WHERE l.id=#{loginId} AND l.expires_at>clock_timestamp() AND u.enabled=true
+          AND l.client_id=#{tokenClientId} AND l.client_id=#{internalClientId}
+          AND a.principal_name=CAST(u.id AS VARCHAR) AND a.authorization_grant_type=#{grant}
+        """)
+    List<Long> findInternalAccountIds(@Param("loginId") long loginId,
+        @Param("tokenClientId") String tokenClientId, @Param("internalClientId") String internalClientId,
+        @Param("grant") String grant);
+
+    @org.apache.ibatis.annotations.Insert("""
+        INSERT INTO user_login(user_info_id, client_id, authorization_id, authentication_session_id,
+            login_client, expires_at, created_at, updated_at, created_by, updated_by)
+        VALUES(#{userId},#{clientId},#{authorizationId},#{sessionId},#{agent},#{expiry},
+            clock_timestamp(),clock_timestamp(),'oauth2','oauth2')
+        ON CONFLICT (authorization_id) DO UPDATE SET expires_at=EXCLUDED.expires_at, updated_at=clock_timestamp()
+        """)
+    void saveProjection(@Param("userId") long userId, @Param("clientId") String clientId,
+        @Param("authorizationId") String authorizationId, @Param("sessionId") String sessionId,
+        @Param("agent") String agent, @Param("expiry") OffsetDateTime expiry);
+
     /**
      * 只返回未过期登录；userId 优先用于精确定位，否则按用户名模糊过滤。
      */

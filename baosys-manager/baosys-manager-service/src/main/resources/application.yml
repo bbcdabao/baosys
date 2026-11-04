@@ -19,12 +19,12 @@ spring:
         - /v3/api-docs/**
     oauth2:
       authorizationserver:
-        issuer: ${JWT_ISSUER:baosys-manager}
+        issuer: ${JWT_ISSUER:http://localhost:9090/baosys-manager}
         client:
           baosys-web:
             registration:
               client-id: baosys-web
-              client-secret: ${OAUTH2_CLIENT_SECRET_HASH}
+              client-secret: "${OAUTH2_CLIENT_SECRET_HASH:{noop}local-dev-client-secret}"
               client-authentication-methods: [client_secret_basic]
               authorization-grant-types: [authorization_code, refresh_token]
               redirect-uris: ["${OAUTH2_REDIRECT_URI:http://localhost:8080/login/oauth2/code/baosys}"]
@@ -37,7 +37,7 @@ spring:
               reuse-refresh-tokens: false
       resourceserver:
         jwt:
-          issuer-uri: ${JWT_ISSUER:baosys-manager}
+          issuer-uri: ${JWT_ISSUER:http://localhost:9090/baosys-manager}
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:9090/baosys-manager/oauth2/jwks}
           jws-algorithms: [RS256]
           audiences: [def]

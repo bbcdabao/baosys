@@ -95,7 +95,7 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
         UserResponse user = createUser();
         var login = auth.login(loginRequest(user));
         Object originalExpiry = jdbc.queryForObject(
-            "SELECT expires_at FROM user_login WHERE user_info_id = ?",
+            "SELECT l.expires_at FROM user_login l JOIN oauth2_authorization a ON a.id=l.authorization_id WHERE l.user_info_id = ? AND a.authorization_grant_type='authorization_code'",
             Object.class,
             user.id()
         );
@@ -126,7 +126,7 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
             ).containsExactlyInAnyOrder(true, false);
             assertThat(
                 jdbc.queryForObject(
-                    "SELECT expires_at FROM user_login WHERE user_info_id = ?",
+                    "SELECT l.expires_at FROM user_login l JOIN oauth2_authorization a ON a.id=l.authorization_id WHERE l.user_info_id = ? AND a.authorization_grant_type='authorization_code'",
                     Object.class,
                     user.id()
                 )

@@ -1,6 +1,7 @@
 import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 
 import emitter from '@/event-bus'
+import { authVersion, changeLogin, refreshLogin, AccountChangedError, LoginExpiredError, type AuthVersion } from './authCoordinator'
 import type { ApiResult } from '@/types/api'
 
 const client = axios.create({
@@ -29,50 +30,69 @@ const prepareCsrf = async (config: InternalAxiosRequestConfig) => {
   }
   return config
 }
-client.interceptors.request.use(prepareCsrf)
+const authClient = axios.create({ baseURL: '/', timeout: 10_000, withCredentials: true,
+  headers: { 'Content-Type': 'application/json' } })
+authClient.interceptors.request.use(prepareCsrf)
+type VersionedConfig = InternalAxiosRequestConfig & { authVersion?: AuthVersion; retried?: boolean }
+client.interceptors.request.use(async (config: VersionedConfig) => {
+  config.authVersion ??= authVersion()
+  await prepareCsrf(config)
+  if (config.authVersion && config.authVersion.accountEpoch !== authVersion().accountEpoch) {
+    throw new AccountChangedError()
+  }
+  return config
+})
 
 const authPrefix = '/api/baosys-manager/v1/browser-auth'
-let refreshPromise: Promise<void> | null = null
 client.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const sent = (response.config as VersionedConfig).authVersion
+    if (sent && sent.accountEpoch !== authVersion().accountEpoch) throw new AccountChangedError()
+    return response
+  },
   async (error: AxiosError) => {
-    const config = error.config as (InternalAxiosRequestConfig & { retried?: boolean }) | undefined
-    if (error.response?.status !== 401 || config?.url?.startsWith(authPrefix)) {
-      return Promise.reject(error)
+    const config = error.config as VersionedConfig | undefined
+    if (error.response?.status !== 401 || config?.url?.startsWith(authPrefix)) throw error
+    if (!config || config.retried || !config.authVersion) throw error
+    config.retried = true
+    const sent = config.authVersion
+    try {
+      await refreshLogin(sent, () => perform<void>({ method: 'POST', url: authPrefix + '/refresh', data: {} }, true),
+        failure => failure instanceof AxiosError && failure.response?.status === 401)
+      if (authVersion().accountEpoch !== sent.accountEpoch) throw new AccountChangedError()
+      config.authVersion = authVersion()
+      return client.request(config)
+    } catch (failure) {
+      if (failure instanceof LoginExpiredError) emitter.emit('go-login')
+      throw failure
     }
-    if (config && !config.retried) {
-      config.retried = true
-      // 仅 Manager 调用刷新接口；其他子系统收到 401 后跳转至共享登录入口。
-      refreshPromise ??= client
-        .post(`${authPrefix}/refresh`, {})
-        .then(() => undefined)
-        .finally(() => {
-          refreshPromise = null
-        })
-      try {
-        await refreshPromise
-        return client.request(config)
-      } catch {
-        /* 刷新失败后继续触发下方的登录跳转。 */
-      }
-    }
-    emitter.emit('go-login')
-    return Promise.reject(error)
   }
 )
 
-export const logout = async (): Promise<void> => {
-  await client.post(`${authPrefix}/logout`, {})
+export const logout = (): Promise<void> => changeLogin('logout',
+  () => perform<void>({ method: 'POST', url: authPrefix + '/logout', data: {} }, true)).catch(reportFailure)
+
+export const login = (username: string, password: string, redirectUrl?: string) => changeLogin('login',
+  () => perform<{ redirectUrl: string }>({ method: 'POST', url: authPrefix + '/login',
+    data: { username, password, redirectUrl } }, true)).catch(reportFailure)
+
+function reportFailure(error: unknown): never {
+  if (!(error instanceof AxiosError)) throw error
+  throw new Error(error.response?.data?.message || (error.response?.status === 401
+    ? '账户凭证不正确或登录已失效，请重新登录'
+    : error.response?.status === 403 ? '请求被拒绝，请检查权限或刷新页面后重试'
+      : error.code === 'ECONNABORTED' ? '请求超时，请重试' : '服务暂时不可用，请稍后重试'))
 }
 
-const perform = async <T>(config: AxiosRequestConfig): Promise<T> => {
+const perform = async <T>(config: AxiosRequestConfig, authentication = false): Promise<T> => {
   try {
-    const response = await client.request<ApiResult<T>>(config)
+    const response = await (authentication ? authClient : client).request<ApiResult<T>>(config)
     if (response.data.code !== 'SUCCESS') {
       throw new Error(response.data.message || 'Request failed')
     }
     return response.data.data
   } catch (error) {
+    if (authentication) throw error
     if (!(error instanceof AxiosError)) {
       throw error
     }

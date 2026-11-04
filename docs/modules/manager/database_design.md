@@ -124,7 +124,7 @@ RegisteredClient 来源是应用配置，不存在 oauth2_registered_client 表�
 |---|---|
 | revoke_login_authorization | user_login 删除后，删除对应授权及 authentication_session_id 对应的 Session |
 | revoke_changed_account_authorizations | user_info 删除，或用户名/密码/enabled/权限变化后，按账户 ID 删除全部授权和 Session |
-| cleanup_inactive_user_login_sessions() | 删除 updated_at 早于 CURRENT_TIMESTAMP - INTERVAL '1 day' 的登录记录，返回删除数量 |
+| cleanup_inactive_user_login_sessions() | 仅删除 expires_at 已到期的记录；按账户 ID 升序锁定最多 100 个账户，SKIP LOCKED 跳过忙碌账户，锁内复查后删除，返回删除数量 |
 
 授权删除通过外键删除投影，投影删除又清理关联授权和 Session，从任一入口撤销都能联动。审计记录不在级联删除范围内。
 
@@ -175,3 +175,5 @@ permission_change_audit 所有字段均 NOT NULL：
 后续迁移命名为 `V{version}__{description}.sql`；已部署版本不应原地改写，新字段需要明确默认值、可空性和旧数据处理。
 
 现有数据库测试包括 ManagerInitializationIntegrationTest、UserLoginCleanupFunctionIntegrationTest 和 AccountLifecycleIntegrationTest，分别覆盖初始化/约束、清理函数、授权生命周期等。测试基类使用 Testcontainers 的 postgres:17-alpine。执行方式见 [模块设计](manager_module_design.md)。
+
+登录记录 updated_at 仅表示记录变更，不作为空闲期限。内部 Refresh Token 保留初次登录绝对期限，登录记录 expires_at 与其一致。OAuth 授权有刷新令牌时取其期限，尚未兑换时取授权码期限，无刷新令牌的最终授权取 Access/ID Token 较晚期限。普通 API 请求不写活跃心跳。

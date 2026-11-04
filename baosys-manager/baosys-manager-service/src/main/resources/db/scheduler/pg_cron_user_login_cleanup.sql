@@ -1,4 +1,5 @@
--- PostgreSQL database-side scheduler for user_login cleanup.
+-- PostgreSQL scheduler: every five minutes, clean expired sessions for up to 100 accounts.
+-- Keep the legacy job name so rerunning this script replaces the existing schedule.
 -- Prerequisite: pg_cron must be installed and enabled by the database administrator.
 -- Run this script in the application database after Flyway has created
 -- cleanup_inactive_user_login_sessions(). The function schema is discovered instead
@@ -30,7 +31,7 @@ BEGIN
 
     PERFORM cron.schedule(
         'user_login_cleanup_daily',
-        '0 0 * * *',
+        '*/5 * * * *',
         format(
             'SELECT %I.cleanup_inactive_user_login_sessions();',
             cleanup_schema));

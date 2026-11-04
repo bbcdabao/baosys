@@ -82,7 +82,7 @@ public record SharedLoginProperties(
                 uri.getRawPath().contains("\\") ||
                 uri.getRawPath().matches("(?i).*(%0[ad]|%5c).*") ||
                 uri.getPath().equals("/login") ||
-                uri.getPath().startsWith("/oauth2/") ||
+                uri.getPath().contains("/oauth2/") ||
                 uri.getPath().startsWith("/login/") ||
                 uri.getPath().startsWith("/api/")
             ) {
