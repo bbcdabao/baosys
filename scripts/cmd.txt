@@ -1,3 +1,0 @@
-jshell '-R-Dsigning.key.output=signing-jwks.json' ..\scripts\generate-signing-key.jsh
-
-$env:JWT_JWK_SET_LOCATION = 'file:///D:/bbcdabao/z-github/baosys/scripts/signing-jwks.json'

@@ -14,6 +14,14 @@ npm --prefix baosys-manager-ui install
 
 已有 PostgreSQL 时直接创建 `app_db` 并配置连接参数，无需启动容器。Windows 若阻止 `npm.ps1`，用 `npm.cmd` 替代。
 
+## 一键启动打包产物
+
+执行 `mvn install` 后，Linux 使用 `bash startup.sh`（Bash 4.3+），Windows 使用 `.\startup.bat`。脚本按自身位置定位 `out`，在该目录运行全部 `*.jar`，日志直接输出到当前终端；按 Ctrl+C 停止本次启动的全部 Java 进程。任一 JAR 退出时，脚本也会停止其余进程。
+
+首次运行若缺少 `out/signing-jwks.json`，脚本使用 PATH 中 JDK 17+ 的 `jshell` 调用 `scripts/generate-signing-key.jsh` 生成，后续启动复用。脚本设置 `JWT_JWK_SET_LOCATION` 指向该文件，并设置 `DEFAULT_ADMIN_ENABLED=true`、`DEFAULT_ADMIN_USERNAME=admin`、`DEFAULT_ADMIN_PASSWORD=LocalAdmin123!`。数据库等其他配置沿用当前环境变量及应用默认值。
+
+注意：当前 Maven 构建会清空 `out`，重新构建后其中的密钥也会被删除，下次启动将生成新密钥。该一键脚本用于本地开发；需要跨构建保留密钥时，使用下方的独立密钥与手动启动方式。
+
 ## 首次准备签名密钥
 
 Manager 必须加载持久化的私有 JWKSet：RSA 至少 2048 位，每个 key 有唯一 `kid`、`use=sig`、`alg=RS256`，其中恰好一个包含私钥。下面用 Node.js 在用户目录生成本地开发密钥；只执行一次，重启复用同一文件。
