@@ -23,8 +23,8 @@ export default {
     offline: 'Offline'
   },
   app: {
-    name: 'BaoSys Admin',
-    shortName: 'OA',
+    name: 'BAOSYS',
+    shortName: 'B',
     currentUser: 'Current user'
   },
   menu: {

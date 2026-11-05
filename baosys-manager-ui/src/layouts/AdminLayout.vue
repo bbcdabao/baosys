@@ -9,7 +9,7 @@
       :collapsed-width="64"
     >
       <div class="brand">
-        <span class="brand-mark"><icon-sound /></span>
+        <span class="brand-mark" :aria-label="t('app.name')">{{ t('app.shortName') }}</span>
         <span
           v-if="!collapsed"
           class="brand-name"
@@ -175,6 +175,7 @@ const logout = async (): Promise<void> => {
   place-items: center;
   min-width: 28px;
   font-size: 26px;
+  font-weight: 700;
 }
 .brand-name {
   font-size: 16px;

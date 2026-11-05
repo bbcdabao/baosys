@@ -23,8 +23,8 @@ export default {
     offline: '离线'
   },
   app: {
-    name: '海洋声学管理平台',
-    shortName: 'OA',
+    name: 'BAOSYS',
+    shortName: 'B',
     currentUser: '当前用户'
   },
   menu: {

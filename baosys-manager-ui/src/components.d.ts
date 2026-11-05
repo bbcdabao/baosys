@@ -48,7 +48,6 @@ declare module 'vue' {
     IconPlus: typeof import('@arco-design/web-vue/es/icon')['IconPlus']
     IconSearch: typeof import('@arco-design/web-vue/es/icon')['IconSearch']
     IconSettings: typeof import('@arco-design/web-vue/es/icon')['IconSettings']
-    IconSound: typeof import('@arco-design/web-vue/es/icon')['IconSound']
     IconSunFill: typeof import('@arco-design/web-vue/es/icon')['IconSunFill']
     IconTool: typeof import('@arco-design/web-vue/es/icon')['IconTool']
     IconUser: typeof import('@arco-design/web-vue/es/icon')['IconUser']
