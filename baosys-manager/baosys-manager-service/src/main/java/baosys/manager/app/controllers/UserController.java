@@ -2,12 +2,12 @@ package baosys.manager.app.controllers;
 
 import baosys.common.api.ApiResponse;
 import baosys.common.api.PageResponse;
-import baosys.manager.api.UserApi;
-import baosys.manager.api.dto.CurrentUserResponse;
-import baosys.manager.api.dto.LoginClientResponse;
-import baosys.manager.api.dto.UserCreateRequest;
-import baosys.manager.api.dto.UserResponse;
-import baosys.manager.api.dto.UserUpdateRequest;
+import baosys.manager.api.module.contract.UserApi;
+import baosys.manager.api.module.responses.CurrentUserResponse;
+import baosys.manager.api.module.responses.LoginClientResponse;
+import baosys.manager.api.module.payloads.UserCreateRequest;
+import baosys.manager.api.module.responses.UserResponse;
+import baosys.manager.api.module.payloads.UserUpdateRequest;
 import baosys.manager.app.config.web.TraceIds;
 import baosys.manager.app.services.UserAppService;
 import java.security.Principal;

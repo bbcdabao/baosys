@@ -1,8 +1,8 @@
-package baosys.manager.api;
+package baosys.manager.api.module.contract;
 
 import baosys.common.api.ApiResponse;
-import baosys.manager.api.dto.BrowserLoginRequest;
-import baosys.manager.api.dto.BrowserLoginResponse;
+import baosys.manager.api.module.payloads.BrowserLoginRequest;
+import baosys.manager.api.module.responses.BrowserLoginResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

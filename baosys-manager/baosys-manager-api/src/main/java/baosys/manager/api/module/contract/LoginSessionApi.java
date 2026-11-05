@@ -1,8 +1,8 @@
-package baosys.manager.api;
+package baosys.manager.api.module.contract;
 
 import baosys.common.api.ApiResponse;
 import baosys.common.api.PageResponse;
-import baosys.manager.api.dto.LoginSessionResponse;
+import baosys.manager.api.module.responses.LoginSessionResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.GetMapping;

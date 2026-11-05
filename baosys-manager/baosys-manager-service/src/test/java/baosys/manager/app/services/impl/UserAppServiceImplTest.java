@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import baosys.common.security.password.PasswordHasher;
-import baosys.manager.api.dto.UserUpdateRequest;
+import baosys.manager.api.module.payloads.UserUpdateRequest;
 import baosys.manager.app.error.BusinessException;
 import baosys.manager.infra.database.entity.PermissionChangeAuditEntity;
 import baosys.manager.infra.database.entity.UserInfoEntity;

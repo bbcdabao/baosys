@@ -1,7 +1,7 @@
 package baosys.manager.app.config;
 
-import baosys.manager.api.dto.SystemDefinition;
-import baosys.manager.api.dto.SystemDefinition.PermissionDefinition;
+import baosys.manager.api.module.responses.SystemDefinition;
+import baosys.manager.api.module.responses.SystemDefinition.PermissionDefinition;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;

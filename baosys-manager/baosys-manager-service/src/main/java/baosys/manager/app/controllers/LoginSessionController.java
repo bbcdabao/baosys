@@ -2,8 +2,8 @@ package baosys.manager.app.controllers;
 
 import baosys.common.api.ApiResponse;
 import baosys.common.api.PageResponse;
-import baosys.manager.api.LoginSessionApi;
-import baosys.manager.api.dto.LoginSessionResponse;
+import baosys.manager.api.module.contract.LoginSessionApi;
+import baosys.manager.api.module.responses.LoginSessionResponse;
 import baosys.manager.app.config.web.TraceIds;
 import baosys.manager.app.services.LoginSessionAppService;
 import org.springframework.security.access.prepost.PreAuthorize;

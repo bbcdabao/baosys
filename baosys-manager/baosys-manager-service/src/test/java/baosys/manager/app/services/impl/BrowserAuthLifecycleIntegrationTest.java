@@ -3,8 +3,8 @@ package baosys.manager.app.services.impl;
 import static org.assertj.core.api.Assertions.*;
 
 import baosys.manager.PostgreSqlIntegrationTest;
-import baosys.manager.api.dto.UserCreateRequest;
-import baosys.manager.api.dto.UserResponse;
+import baosys.manager.api.module.payloads.UserCreateRequest;
+import baosys.manager.api.module.responses.UserResponse;
 import baosys.manager.app.error.BusinessException;
 import baosys.manager.app.services.BrowserAuthAppService;
 import baosys.manager.app.services.UserAppService;

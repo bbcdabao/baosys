@@ -1,4 +1,4 @@
-package baosys.manager.api.dto;
+package baosys.manager.api.module.responses;
 
 import java.time.OffsetDateTime;
 

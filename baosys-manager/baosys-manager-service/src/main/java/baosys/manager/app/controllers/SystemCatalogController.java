@@ -1,8 +1,8 @@
 package baosys.manager.app.controllers;
 
 import baosys.common.api.ApiResponse;
-import baosys.manager.api.SystemCatalogApi;
-import baosys.manager.api.dto.SystemDefinition;
+import baosys.manager.api.module.contract.SystemCatalogApi;
+import baosys.manager.api.module.responses.SystemDefinition;
 import baosys.manager.app.config.SystemCatalog;
 import baosys.manager.app.config.web.TraceIds;
 import java.util.List;

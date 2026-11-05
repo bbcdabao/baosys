@@ -1,7 +1,7 @@
 package baosys.manager.app.services.impl;
 
 import baosys.common.api.PageResponse;
-import baosys.manager.api.dto.LoginSessionResponse;
+import baosys.manager.api.module.responses.LoginSessionResponse;
 import baosys.manager.app.services.LoginSessionAppService;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.LoginSessionRow;

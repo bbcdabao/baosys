@@ -8,7 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import baosys.manager.OAuth2TestClient;
 import baosys.manager.OAuth2TestClient.LoginRequest;
 import baosys.manager.PostgreSqlIntegrationTest;
-import baosys.manager.api.dto.*;
+import baosys.manager.api.module.payloads.*;
+import baosys.manager.api.module.responses.*;
 import baosys.manager.app.services.*;
 import baosys.manager.infra.database.mapper.*;
 import com.nimbusds.jwt.SignedJWT;

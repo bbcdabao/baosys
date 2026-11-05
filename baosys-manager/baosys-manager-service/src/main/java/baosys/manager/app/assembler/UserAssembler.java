@@ -1,6 +1,6 @@
 package baosys.manager.app.assembler;
 
-import baosys.manager.api.dto.UserResponse;
+import baosys.manager.api.module.responses.UserResponse;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.UserInfoEntity;
 

@@ -2,9 +2,9 @@ package baosys.manager.app.controllers;
 
 import baosys.common.api.ApiResponse;
 import baosys.common.security.resource.SharedTokenCookies;
-import baosys.manager.api.BrowserAuthApi;
-import baosys.manager.api.dto.BrowserLoginRequest;
-import baosys.manager.api.dto.BrowserLoginResponse;
+import baosys.manager.api.module.contract.BrowserAuthApi;
+import baosys.manager.api.module.payloads.BrowserLoginRequest;
+import baosys.manager.api.module.responses.BrowserLoginResponse;
 import baosys.manager.app.config.web.TraceIds;
 import baosys.manager.infra.security.*;
 import baosys.manager.app.services.BrowserAuthAppService;

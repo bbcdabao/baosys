@@ -1,4 +1,4 @@
-package baosys.manager.api.dto;
+package baosys.manager.api.module.payloads;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -5,7 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import baosys.manager.api.dto.CurrentUserResponse;
+import baosys.manager.api.module.responses.CurrentUserResponse;
 import baosys.manager.app.services.UserAppService;
 import java.security.Principal;
 import java.util.List;

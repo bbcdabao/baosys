@@ -2,8 +2,8 @@ package baosys.manager.app.config;
 
 import static org.assertj.core.api.Assertions.*;
 
-import baosys.manager.api.dto.SystemDefinition;
-import baosys.manager.api.dto.SystemDefinition.PermissionDefinition;
+import baosys.manager.api.module.responses.SystemDefinition;
+import baosys.manager.api.module.responses.SystemDefinition.PermissionDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

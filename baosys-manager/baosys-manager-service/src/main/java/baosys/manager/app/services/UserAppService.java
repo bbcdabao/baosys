@@ -1,11 +1,11 @@
 package baosys.manager.app.services;
 
 import baosys.common.api.PageResponse;
-import baosys.manager.api.dto.CurrentUserResponse;
-import baosys.manager.api.dto.LoginClientResponse;
-import baosys.manager.api.dto.UserCreateRequest;
-import baosys.manager.api.dto.UserResponse;
-import baosys.manager.api.dto.UserUpdateRequest;
+import baosys.manager.api.module.responses.CurrentUserResponse;
+import baosys.manager.api.module.responses.LoginClientResponse;
+import baosys.manager.api.module.payloads.UserCreateRequest;
+import baosys.manager.api.module.responses.UserResponse;
+import baosys.manager.api.module.payloads.UserUpdateRequest;
 import java.util.List;
 
 public interface UserAppService {
