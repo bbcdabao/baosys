@@ -1,5 +1,7 @@
 # BrowserAuthApi 接口实现时序
 
+**简体中文** | [English](browser_auth_sequence.en.md)
+
 内部系统通过用户名密码登录，OAuth 授权码流程按需复用同一登录页和内部身份。PKCE 按客户端配置，不全局强制。本文描述当前实现。
 
 ## 1. 参与组件与入口保护

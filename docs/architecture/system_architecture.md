@@ -1,5 +1,7 @@
 # BaoSys 系统总体架构
 
+**简体中文** | [English](system_architecture.en.md)
+
 本文描述当前仓库的实际模块、调用链和边界。实现依据包括 [根 POM](../../pom.xml)、[Manager 配置](../../baosys-manager/baosys-manager-service/src/main/resources/application.yml) 和 [网关配置](../../baosys-manager-web/src/main/resources/application.yml)。
 
 ## 1. 系统上下文

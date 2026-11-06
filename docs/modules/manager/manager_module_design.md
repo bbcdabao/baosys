@@ -1,5 +1,7 @@
 # Manager 模块设计
 
+**简体中文** | [English](manager_module_design.en.md)
+
 Manager 提供账户管理、共享浏览器登录、OAuth2/OIDC 授权服务器、权限目录、登录会话查询与撤销，以及账户授权审计。网关路由和 Vue 静态资源由独立的 Manager Web 承担。
 
 相关文档：[认证与会话](auth_and_session.md)、[权限模型](permission_model.md)、[数据库设计](database_design.md)、[系统架构](../../architecture/system_architecture.md)。

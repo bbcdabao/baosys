@@ -1,5 +1,7 @@
 # Manager 系统设计
 
+**简体中文** | [English](system.en.md)
+
 用户、权限、会话和审计由 Manager Service 统一维护。当前工作区包含 Manager 与公共模块；CAT 在系统目录中登记入口，独立子系统工程不在当前工作区。
 
 ## 请求与模块边界

@@ -1,5 +1,7 @@
 # Manager 数据库设计
 
+**简体中文** | [English](database_design.en.md)
+
 当前数据库结构以 [V1__init_manager.sql](../../../baosys-manager/baosys-manager-service/src/main/resources/db/migration/V1__init_manager.sql) 为准。仓库只有这一个初始化迁移，已包含账户、OAuth2、Spring Session、审计和撤销触发器；没有 V2/V3/V4 升级脚本。
 
 ## 1. Schema 和表范围

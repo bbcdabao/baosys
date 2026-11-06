@@ -1,5 +1,7 @@
 # 认证与会话
 
+**简体中文** | [English](auth_and_session.en.md)
+
 Manager 同时提供内部浏览器共享 Cookie 登录和外部 OAuth2/OIDC 授权码流程。两者共用账户、JWK 签名密钥、官方 JDBC 授权存储及登录记录，但浏览器交互与刷新期限不同。
 
 内部登录、刷新和退出的逐步调用过程见 [BrowserAuthApi 接口实现时序详解](browser_auth_sequence.md)，其中包含三个接口各自的时序图、事务与失败分支说明。

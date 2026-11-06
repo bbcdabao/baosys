@@ -1,5 +1,7 @@
 # Maven 依赖边界
 
+**简体中文** | [English](dependency-boundaries.en.md)
+
 本文以当前各模块 POM 为准；聚合入口见 [根 POM](../../pom.xml)。
 
 ## 1. 模块与依赖方向
