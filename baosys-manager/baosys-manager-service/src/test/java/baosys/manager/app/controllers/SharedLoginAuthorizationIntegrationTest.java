@@ -89,7 +89,7 @@ class SharedLoginAuthorizationIntegrationTest extends PostgreSqlIntegrationTest 
         var noToken = authorize();
         if (response.getCookies().length > 0) noToken.cookie(response.getCookies());
         mvc.perform(noToken).andExpect(status().is3xxRedirection())
-            .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("http://localhost:8080/login?redirect_url=")));
+            .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("http://localhost:8080/baosys-manager/login?redirect_url=")));
     }
 
     @Test
@@ -136,7 +136,7 @@ class SharedLoginAuthorizationIntegrationTest extends PostgreSqlIntegrationTest 
             .cookie(new jakarta.servlet.http.Cookie(SharedTokenCookies.ACCESS, staleToken)))
             .andExpect(status().is3xxRedirection()).andReturn().getResponse();
         var location = response.getRedirectedUrl();
-        assertThat(location).startsWith("http://localhost:8080/login?redirect_url=");
+        assertThat(location).startsWith("http://localhost:8080/baosys-manager/login?redirect_url=");
         String encodedTarget = UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("redirect_url");
         String target = java.net.URLDecoder.decode(encodedTarget, java.nio.charset.StandardCharsets.UTF_8);
         assertThat(target).startsWith("http://localhost:9090/baosys-manager/oauth2/authorize?");
@@ -161,7 +161,7 @@ class SharedLoginAuthorizationIntegrationTest extends PostgreSqlIntegrationTest 
         assertThat(SignedJWT.parse(json.get("id_token").asText()).getJWTClaimsSet().getStringClaim("nonce"))
             .isEqualTo("nonce-value");
         mvc.perform(get("/login").accept(MediaType.TEXT_HTML)).andExpect(status().is3xxRedirection())
-            .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("http://localhost:8080/login?")));
+            .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("http://localhost:8080/baosys-manager/login?")));
     }
 
     @Test

@@ -20,10 +20,34 @@ import reactor.core.publisher.Mono;
 @Configuration
 public class SpaWebConfiguration implements WebFluxConfigurer {
 
+    @org.springframework.context.annotation.Bean
+    org.springframework.web.server.WebFilter normalizeUiBase() {
+        return (exchange, chain) -> {
+            if (exchange.getRequest().getURI().getRawPath().equals("/baosys-manager")) {
+                String query = exchange.getRequest().getURI().getRawQuery();
+                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.PERMANENT_REDIRECT);
+                exchange.getResponse().getHeaders().setLocation(java.net.URI.create(
+                    "/baosys-manager/" + (query == null ? "" : "?" + query)));
+                return exchange.getResponse().setComplete();
+            }
+            return chain.filter(exchange);
+        };
+    }
+
+    @org.springframework.context.annotation.Bean
+    org.springframework.web.reactive.function.server.RouterFunction<org.springframework.web.reactive.function.server.ServerResponse> uiIndex() {
+        return org.springframework.web.reactive.function.server.RouterFunctions.route()
+            .GET("/baosys-manager/", request -> org.springframework.web.reactive.function.server.ServerResponse.ok()
+                .contentType(MediaType.TEXT_HTML).bodyValue(new ClassPathResource("static/index.html")))
+            .GET("/", request -> org.springframework.web.reactive.function.server.ServerResponse.ok()
+                .contentType(MediaType.TEXT_HTML).bodyValue(new ClassPathResource("static/index.html")))
+            .build();
+    }
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry
-            .addResourceHandler("/**")
+            .addResourceHandler("/baosys-manager/**", "/**")
             .addResourceLocations("classpath:/static/")
             .resourceChain(false)
             .addResolver(new SpaPathResourceResolver());
@@ -59,6 +83,12 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
                 acceptsHtml(exchange) &&
                 !isPathUnder(path, "api") &&
                 !isPathUnder(path, "actuator") &&
+                !isPathUnder(path, "assets") &&
+                !isPathUnder(path, "oauth2") &&
+                !isPathUnder(path, "login/oauth2") &&
+                !isPathUnder(path, "logout") &&
+                !isPathUnder(path, "csrf") &&
+                !path.startsWith("baosys-") &&
                 !StringUtils.hasText(StringUtils.getFilenameExtension(path))
             );
         }

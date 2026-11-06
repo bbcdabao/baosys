@@ -61,7 +61,7 @@ flowchart TD
 | 服务 context-path | `/baosys-manager` |
 | API 前缀 | `/v1/users` |
 
-`/csrf` 由网关提供，`/login` 是 Vue 登录页。服务端 OAuth2/OIDC 端点使用 Manager Service 的 context-path，当前网关没有额外配置这些协议端点的专用转发路由。
+`/api/baosys-manager/csrf` 由网关提供，`/baosys-manager/login` 是 Vue 登录页。服务端 OAuth2/OIDC 端点使用 Manager Service 的 context-path，当前网关没有额外配置这些协议端点的专用转发路由。
 
 ## 5. 认证与授权链路
 

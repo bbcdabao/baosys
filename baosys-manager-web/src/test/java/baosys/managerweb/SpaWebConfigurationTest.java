@@ -62,6 +62,22 @@ class SpaWebConfigurationTest {
     private ReactiveJwtDecoder jwtDecoder;
 
     @Test
+    void servesPrefixedAndProxyStrippedRoutes() {
+        for (String path : java.util.List.of("/baosys-manager/", "/baosys-manager/users-management",
+            "/baosys-manager/future/nested", "/users-management")) {
+            webTestClient.get().uri(path).accept(MediaType.TEXT_HTML).exchange()
+                .expectStatus().isOk().expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML);
+        }
+        webTestClient.get().uri("/baosys-manager/assets/test.css").exchange().expectStatus().isOk();
+        for (String path : java.util.List.of("/baosys-manager/assets/missing.js",
+            "/baosys-manager/assets/missing", "/baosys-other/tasks")) {
+            webTestClient.get().uri(path).accept(MediaType.TEXT_HTML).exchange().expectStatus().isNotFound();
+        }
+        webTestClient.get().uri("/baosys-manager?task=1").exchange()
+            .expectStatus().isPermanentRedirect().expectHeader().valueEquals("Location", "/baosys-manager/?task=1");
+    }
+
+    @Test
     void shouldServeIndexForAnyClientRoute() {
         webTestClient
             .get()

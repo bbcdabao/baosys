@@ -11,14 +11,29 @@ import org.junit.jupiter.api.Test;
 
 class SubsystemNavigationTest {
     private final SubsystemNavigation navigation = navigation("http://localhost:8081/", "/");
-    private static final String FALLBACK = "http://localhost:8080/authorized-systems";
+    private static final String FALLBACK = "http://localhost:8080/baosys-manager/authorized-systems";
 
     private static SubsystemNavigation navigation(String base, String home) {
         var names = Map.of("zh-CN", "系统", "en-US", "System");
         return new SubsystemNavigation(new SystemCatalog(List.of(
-            new SystemDefinition("MGR", names, List.of(), "http://localhost:8080/", "/users-management"),
+            new SystemDefinition("MGR", names, List.of(), "http://localhost:8080/baosys-manager/", "/users-management"),
             new SystemDefinition("CAT", names, List.of(), base, home)
         )), new SharedLoginProperties("http://localhost:8080", false));
+    }
+
+    @Test
+    void supportsSameOriginSubsystemsAndRejectsHomeTraversalBeforeResolution() {
+        var scoped = navigation("http://localhost:8080/baosys-cat/", "/tasks?q=1#detail");
+        assertThat(scoped.destination(null, "CAT", Set.of("CAT")))
+            .isEqualTo("http://localhost:8080/baosys-cat/tasks?q=1#detail");
+        assertThat(scoped.validateReturnUrl("/baosys-cat/tasks?q=1#detail"))
+            .isEqualTo("http://localhost:8080/baosys-cat/tasks?q=1#detail");
+        assertThat(scoped.loginUrl()).isEqualTo("http://localhost:8080/baosys-manager/login");
+        for (String path : List.of("/../tasks", "/x/../tasks", "/%2e%2e/tasks", "/%252e/tasks",
+            "//evil.test/", "/x%2ftasks", "/login", "https://evil.test/")) {
+            assertThatThrownBy(() -> navigation("http://localhost:8080/baosys-cat/", path))
+                .as(path).isInstanceOf(IllegalArgumentException.class);
+        }
     }
 
     @Test
@@ -26,11 +41,11 @@ class SubsystemNavigationTest {
         String target = "http://localhost:8081/xxxx/zzzz/yyy?task=123#detail";
         assertThat(navigation.validateReturnUrl(target)).isEqualTo(target);
         assertThat(navigation.destination(target, "MGR", Set.of("CAT"))).isEqualTo(target);
-        assertThat(navigation.validateReturnUrl("/login-sessions?page=2"))
-            .isEqualTo("http://localhost:8080/login-sessions?page=2");
+        assertThat(navigation.validateReturnUrl("/baosys-manager/login-sessions?page=2"))
+            .isEqualTo("http://localhost:8080/baosys-manager/login-sessions?page=2");
         assertThat(navigation.destination(null, "CAT", Set.of("CAT"))).isEqualTo("http://localhost:8081/");
         assertThat(navigation.destination(null, "MGR", Set.of("MGR", "CAT")))
-            .isEqualTo("http://localhost:8080/users-management");
+            .isEqualTo("http://localhost:8080/baosys-manager/users-management");
     }
 
     @Test
@@ -47,7 +62,7 @@ class SubsystemNavigationTest {
     void rejectsUnregisteredOriginsLoopsAndAmbiguousPaths() {
         for (String url : List.of("https://evil.test/", "//evil.test/", "http://localhost:8082/orders",
             "http://localhost.evil.test:8081/", "http://user@localhost:8081/", "javascript:alert(1)",
-            "/login", "/api/test", "/oauth2/authorize", "/auth-bridge", "orders", "/%6cogin",
+            "/baosys-manager/login", "/baosys-manager/%6cogin", "/baosys-manager-other/", "/api/test", "/oauth2/authorize", "/auth-bridge", "orders", "/%6cogin",
             "http://localhost:8081/#/login", "http://localhost:8081/%5cevil.test",
             "http://localhost:8081/%0d%0aLocation:evil", "http://localhost:8081/%252e%252e/login",
             "http://localhost:8081/x/../login", "http://localhost:8081/x/%2e%2e/login", "http://localhost:8081/api%2ftest")) {
@@ -57,7 +72,7 @@ class SubsystemNavigationTest {
 
     @Test
     void supportsPathScopedAndHashRouterSubsystems() {
-        var scoped = navigation("http://localhost:8081/cat/", "/cat/#/tasks");
+        var scoped = navigation("http://localhost:8081/cat/", "/#/tasks");
         assertThat(scoped.destination(null, "CAT", Set.of("CAT"))).isEqualTo("http://localhost:8081/cat/#/tasks");
         assertThat(scoped.validateReturnUrl("http://localhost:8081/cat/tasks?q=1#/detail"))
             .isEqualTo("http://localhost:8081/cat/tasks?q=1#/detail");
@@ -69,7 +84,7 @@ class SubsystemNavigationTest {
 
     @Test
     void rejectsInvalidOrOverlappingDeploymentConfiguration() {
-        for (String base : List.of("http://localhost:8080/", "http://localhost:8080/cat/",
+        for (String base : List.of("http://localhost:8080/", "http://localhost:8080/baosys-manager/nested/",
             "http://other.test:8081/", "https://localhost:8081/", "http://localhost:8081/cat")) {
             assertThatThrownBy(() -> navigation(base, "/")).isInstanceOf(IllegalArgumentException.class);
         }

@@ -11,13 +11,13 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// 通过端点获取 Spring 的掩码 CSRF 令牌，并由服务端设置 HttpOnly XSRF-TOKEN Cookie。
+// 通过端点获取 Spring 的掩码 CSRF 令牌，并由服务端设置 网关独立命名的 HttpOnly CSRF Cookie。
 // 并发请求共用一次获取操作；令牌不落盘，JavaScript 不读取 Cookie。
 let csrfPromise: Promise<{ headerName: string; token: string }> | null = null
 const prepareCsrf = async (config: InternalAxiosRequestConfig) => {
   if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(config.method?.toUpperCase() || 'GET')) {
     csrfPromise ??= axios
-      .get<{ headerName: string; token: string }>('/csrf', {
+      .get<{ headerName: string; token: string }>('/api/baosys-manager/csrf', {
         withCredentials: true,
         timeout: 10_000
       })

@@ -16,6 +16,7 @@ async function setup(context, { barrier = false, refreshStatus = 200 } = {}) {
   await context.route('**/api/**', async route => {
     const request = route.request()
     const path = new URL(request.url()).pathname
+    if (path.endsWith("/csrf")) return route.fallback()
     const cookie = request.headers().cookie || ''
     if (path === prefix + '/refresh') {
       state.refreshes++
@@ -52,12 +53,12 @@ async function setup(context, { barrier = false, refreshStatus = 200 } = {}) {
 
 async function pageFor(context) {
   const page = await context.newPage()
-  await page.goto('/tests/auth-harness.html')
+  await page.goto('/baosys-manager/tests/auth-harness.html')
   await page.evaluate(async () => {
-    window.api = await import('/src/utils/request.ts')
-    window.coordination = await import('/src/utils/authCoordinator.ts')
+    window.api = await import('/baosys-manager/src/utils/request.ts')
+    window.coordination = await import('/baosys-manager/src/utils/authCoordinator.ts')
     window.loginEvents = 0
-    const { default: emitter } = await import('/src/event-bus.ts')
+    const { default: emitter } = await import('/baosys-manager/src/event-bus.ts')
     emitter.on('go-login', () => window.loginEvents++)
   })
   return page

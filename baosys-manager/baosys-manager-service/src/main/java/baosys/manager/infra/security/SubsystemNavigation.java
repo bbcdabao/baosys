@@ -17,6 +17,7 @@ public class SubsystemNavigation {
     private record Entry(String type, URI base, String home) {}
     private final URI manager;
     private final List<Entry> entries;
+    private final URI managerUiBase;
 
     public SubsystemNavigation(SystemCatalog catalog, SharedLoginProperties properties) {
         manager = URI.create(properties.managerOrigin());
@@ -30,8 +31,9 @@ public class SubsystemNavigation {
             }
         }
         var mgr = entries.stream().filter(e -> e.type().equals("MGR")).findFirst().orElseThrow();
-        if (!mgr.base().equals(manager.resolve("/"))) {
-            throw new IllegalArgumentException("MGR ui-base-url must equal manager-origin + '/'");
+        managerUiBase = mgr.base();
+        if (!sameHostAndScheme(managerUiBase, manager) || port(managerUiBase) != port(manager)) {
+            throw new IllegalArgumentException("MGR ui-base-url origin must equal manager-origin");
         }
     }
 
@@ -48,7 +50,8 @@ public class SubsystemNavigation {
             if (path == null || !path.startsWith("/") || path.startsWith("//")) {
                 throw new IllegalArgumentException();
             }
-            URI home = base.resolve(path);
+            validateSyntax(URI.create(base.toASCIIString() + path.substring(1)));
+            URI home = base.resolve(path.substring(1));
             validateSyntax(home);
             if (!contains(base, home) || reserved(home, base)) throw new IllegalArgumentException();
             return new Entry(system.systemType(), base, home.toASCIIString());
@@ -57,8 +60,12 @@ public class SubsystemNavigation {
         }
     }
 
+    public String loginUrl() {
+        return managerUiBase.resolve("login").toASCIIString();
+    }
+
     public String authorizedSystemsUrl() {
-        return manager.resolve("/authorized-systems").toASCIIString();
+        return managerUiBase.resolve("authorized-systems").toASCIIString();
     }
 
     /**

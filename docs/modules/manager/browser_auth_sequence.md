@@ -18,7 +18,7 @@
 
 浏览器入口为 `/api/baosys-manager/v1/browser-auth/{login,refresh,logout}`。网关移除 `/api`，Service context-path 默认 `/baosys-manager`，Controller 匹配 `/v1/browser-auth/**`。
 
-三个端点公开但不豁免浏览器 CSRF。UI 写请求先获取 `/csrf`，将 token 放入指定请求头。网关校验 CSRF；Service 另外要求写请求 Origin 与 manager-origin 精确匹配。已有 Access JWT 失效不阻止认证请求。三者均使用 JSON；刷新和退出凭据来自 HttpOnly Refresh Cookie。
+三个端点公开但不豁免浏览器 CSRF。UI 写请求先获取 `/api/baosys-manager/csrf`，将 token 放入指定请求头。网关校验 CSRF；Service 另外要求写请求 Origin 与 manager-origin 精确匹配。已有 Access JWT 失效不阻止认证请求。三者均使用 JSON；刷新和退出凭据来自 HttpOnly Refresh Cookie。
 
 ## 2. 登录
 

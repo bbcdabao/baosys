@@ -6,7 +6,7 @@ Manager 同时提供内部浏览器共享 Cookie 登录和外部 OAuth2/OIDC 授
 
 ## 1. 内部共享登录
 
-Vue 登录页是 Manager Web 的 `/login?redirect_url=...`。页面参数使用 `redirect_url`，提交给后端的 JSON 字段是 `redirectUrl`。
+Vue 登录页是 Manager Web 的 `/baosys-manager/login?redirect_url=...`。页面参数使用 `redirect_url`，提交给后端的 JSON 字段是 `redirectUrl`。
 
 三个共享认证接口由 manager-api 中的 `BrowserAuthApi` 声明，登录请求和响应分别使用 `BrowserLoginRequest`、`BrowserLoginResponse`。SharedLoginController 实现契约，负责设置 Cookie 和调用认证服务。
 
@@ -15,7 +15,7 @@ Vue 登录页是 Manager Web 的 `/login?redirect_url=...`。页面参数使用 
 | POST | `/api/baosys-manager/v1/browser-auth/login` | JSON：username、password、可选 redirectUrl；响应 data.redirectUrl，令牌只写 Cookie |
 | POST | `/api/baosys-manager/v1/browser-auth/refresh` | JSON 请求，使用 Refresh Cookie 轮换令牌 |
 | POST | `/api/baosys-manager/v1/browser-auth/logout` | JSON 请求，撤销当前内部授权并清除两个 Cookie |
-| GET | `/csrf` | 网关返回掩码 CSRF token 和 headerName |
+| GET | `/api/baosys-manager/csrf` | 网关返回掩码 CSRF token 和 headerName |
 
 登录校验用户名密码及 enabled；用户名先 trim。密码校验由 AccountAuthenticator 在事务外完成；BrowserLoginTransaction 按新旧账户 ID 升序加锁，复查用户名、密码摘要和启用状态，再撤销仍匹配旧 Refresh Cookie 的内部授权并创建新授权及登录记录。失败时整个替换事务回滚。授权类型为 `urn:baosys:grant:shared-login`，使用已注册的 `baosys-web` 客户端设置。
 
@@ -30,7 +30,7 @@ Vue 登录页是 Manager Web 的 `/login?redirect_url=...`。页面参数使用 
 
 网关优先读取显式 Authorization 头，否则读取 Access Cookie；无效的显式头不会回退到 Cookie。公开的共享认证端点不依赖旧 Access JWT，避免过期 JWT 阻止刷新。
 
-浏览器写请求先取得 `/csrf` 的 token 并放入指定请求头。网关负责 CSRF 校验；直连 Service 的共享认证写请求仍须具有与 manager-origin 精确相同的 Origin。Service 该链本身为无状态且关闭 CSRF。网关仅对受保护 API 中显式 Bearer 请求豁免 CSRF，公开登录/刷新/退出不能据此豁免。
+浏览器写请求先取得 `/api/baosys-manager/csrf` 的 token 并放入指定请求头。网关负责 CSRF 校验；直连 Service 的共享认证写请求仍须具有与 manager-origin 精确相同的 Origin。Service 该链本身为无状态且关闭 CSRF。网关仅对受保护 API 中显式 Bearer 请求豁免 CSRF，公开登录/刷新/退出不能据此豁免。
 
 Manager UI 对非认证接口的 401 合并并发刷新，每个请求最多重试一次。authCoordinator 使用同源 Web Locks 串行协调登录、刷新和退出，并以非敏感 accountEpoch/refreshRevision 标记识别其他标签页已经完成的刷新；消息通知不携带凭据。旧账户请求在账户切换后不自动重放，其迟到响应也不会覆盖新账户状态。
 

@@ -214,7 +214,7 @@ class GatewaySecurityIntegrationTest {
         var session = browserSession("admin-token");
         var csrf = webTestClient
             .get()
-            .uri("/csrf")
+            .uri("/api/baosys-manager/csrf")
             .exchange()
             .expectStatus()
             .isOk()
@@ -222,7 +222,7 @@ class GatewaySecurityIntegrationTest {
             .value("Cache-Control", value -> assertThat(value).contains("no-store"))
             .expectBody(CsrfResponse.class)
             .returnResult();
-        var cookie = csrf.getResponseCookies().getFirst("XSRF-TOKEN");
+        var cookie = csrf.getResponseCookies().getFirst("BAOSYS-MGR-XSRF-TOKEN");
         assertThat(cookie).isNotNull();
         assertThat(cookie.isHttpOnly()).isTrue();
         assertThat(csrf.getResponseBody().token()).isNotEqualTo(cookie.getValue());
@@ -230,7 +230,7 @@ class GatewaySecurityIntegrationTest {
             .delete()
             .uri("/api/baosys-manager/v1/users/12")
             .cookie("SESSION", session)
-            .cookie("XSRF-TOKEN", cookie.getValue())
+            .cookie("BAOSYS-MGR-XSRF-TOKEN", cookie.getValue())
             .header(csrf.getResponseBody().headerName(), csrf.getResponseBody().token())
             .exchange()
             .expectStatus()
@@ -239,7 +239,7 @@ class GatewaySecurityIntegrationTest {
             .delete()
             .uri("/api/baosys-manager/v1/users/12")
             .cookie("SESSION", session)
-            .cookie("XSRF-TOKEN", cookie.getValue())
+            .cookie("BAOSYS-MGR-XSRF-TOKEN", cookie.getValue())
             .header(csrf.getResponseBody().headerName(), "wrong")
             .exchange()
             .expectStatus()
@@ -311,7 +311,7 @@ class GatewaySecurityIntegrationTest {
         assertThat(FORWARDED_AUTH.get()).isEqualTo("Bearer user-token");
         var csrf = webTestClient
             .get()
-            .uri("/csrf")
+            .uri("/api/baosys-manager/csrf")
             .cookie("SESSION", session)
             .exchange()
             .expectBody(CsrfResponse.class)
@@ -320,7 +320,7 @@ class GatewaySecurityIntegrationTest {
             .post()
             .uri("/logout")
             .cookie("SESSION", session)
-            .cookie("XSRF-TOKEN", csrf.getResponseCookies().getFirst("XSRF-TOKEN").getValue())
+            .cookie("BAOSYS-MGR-XSRF-TOKEN", csrf.getResponseCookies().getFirst("BAOSYS-MGR-XSRF-TOKEN").getValue())
             .header(csrf.getResponseBody().headerName(), csrf.getResponseBody().token())
             .exchange()
             .expectStatus()
@@ -409,7 +409,7 @@ class GatewaySecurityIntegrationTest {
             .isForbidden();
         var csrf = webTestClient
             .get()
-            .uri("/csrf")
+            .uri("/api/baosys-manager/csrf")
             .exchange()
             .expectBody(CsrfResponse.class)
             .returnResult();
@@ -417,7 +417,7 @@ class GatewaySecurityIntegrationTest {
             .delete()
             .uri("/api/baosys-manager/v1/users/12")
             .cookie("BAOSYS_ACCESS_TOKEN", "user-token")
-            .cookie("XSRF-TOKEN", csrf.getResponseCookies().getFirst("XSRF-TOKEN").getValue())
+            .cookie("BAOSYS-MGR-XSRF-TOKEN", csrf.getResponseCookies().getFirst("BAOSYS-MGR-XSRF-TOKEN").getValue())
             .header(csrf.getResponseBody().headerName(), csrf.getResponseBody().token())
             .exchange()
             .expectStatus()
@@ -434,7 +434,7 @@ class GatewaySecurityIntegrationTest {
                 .post()
                 .uri("/api/baosys-manager/v1/browser-auth/" + endpoint)
                 .cookie("BAOSYS_ACCESS_TOKEN", "invalid")
-                .cookie("XSRF-TOKEN", csrf.getResponseCookies().getFirst("XSRF-TOKEN").getValue())
+                .cookie("BAOSYS-MGR-XSRF-TOKEN", csrf.getResponseCookies().getFirst("BAOSYS-MGR-XSRF-TOKEN").getValue())
                 .header(csrf.getResponseBody().headerName(), csrf.getResponseBody().token())
                 .exchange()
                 .expectStatus()

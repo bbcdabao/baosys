@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MANAGER_API_PREFIX } from '@/constants/api'
 import { get } from '@/utils/request'
+import { systemHomeUrl } from '@/utils/systemHomeUrl'
 
 interface LocalizedName {
   [locale: string]: string
@@ -28,7 +29,7 @@ export const useSystemCatalog = () => {
   const systemOptions = computed(() =>
     systems.value.map((system) => ({
       value: system.systemType,
-      homeUrl: new URL(system.homePath, system.uiBaseUrl).href,
+      homeUrl: systemHomeUrl(system.uiBaseUrl, system.homePath),
       label: label(system.name, system.systemType)
     }))
   )

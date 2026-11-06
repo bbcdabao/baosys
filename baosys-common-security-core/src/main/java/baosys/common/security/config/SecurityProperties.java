@@ -76,6 +76,13 @@ public class SecurityProperties {
      * 网关策略：按对外请求路径检查目标子系统的入口权限。
      */
     public static class Gateway extends EndpointAccess {
+        private String csrfPath;
+        private String csrfCookieName;
+        public String getCsrfPath() { return csrfPath; }
+        public void setCsrfPath(String value) { csrfPath = value; }
+        public String getCsrfCookieName() { return csrfCookieName; }
+        public void setCsrfCookieName(String value) { csrfCookieName = value; }
+
 
         /**
          * 路径与登录/系统入口权限要求的映射，对应 {@code spring.security.gateway.access-rules}，默认空列表。

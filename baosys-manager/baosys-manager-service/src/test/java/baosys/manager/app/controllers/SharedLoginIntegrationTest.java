@@ -46,11 +46,11 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
                 .isEqualTo("CAT");
             assertThat(users.list(user.name(), null, 0, 20).items().get(0).defaultSystemType()).isEqualTo("CAT");
             loginAs(user.name(), null, "http://localhost:8081/");
-            loginAs(user.name(), "http://localhost:8080/login-sessions?page=2#row", "http://localhost:8080/login-sessions?page=2#row");
+            loginAs(user.name(), "http://localhost:8080/baosys-manager/login-sessions?page=2#row", "http://localhost:8080/baosys-manager/login-sessions?page=2#row");
             var updated = users.update(new baosys.manager.api.module.payloads.UserUpdateRequest(
                 user.id(), user.name(), "", java.util.Set.of("MGR", "CAT"), true, "MGR"), 1L);
             assertThat(updated.defaultSystemType()).isEqualTo("MGR");
-            loginAs(user.name(), null, "http://localhost:8080/users-management");
+            loginAs(user.name(), null, "http://localhost:8080/baosys-manager/users-management");
             loginAs(user.name(), "http://localhost:8081/xxxx/zzzz/yyy?task=123#detail",
                 "http://localhost:8081/xxxx/zzzz/yyy?task=123#detail");
         } finally {
@@ -63,7 +63,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
         var user = users.create(new baosys.manager.api.module.payloads.UserCreateRequest(
             "fallback-" + java.util.UUID.randomUUID(), "secure123", java.util.Set.of("MGR"), true, "CAT"), 1L);
         try {
-            String fallback = "http://localhost:8080/authorized-systems";
+            String fallback = "http://localhost:8080/baosys-manager/authorized-systems";
             loginAs(user.name(), null, fallback);
             loginAs(user.name(), "http://localhost:8081/task?id=1", fallback);
             users.update(new baosys.manager.api.module.payloads.UserUpdateRequest(
@@ -111,7 +111,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             )
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$.data.redirectUrl").value("http://localhost:8080/authorized-systems")
+                jsonPath("$.data.redirectUrl").value("http://localhost:8080/baosys-manager/authorized-systems")
             )
             .andExpect(jsonPath("$.data.accessToken").doesNotExist())
             .andReturn();
@@ -249,7 +249,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(
-                    jsonPath("$.data.redirectUrl").value("http://localhost:8080/users-management")
+                    jsonPath("$.data.redirectUrl").value("http://localhost:8080/baosys-manager/users-management")
                 )
                 .andReturn();
             var jwt = SignedJWT.parse(

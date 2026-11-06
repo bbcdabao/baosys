@@ -39,6 +39,7 @@ Manager Service 终端：
 ```powershell
 $env:JWT_JWK_SET_LOCATION = ([System.Uri](Join-Path $HOME '.baosys/signing-jwks.json')).AbsoluteUri
 $env:MANAGER_PUBLIC_ORIGIN = "http://localhost:5173"
+$env:MANAGER_UI_URL_SUFFIX = "5173/baosys-manager/"
 $env:DEFAULT_ADMIN_ENABLED = "true"
 $env:DEFAULT_ADMIN_USERNAME = "admin"
 $env:DEFAULT_ADMIN_PASSWORD = "LocalAdmin123!"
@@ -63,7 +64,7 @@ mvn -f baosys-manager-web/pom.xml spring-boot:run "-Dskip.frontend=true"
 npm --prefix baosys-manager-ui run dev
 ```
 
-浏览器访问 `http://localhost:5173`。Vite 将 `/api` 和 `/csrf` 代理到 8080。Service 健康检查为 `http://localhost:9090/baosys-manager/actuator/health`，网关为 `http://localhost:8080/actuator/health`。
+浏览器访问 `http://localhost:5173/baosys-manager/`。Vite 将 `/api`（含 CSRF）代理到 8080。Service 健康检查为 `http://localhost:9090/baosys-manager/actuator/health`，网关为 `http://localhost:8080/actuator/health`。
 
 ## 配置速查
 
@@ -81,14 +82,17 @@ npm --prefix baosys-manager-ui run dev
 | `DEFAULT_ADMIN_USERNAME / DEFAULT_ADMIN_PASSWORD` | Service | `admin / 空` |
 | `MANAGER_PUBLIC_ORIGIN` | Service | `http://localhost:8080`；Vite 开发改为 5173，不带路径或尾斜杠 |
 | `SHARED_LOGIN_SECURE_COOKIE` | Service | `false`；HTTPS 必须设为 `true` |
-| `CAT_UI_BASE_URL` | Service（系统目录） | `http://localhost:8081/`；必须与 Manager 同主机、同协议，以斜杠结尾 |
+| `BASE_URL` | Service（系统目录） | `http://localhost:`；与后缀直接拼接 |
+| `MANAGER_UI_URL_SUFFIX` | Service（系统目录） | `8080/baosys-manager/`；Vite 开发为 `5173/baosys-manager/` |
+| `CAT_UI_URL_SUFFIX` | Service（系统目录） | `8081/baosys-xxxx/`；CAT 尚未部署，此为示例路径 |
+| `VITE_MANAGER_UI_BASE_URL` | 前端构建 | 其他子系统必填 Manager 完整 UI 基址；Manager 默认从当前 Origin 和 Vite base 推导 |
 | `BAOSYS_SYSTEMS_CONFIG` | Service | `classpath:baosys-systems.yml`；可改为完整外部目录文件 URI |
 | `GATEWAY_PORT` | Web | `8080` |
 | `MANAGER_SERVICE_URL` | Web | `http://127.0.0.1:9090` |
 | `JWT_ISSUER` | 两者 | 默认均为 `http://localhost:9090/baosys-manager`，本地无需设置；覆盖时两者保持一致 |
 | `JWT_JWK_SET_URI` | 两者 | Service 默认 localhost:9090、Web 默认 127.0.0.1:9090 的 `/baosys-manager/oauth2/jwks` |
 
-目录文件构建时从根目录打包；修改后重新构建，或用 `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` 覆盖并重启。保留 `MGR` 及其接口权限；每项必须配置 `ui-base-url` 和 `home-path`。MGR 基址引用 `MANAGER_PUBLIC_ORIGIN`，CAT 基址引用 `CAT_UI_BASE_URL`；回跳白名单直接来自该目录，不再使用 `SHARED_LOGIN_ALLOWED_ORIGINS`。CAT 入口登记不代表部署了 CAT 服务；其他子系统需单独部署并接入共享登录。
+目录文件构建时从根目录打包；修改后重新构建，或用 `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` 覆盖并重启。保留 `MGR` 及其接口权限；每项必须配置 `ui-base-url` 和 `home-path`。各系统基址由 `BASE_URL` 与相应 `*_UI_URL_SUFFIX` 拼接，MGR 基址的 Origin 必须与 `MANAGER_PUBLIC_ORIGIN` 一致；`home-path` 相对于子系统根目录；回跳白名单直接来自该目录，不再使用 `SHARED_LOGIN_ALLOWED_ORIGINS`。CAT 入口登记不代表部署了 CAT 服务；其他子系统需单独部署并接入共享登录。
 
 ## 测试与打包
 
@@ -131,3 +135,26 @@ V1 创建 `cleanup_inactive_user_login_sessions()`，但不自动安排执行。
 本地数据库容器用 `docker stop baosys-postgres` 停止、`docker start baosys-postgres` 恢复。
 
 浏览器测试默认使用已安装的 Edge；其他环境可设置 `PLAYWRIGHT_CHANNEL=chromium` 并在 UI 目录执行 `npx playwright install chromium`。测试在本机 5178 端口启动独立 Vite 服务，覆盖真实 Cookie、Web Locks、跨标签页通知和自动重试；不替代后端 PostgreSQL 集成测试。生产协调依赖同源和浏览器能力，无 Web Locks/可用存储时降级为单页协调。
+
+
+## 按路径部署与子系统接入
+
+Manager 打包入口为 `http://localhost:8080/baosys-manager/`。从 Vite 切回打包运行时，
+同时恢复 `MANAGER_UI_URL_SUFFIX=8080/baosys-manager/`。路径不带尾斜杠时，Web 会保留查询参数并补齐。
+生产配置：`BASE_URL=https://example.com`、`MANAGER_PUBLIC_ORIGIN=https://example.com`、
+`MANAGER_UI_URL_SUFFIX=/baosys-manager/`、`CAT_UI_URL_SUFFIX=/baosys-xxxx/`、`SHARED_LOGIN_SECURE_COOKIE=true`。
+前缀与后缀按字符串原样拼接，修改后重启 Service。旧 `CAT_UI_BASE_URL` 和 `VITE_MANAGER_ORIGIN` 不再使用。
+
+Nginx 示例见 [nginx-path-routing.conf](nginx-path-routing.conf)。前端转发剥离前缀，API 保留完整路径；
+OAuth2 issuer、JWKS 和回调地址未随 UI 路径改动，协议端点仍按现有独立地址部署。
+示例不包含 TLS 证书和 OAuth2 协议转发，必须按实际部署另行配置。
+
+其他子系统需要自己的 Vite base、Router base 和静态宿主前缀，并在构建时设置
+`VITE_MANAGER_UI_BASE_URL=https://example.com/baosys-manager/`。
+网关必须配置 `spring.security.gateway.csrf-path=/api/baosys-xxxx/csrf` 和独立的
+`spring.security.gateway.csrf-cookie-name=BAOSYS-CAT-XSRF-TOKEN`，前端请求相同 CSRF 地址。
+公共安全模块自动放行此精确路径，控制器在网关本地处理。CSRF Cookie 为 HttpOnly、Path=/，
+各网关名称不同；认证 Cookie 的共享范围与刷新 Cookie 路径保持不变。
+
+本地跨端口仅共享 Cookie，不共享 localStorage、BroadcastChannel 或 Web Locks；不能视为跨端口刷新协调。
+当前仓库不含 CAT 应用，双系统切换账户、退出、并发刷新以及生产 Nginx/TLS 链路需在部署环境验收。

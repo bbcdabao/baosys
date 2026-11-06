@@ -7,6 +7,8 @@ server:
 spring:
   security:
     gateway:
+      csrf-path: /api/baosys-manager/csrf
+      csrf-cookie-name: BAOSYS-MGR-XSRF-TOKEN
       access-rules:
         # 全局共享接口：省略 permission 表示仅要求登录，须放在子系统规则之前。
         - path: /api/baosys-manager/v1/users/me

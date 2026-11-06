@@ -39,7 +39,7 @@ public class SharedLoginNavigation implements AuthenticationEntryPoint {
                 .collect(java.util.stream.Collectors.joining("&"));
             target = authorizationUri + "?" + query;
         }
-        response.sendRedirect(UriComponentsBuilder.fromUriString(properties.managerOrigin() + "/login")
+        response.sendRedirect(UriComponentsBuilder.fromUriString(subsystems.loginUrl())
             .queryParam("redirect_url", "{target}").encode().buildAndExpand(target).toUriString());
     }
 

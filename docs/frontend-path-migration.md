@@ -1,6 +1,6 @@
 # 子系统前端基础路径与共享登录改造方案
 
-状态：待实施。本文描述目标方案，不代表当前代码已经支持。
+状态：Manager 代码已实施；CAT 尚无应用模块，生产 Nginx 与跨端口双系统联调待部署验收。
 
 ## 1. 改造目标
 
@@ -68,11 +68,11 @@ baosys:
 
 | 配置 | 含义 | 生效方式 |
 | --- | --- | --- |
-| `BASE_URL`（拟新增） | 公共地址前缀，默认 `http://localhost:` | 映射到 `baosys.ui-base-url-pre`，系统目录启动时解析 |
+| `BASE_URL` | 公共地址前缀，默认 `http://localhost:` | 映射到 `baosys.ui-base-url-pre`，系统目录启动时解析 |
 | `MANAGER_PUBLIC_ORIGIN`（现有） | Manager 的协议、主机和端口，不包含路径 | Service 启动时读取，保留用于 Origin 校验 |
-| `MANAGER_UI_URL_SUFFIX`（拟新增） | Manager 地址后缀，默认 `8080/baosys-manager/` | 与公共前缀拼成 MGR 完整 UI 基址；登录地址从 MGR 目录项派生 |
-| `CAT_UI_URL_SUFFIX`（拟新增） | CAT 地址后缀，默认 `8081/baosys-xxxx/` | 与公共前缀拼成 CAT 完整 UI 基址 |
-| `VITE_MANAGER_UI_BASE_URL`（拟新增） | 前端访问共享 Manager 登录入口所用的完整基址 | 前端构建时读取，不能假设容器启动环境会自动覆盖 |
+| `MANAGER_UI_URL_SUFFIX` | Manager 地址后缀，默认 `8080/baosys-manager/` | 与公共前缀拼成 MGR 完整 UI 基址；登录地址从 MGR 目录项派生 |
+| `CAT_UI_URL_SUFFIX` | CAT 地址后缀，默认 `8081/baosys-xxxx/` | 与公共前缀拼成 CAT 完整 UI 基址 |
+| `VITE_MANAGER_UI_BASE_URL` | 前端访问共享 Manager 登录入口所用的完整基址 | 前端构建时读取，不能假设容器启动环境会自动覆盖 |
 | 前端构建基础路径 | Manager 为 `/baosys-manager/`，其他系统为各自路径 | Vite 构建与 Router 使用同一来源 |
 
 保留纯 Origin 与完整 UI 基址的区别；校验 MGR 基址的 Origin 与 `MANAGER_PUBLIC_ORIGIN` 一致。当前同主机、同协议的共享登录约束继续保留，本地允许不同端口。
@@ -189,7 +189,7 @@ CSRF Cookie 的名称、路径、令牌生成与校验需验证多网关并存�
 5. 其他子系统按相同约定接入，配置 Nginx 路径转发。
 6. 完成本地独立端口及统一入口两套验证，再更新正式启动部署文档和环境变量说明。
 
-此次只形成方案文档。实施时需要重新核对代码现状，旧根路径 `/login`、`/users-management` 等是否保留兼容跳转由实际已有链接决定；不能让兼容规则占用其他子系统路径。
+实施保留代理剥离前缀后的静态资源和 SPA 路由支持；旧根路径 `/login`、`/users-management` 等是否保留兼容跳转由实际已有链接决定；不能让兼容规则占用其他子系统路径。
 
 ## 9. 验收清单
 
@@ -205,3 +205,14 @@ CSRF Cookie 的名称、路径、令牌生成与校验需验证多网关并存�
 - 后端执行相关导航、安全及浏览器认证测试；前端执行类型检查、构建和相关浏览器测试，并实测 Nginx 转发链路。
 
 配置调整与应用发布需要配套完成。只更新系统目录或 Nginx，不能替代前端资源、路由和共享登录逻辑的路径适配。本方案不需要数据库结构迁移。
+
+
+## 10. 本次实现验证记录
+
+- `npm run build`：类型检查与生产构建通过。
+- `mvn test -Dskip.frontend=true`：默认后端测试集通过。
+- 导航、共享登录配置、OAuth2 精确回跳、SPA 与网关安全专项测试共 31 项通过。
+- Playwright 最终完整执行 16 项通过。期间原有双标签刷新测试出现过偶发两次刷新，
+  重复诊断与最终复验未稳定复现；认证协调实现未在本次变更中修改，需继续跟踪这一并发风险。
+- Docker 引擎未启动，数据库容器集成测试未执行；没有运行中的 Nginx 和 CAT 应用，
+  Nginx 示例仅完成配置编写，真实代理、TLS 和跨端口双系统链路仍待部署验收。

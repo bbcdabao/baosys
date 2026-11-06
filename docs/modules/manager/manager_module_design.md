@@ -77,7 +77,7 @@ Controller 调用应用服务，应用服务直接编排 Mapper、Assembler 和�
 | POST | /v1/browser-auth/refresh | 使用 Refresh Cookie 轮换 | 公开入口，校验来源和刷新凭据 |
 | POST | /v1/browser-auth/logout | 撤销当前内部授权、清 Cookie | 公开入口，校验来源 |
 
-“公开入口”不代表免 CSRF：通过网关的浏览器写请求还要携带 /csrf 返回的 token。共享登录请求均使用 application/json。OAuth2/OIDC 的协议端点由框架提供，使用自己的协议响应，详见 [认证与会话](auth_and_session.md)。
+“公开入口”不代表免 CSRF：通过网关的浏览器写请求还要携带 /api/baosys-manager/csrf 返回的 token。共享登录请求均使用 application/json。OAuth2/OIDC 的协议端点由框架提供，使用自己的协议响应，详见 [认证与会话](auth_and_session.md)。
 
 默认网关对 /users/me、/systems 仅要求登录，其余管理 API 额外要求 MGR 入口。该规则由有序的 spring.security.gateway.access-rules 声明。
 

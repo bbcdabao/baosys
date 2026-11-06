@@ -17,7 +17,7 @@ Manager API 只提供接口和 DTO；Service 中 `app` 负责 Controller、业�
 
 ## 登录与会话
 
-1. 前端写请求先同源请求 `GET /csrf`，按响应的 `headerName` 携带 `token`。
+1. 前端写请求先同源请求 `GET /api/baosys-manager/csrf`，按响应的 `headerName` 携带 `token`。
 2. 登录提交 JSON 到 `POST /api/baosys-manager/v1/browser-auth/login`。服务校验账号、启停状态和返回地址，创建授权及登录记录。
 3. 响应通过 HttpOnly Cookie 保存 `BAOSYS_ACCESS_TOKEN` 和 `BAOSYS_REFRESH_TOKEN`；JSON 返回跳转地址，Token 不写入前端存储。
 4. 网关读取 Access Cookie 或显式 Bearer 头，校验 JWT 后转发 Bearer；资源服务再次校验 JWT。显式 Authorization 头优先。
@@ -41,11 +41,11 @@ Cookie 为 host-only、SameSite=Lax；Access 路径为 `/`，Refresh 路径为 `
 
 - 有合法回跳地址时，优先返回原始页面，保留查询参数和 hash；只有目标系统入口权限才能进入。
 - 无回跳地址时，进入账户默认子系统主页，不按权限数量自动选择其他系统。
-- 没有目标系统入口权限、没有任何授权，或默认系统已从配置移除时，一律返回 Manager 的 `/authorized-systems`。
-- `/authorized-systems` 只要求登录，不要求 MGR；展示已授权系统入口，无授权时显示提示。用户可通过页面顶栏退出登录后重新登录，不自动跳转。
+- 没有目标系统入口权限、没有任何授权，或默认系统已从配置移除时，一律返回 Manager 的 `/baosys-manager/authorized-systems`。
+- `/baosys-manager/authorized-systems` 只要求登录，不要求 MGR；展示已授权系统入口，无授权时显示提示。用户可通过页面顶栏退出登录后重新登录，不自动跳转。
 - 外部未登记来源、非 HTTP(S) URL、含用户信息或歧义编码的地址、登录/认证/API 路径均返回 `400/AUTH_400_REDIRECT`，不会创建新登录会话。标准 OAuth2 授权端点保留独立的精确地址校验。
 
-子系统接入时，前端在身份失效后使用 `URL.searchParams.set('redirect_url', window.location.href)` 跳转到 Manager 的 `/login`。已登录但缺少本系统入口权限时，直接跳到 Manager 的 `/authorized-systems`；具体操作权限不足显示 403，不反复跳登录。子系统 Web 必须支持深层路由的 SPA 回退，并通过自己的网关读取共享 Access Cookie、转发 Bearer，服务端独立校验入口和操作权限。
+子系统接入时，前端在身份失效后使用 `URL.searchParams.set('redirect_url', window.location.href)` 跳转到 Manager 的 `/baosys-manager/login`。已登录但缺少本系统入口权限时，直接跳到 Manager 的 `/baosys-manager/authorized-systems`；具体操作权限不足显示 403，不反复跳登录。子系统 Web 必须支持深层路由的 SPA 回退，并通过自己的网关读取共享 Access Cookie、转发 Bearer，服务端独立校验入口和操作权限。
 
 当前仓库尚未实现跨端口 `/auth-bridge` 刷新协调页。Manager 内已有同源标签页刷新协调；独立子系统仍需接入登录状态检查、401 回跳及跨端口会话协调，不能把本次 Manager 回跳验证视为完整 CAT 端到端联调。Token 不得通过 URL 或前端存储传递。
 

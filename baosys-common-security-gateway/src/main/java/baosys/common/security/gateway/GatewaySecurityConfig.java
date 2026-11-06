@@ -49,10 +49,19 @@ public class GatewaySecurityConfig {
         SecurityProperties properties,
         ObjectProvider<BrowserOAuth2Configuration> browser
     ) {
-        String[] permitAllPaths = properties
-            .getGateway()
-            .getPermitAllPaths()
-            .toArray(String[]::new);
+        var gateway = properties.getGateway();
+        if (!StringUtils.hasText(gateway.getCsrfPath()) ||
+            !gateway.getCsrfPath().matches("/api/[a-zA-Z0-9-]+/csrf") ||
+            !StringUtils.hasText(gateway.getCsrfCookieName()) ||
+            !gateway.getCsrfCookieName().matches("[a-zA-Z0-9_-]+")) {
+            throw new IllegalArgumentException("Each gateway requires its own csrf-path and csrf-cookie-name");
+        }
+        var repository = new CookieServerCsrfTokenRepository();
+        repository.setCookieName(gateway.getCsrfCookieName());
+        repository.setCookiePath("/");
+        var publicPathList = new java.util.ArrayList<>(gateway.getPermitAllPaths());
+        publicPathList.add(gateway.getCsrfPath());
+        String[] permitAllPaths = publicPathList.toArray(String[]::new);
         ServerWebExchangeMatcher publicPaths =
             permitAllPaths.length == 0
                 ? exchange -> ServerWebExchangeMatcher.MatchResult.notMatch()
@@ -70,7 +79,7 @@ public class GatewaySecurityConfig {
         return http
             .csrf(csrf ->
                 csrf
-                    .csrfTokenRepository(new CookieServerCsrfTokenRepository())
+                    .csrfTokenRepository(repository)
                     .requireCsrfProtectionMatcher(
                         new AndServerWebExchangeMatcher(
                             CsrfWebFilter.DEFAULT_CSRF_MATCHER,

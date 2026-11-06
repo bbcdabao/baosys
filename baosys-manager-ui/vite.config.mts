@@ -7,7 +7,7 @@ import { ArcoResolver } from 'unplugin-vue-components/resolvers'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/',
+  base: '/baosys-manager/',
   plugins: [
     vue(),
     Components({
@@ -31,7 +31,6 @@ export default defineConfig({
       '/oauth2': { target: 'http://localhost:8080', changeOrigin: true },
       '/login/oauth2': { target: 'http://localhost:8080', changeOrigin: true },
       '/logout': { target: 'http://localhost:8080', changeOrigin: true },
-      '/csrf': { target: 'http://localhost:8080', changeOrigin: true },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,

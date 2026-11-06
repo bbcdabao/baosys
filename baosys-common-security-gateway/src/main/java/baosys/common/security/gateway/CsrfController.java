@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 @RestController
 public class CsrfController {
 
-    @GetMapping("/csrf")
+    @GetMapping("${spring.security.gateway.csrf-path}")
     public Mono<CsrfToken> csrf(ServerWebExchange exchange) {
         return exchange.getRequiredAttribute(CsrfToken.class.getName());
     }

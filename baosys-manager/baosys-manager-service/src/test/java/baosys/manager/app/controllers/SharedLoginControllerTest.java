@@ -47,7 +47,7 @@ class SharedLoginControllerTest {
                 .content("{\"username\":\"admin\",\"password\":\"password\"}")
         )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.redirectUrl").value("http://localhost:8080/users-management"))
+            .andExpect(jsonPath("$.data.redirectUrl").value("http://localhost:8080/baosys-manager/users-management"))
             .andExpect(jsonPath("$.data.accessToken").doesNotExist())
             .andExpect(cookie().value(SharedTokenCookies.ACCESS, "access"))
             .andExpect(cookie().httpOnly(SharedTokenCookies.ACCESS, true))
@@ -107,7 +107,7 @@ class SharedLoginControllerTest {
 
     private static BrowserAuthAppService.Tokens tokens() {
         return new BrowserAuthAppService.Tokens(
-            "access", "renewed", Instant.now().plusSeconds(1800), Instant.now().plusSeconds(86400), "http://localhost:8080/users-management"
+            "access", "renewed", Instant.now().plusSeconds(1800), Instant.now().plusSeconds(86400), "http://localhost:8080/baosys-manager/users-management"
         );
     }
 }
