@@ -35,7 +35,7 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
 
     private UserResponse createUser() {
         return users.create(new UserCreateRequest("browser-" + UUID.randomUUID(), "secure123",
-            Set.of("MGR", "MGR:user:list"), null), 9001L);
+            Set.of("MGR", "MGR:user:list"), null, "MGR"), 9001L);
     }
 
     @Test
@@ -73,8 +73,8 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
     void switchesAccountsInBothDirectionsWithoutDeadlock() throws Exception {
         var a = createUser();
         var b = createUser();
-        var loginA = auth.login(a.name(), "secure123", null);
-        var loginB = auth.login(b.name(), "secure123", null);
+        var loginA = auth.login(a.name(), "secure123", null, null);
+        var loginB = auth.login(b.name(), "secure123", null, null);
         var verifiedA = accounts.authenticate(a.name(), "secure123");
         var verifiedB = accounts.authenticate(b.name(), "secure123");
         var barrier = new CyclicBarrier(2);
@@ -82,11 +82,11 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
         try {
             var ab = executor.submit(() -> {
                 barrier.await(10, TimeUnit.SECONDS);
-                return login.completeLogin(verifiedB, loginA.refreshToken());
+                return login.completeLogin(verifiedB, loginA.refreshToken(), null);
             });
             var ba = executor.submit(() -> {
                 barrier.await(10, TimeUnit.SECONDS);
-                return login.completeLogin(verifiedA, loginB.refreshToken());
+                return login.completeLogin(verifiedA, loginB.refreshToken(), null);
             });
             var resultB = ab.get(15, TimeUnit.SECONDS);
             var resultA = ba.get(15, TimeUnit.SECONDS);
@@ -107,10 +107,10 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
         var a = createUser();
         var b = createUser();
         try {
-            var previous = auth.login(a.name(), "secure123", null);
+            var previous = auth.login(a.name(), "secure123", null, null);
             var verified = accounts.authenticate(b.name(), "secure123");
             jdbc.update("UPDATE user_info SET user_name=? WHERE id=?", b.name() + "-renamed", b.id());
-            assertThatThrownBy(() -> login.completeLogin(verified, previous.refreshToken()))
+            assertThatThrownBy(() -> login.completeLogin(verified, previous.refreshToken(), null))
                 .isInstanceOf(BadCredentialsException.class);
             assertThat(auth.refresh(previous.refreshToken())).isNotNull();
         } finally {
@@ -123,10 +123,10 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
     void replacementRollbackRestoresOldAuthorizationAndRemovesNewOne() {
         var user = createUser();
         try {
-            var previous = auth.login(user.name(), "secure123", null);
+            var previous = auth.login(user.name(), "secure123", null, null);
             var verified = accounts.authenticate(user.name(), "secure123");
             assertThatThrownBy(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-                login.completeLogin(verified, previous.refreshToken());
+                login.completeLogin(verified, previous.refreshToken(), null);
                 throw new IllegalStateException("Simulated failure before commit");
             })).isInstanceOf(IllegalStateException.class);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM user_login WHERE user_info_id=?",
@@ -139,7 +139,7 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
     void idleSessionSurvivesCleanupAndRefreshKeepsAbsoluteDeadline() {
         var user = createUser();
         try {
-            var original = auth.login(user.name(), "secure123", null);
+            var original = auth.login(user.name(), "secure123", null, null);
             jdbc.update("UPDATE user_login SET updated_at=now()-interval '2 days' WHERE user_info_id=?", user.id());
             jdbc.queryForObject("SELECT cleanup_inactive_user_login_sessions()", Integer.class);
             var renewed = auth.refresh(original.refreshToken());
@@ -159,7 +159,7 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
         var user = createUser();
         var executor = Executors.newSingleThreadExecutor();
         try {
-            auth.login(user.name(), "secure123", null);
+            auth.login(user.name(), "secure123", null, null);
             jdbc.update("UPDATE user_login SET expires_at=clock_timestamp()-interval '1 second' WHERE user_info_id=?", user.id());
             new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
                 jdbc.queryForObject("SELECT id FROM user_info WHERE id=? FOR UPDATE", Long.class, user.id());

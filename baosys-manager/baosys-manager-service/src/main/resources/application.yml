@@ -80,7 +80,6 @@ common:
 baosys:
   shared-login:
     manager-origin: ${MANAGER_PUBLIC_ORIGIN:http://localhost:8080}
-    allowed-origins: ${SHARED_LOGIN_ALLOWED_ORIGINS:}
     secure-cookie: ${SHARED_LOGIN_SECURE_COOKIE:false}
   authorization:
     jwk-set-location: ${JWT_JWK_SET_LOCATION}

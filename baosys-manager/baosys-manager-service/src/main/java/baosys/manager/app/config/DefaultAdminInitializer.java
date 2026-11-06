@@ -57,6 +57,7 @@ public class DefaultAdminInitializer implements ApplicationRunner {
         admin.setUserName(username);
         admin.setUserPass(passwordHasher.hash(password));
         admin.setUserPermissions(permissions);
+        admin.setDefaultSystemType("MGR");
         admin.setEnabled(true);
         userMapper.insert(admin);
 

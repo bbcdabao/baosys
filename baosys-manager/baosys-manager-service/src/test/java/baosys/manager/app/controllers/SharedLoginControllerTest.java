@@ -32,18 +32,14 @@ class SharedLoginControllerTest {
         mvc = MockMvcBuilders.standaloneSetup(
             new SharedLoginController(
                 service,
-                new SharedLoginProperties("http://localhost:8080", List.of(), false),
-                new baosys.manager.infra.security.SharedLoginNavigation(
-                    new SharedLoginProperties("http://localhost:8080", List.of(), false),
-                    org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings.builder()
-                        .issuer("http://localhost:9090/baosys-manager").build())
+                new SharedLoginProperties("http://localhost:8080", false)
             )
         ).setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test
     void loginBindsCookieAndPreservesResponseContract() throws Exception {
-        when(service.login("admin", "password", "previous")).thenReturn(tokens());
+        when(service.login("admin", "password", "previous", null)).thenReturn(tokens());
         mvc.perform(
             post("/v1/browser-auth/login")
                 .cookie(new Cookie(SharedTokenCookies.REFRESH, "previous"))
@@ -57,7 +53,7 @@ class SharedLoginControllerTest {
             .andExpect(cookie().httpOnly(SharedTokenCookies.ACCESS, true))
             .andExpect(cookie().value(SharedTokenCookies.REFRESH, "renewed"))
             .andExpect(header().string("Cache-Control", "no-store"));
-        verify(service).login("admin", "password", "previous");
+        verify(service).login("admin", "password", "previous", null);
     }
 
     @Test
@@ -111,7 +107,7 @@ class SharedLoginControllerTest {
 
     private static BrowserAuthAppService.Tokens tokens() {
         return new BrowserAuthAppService.Tokens(
-            "access", "renewed", Instant.now().plusSeconds(1800), Instant.now().plusSeconds(86400)
+            "access", "renewed", Instant.now().plusSeconds(1800), Instant.now().plusSeconds(86400), "http://localhost:8080/users-management"
         );
     }
 }

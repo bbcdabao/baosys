@@ -7,6 +7,7 @@ export interface UserSummary {
   id: number
   name: string
   permissions: string[]
+  defaultSystemType: SystemType
   enabled: boolean
   status: boolean
 }
@@ -15,6 +16,7 @@ export interface UserCreateRequest {
   name: string
   pass: string
   permissions: string[]
+  defaultSystemType: SystemType
   enabled: boolean
 }
 

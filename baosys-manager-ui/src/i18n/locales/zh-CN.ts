@@ -51,9 +51,12 @@ export default {
     passwordRequired: '请输入密码'
   },
   user: {
+    defaultSystemType: '默认登录子系统',
+    defaultSystemRequired: '请选择默认登录子系统',
+    defaultSystemHint: '默认子系统不授予权限；没有入口权限时进入已授权子系统页面。',
     authorizedSystems: '已授权子系统',
     noSystemAccess: '当前账户尚未分配子系统权限',
-    systemAccessHint: '可访问的子系统由账户权限决定。管理功能请从左侧菜单进入。',
+    systemAccessHint: '请选择已授权的子系统进入。如需使用其他账户，请退出登录后重新登录。',
     entryOnly: '仅子系统入口权限',
     retiredPermissions: '以下已失效权限将被移除',
     title: '用户管理',

@@ -51,7 +51,8 @@ class SystemCatalogIntegrationTest extends PostgreSqlIntegrationTest {
                 "manager-" + UUID.randomUUID(),
                 "secure123",
                 Set.of("MGR", "MGR:user:list"),
-                true
+                true,
+                "MGR"
             ),
             1L
         );
@@ -70,8 +71,8 @@ class SystemCatalogIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void rejectsUnknownSystemAndOrphanPermissions() {
         for (var request : List.of(
-            new UserCreateRequest("unknown", "secure123", Set.of("UNKNOWN"), true),
-            new UserCreateRequest("orphan", "secure123", Set.of("MGR:user:list"), true)
+            new UserCreateRequest("unknown", "secure123", Set.of("UNKNOWN"), true, "MGR"),
+            new UserCreateRequest("orphan", "secure123", Set.of("MGR:user:list"), true, "MGR")
         )) {
             assertThatThrownBy(() -> users.create(request, 1L)).isInstanceOf(
                 BusinessException.class

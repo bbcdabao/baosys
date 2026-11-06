@@ -13,5 +13,6 @@ public record UserCreateRequest(
     @Size(min = 8, max = 128, message = "密码长度必须为 8 到 128 个字符")
     String pass,
     @NotNull(message = "权限配置不能为空") Set<String> permissions,
-    Boolean enabled
+    Boolean enabled,
+    @NotBlank(message = "默认子系统不能为空") String defaultSystemType
 ) {}

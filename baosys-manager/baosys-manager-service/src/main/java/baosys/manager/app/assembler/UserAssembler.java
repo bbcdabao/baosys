@@ -17,7 +17,8 @@ public final class UserAssembler {
                 .sorted()
                 .toList(),
             user.isEnabled(),
-            online
+            online,
+            user.getDefaultSystemType()
         );
     }
 }

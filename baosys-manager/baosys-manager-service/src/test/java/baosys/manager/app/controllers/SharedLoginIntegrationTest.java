@@ -18,7 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest(properties = "baosys.shared-login.allowed-origins=http://localhost:8081")
+@SpringBootTest(properties = "spring.config.import=classpath:shared-login-catalog-test.yml")
 @ActiveProfiles("test")
 class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
 
@@ -32,6 +32,68 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
     org.springframework.security.crypto.password.PasswordEncoder passwords;
 
     private static final String PREFIX = "/v1/browser-auth";
+
+    @Autowired
+    baosys.manager.app.services.UserAppService users;
+
+    @Test
+    void defaultSubsystemIsPersistedAndExplicitDeepLinkTakesPrecedence() throws Exception {
+        var user = users.create(new baosys.manager.api.module.payloads.UserCreateRequest(
+            "nav-" + java.util.UUID.randomUUID(), "secure123", java.util.Set.of("MGR", "CAT"), true, "CAT"), 1L);
+        try {
+            assertThat(user.defaultSystemType()).isEqualTo("CAT");
+            assertThat(jdbc.queryForObject("SELECT default_system_type FROM user_info WHERE id=?", String.class, user.id()))
+                .isEqualTo("CAT");
+            assertThat(users.list(user.name(), null, 0, 20).items().get(0).defaultSystemType()).isEqualTo("CAT");
+            loginAs(user.name(), null, "http://localhost:8081/");
+            loginAs(user.name(), "http://localhost:8080/login-sessions?page=2#row", "http://localhost:8080/login-sessions?page=2#row");
+            var updated = users.update(new baosys.manager.api.module.payloads.UserUpdateRequest(
+                user.id(), user.name(), "", java.util.Set.of("MGR", "CAT"), true, "MGR"), 1L);
+            assertThat(updated.defaultSystemType()).isEqualTo("MGR");
+            loginAs(user.name(), null, "http://localhost:8080/users-management");
+            loginAs(user.name(), "http://localhost:8081/xxxx/zzzz/yyy?task=123#detail",
+                "http://localhost:8081/xxxx/zzzz/yyy?task=123#detail");
+        } finally {
+            users.delete(user.id(), 1L);
+        }
+    }
+
+    @Test
+    void missingTargetEntryAndEmptyPermissionsAlwaysLeadToAuthorizedSystems() throws Exception {
+        var user = users.create(new baosys.manager.api.module.payloads.UserCreateRequest(
+            "fallback-" + java.util.UUID.randomUUID(), "secure123", java.util.Set.of("MGR"), true, "CAT"), 1L);
+        try {
+            String fallback = "http://localhost:8080/authorized-systems";
+            loginAs(user.name(), null, fallback);
+            loginAs(user.name(), "http://localhost:8081/task?id=1", fallback);
+            users.update(new baosys.manager.api.module.payloads.UserUpdateRequest(
+                user.id(), user.name(), "", java.util.Set.of(), true, "CAT"), 1L);
+            var result = loginAs(user.name(), null, fallback);
+            loginAs(user.name(), fallback, fallback);
+            String token = result.getResponse().getCookie(SharedTokenCookies.ACCESS).getValue();
+            mvc.perform(get("/v1/users/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.permissions").isEmpty());
+            mvc.perform(get("/v1/systems").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data[1].uiBaseUrl").value("http://localhost:8081/"));
+            mvc.perform(post(PREFIX + "/logout").header("Origin", "http://localhost:8080")
+                .cookie(result.getResponse().getCookie(SharedTokenCookies.REFRESH))
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isOk()).andExpect(cookie().maxAge(SharedTokenCookies.ACCESS, 0));
+        } finally {
+            users.delete(user.id(), 1L);
+        }
+    }
+
+    private MvcResult loginAs(String name, String target, String expected) throws Exception {
+        var body = new java.util.HashMap<String, String>();
+        body.put("username", name);
+        body.put("password", "secure123");
+        if (target != null) body.put("redirectUrl", target);
+        return mvc.perform(post(PREFIX + "/login").header("Origin", "http://localhost:8080")
+            .contentType(MediaType.APPLICATION_JSON).content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.redirectUrl").value(expected))
+            .andExpect(cookie().httpOnly(SharedTokenCookies.ACCESS, true)).andReturn();
+    }
 
     private MvcResult login(Cookie... cookies) throws Exception {
         var request = post(PREFIX + "/login");
@@ -49,7 +111,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             )
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$.data.redirectUrl").value("http://localhost:8081/orders?page=2#row")
+                jsonPath("$.data.redirectUrl").value("http://localhost:8080/authorized-systems")
             )
             .andExpect(jsonPath("$.data.accessToken").doesNotExist())
             .andReturn();
@@ -167,8 +229,8 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
         String name = "shared-" + java.util.UUID.randomUUID();
         Long userId = jdbc.queryForObject(
             """
-            INSERT INTO user_info(user_name,user_pass,user_permissions,enabled,created_at,updated_at,created_by,updated_by)
-            VALUES(?,?,?,true,now(),now(),'test','test') RETURNING id
+            INSERT INTO user_info(user_name,user_pass,user_permissions,default_system_type,enabled,created_at,updated_at,created_by,updated_by)
+            VALUES(?,?,?,'MGR',true,now(),now(),'test','test') RETURNING id
             """,
             Long.class,
             name,

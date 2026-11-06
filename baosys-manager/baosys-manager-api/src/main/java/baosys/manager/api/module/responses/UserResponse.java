@@ -7,5 +7,6 @@ public record UserResponse(
     String name,
     List<String> permissions,
     boolean enabled,
-    boolean status
+    boolean status,
+    String defaultSystemType
 ) {}

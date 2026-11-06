@@ -43,7 +43,7 @@ class ManagerInitializationIntegrationTest extends PostgreSqlIntegrationTest {
             assertThat(jdbc.queryForList(
                 "SELECT column_name FROM information_schema.columns WHERE table_schema=? AND table_name='user_info'",
                 String.class, schema
-            )).doesNotContain("system_type");
+            )).contains("default_system_type").doesNotContain("system_type");
             assertThat(jdbc.queryForList(
                 "SELECT column_name FROM information_schema.columns WHERE table_schema=? AND table_name='user_login'",
                 String.class, schema
@@ -56,8 +56,12 @@ class ManagerInitializationIntegrationTest extends PostgreSqlIntegrationTest {
                 String.class, schema
             )).containsExactlyInAnyOrder("text", "text", "text");
             String insert = "INSERT INTO " + schema +
-                ".user_info(user_name,user_pass,user_permissions,created_at,updated_at,created_by,updated_by) " +
-                "VALUES ('alice','hash','MGR,MGR:user:list',now(),now(),'test','test')";
+                ".user_info(user_name,user_pass,user_permissions,default_system_type,created_at,updated_at,created_by,updated_by) " +
+                "VALUES ('alice','hash','MGR,MGR:user:list','MGR',now(),now(),'test','test')";
+            assertThatThrownBy(() -> jdbc.update(insert.replace("'MGR',now()", "NULL,now()")))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbc.update(insert.replace("'MGR',now()", "' ',now()")))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
             jdbc.update(insert);
             assertThatThrownBy(() -> jdbc.update(insert))
                 .isInstanceOf(org.springframework.dao.DuplicateKeyException.class);

@@ -56,7 +56,8 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
                 user.name(),
                 "",
                 Set.of("MGR", "MGR:user:list"),
-                false
+                false,
+                "MGR"
             ),
             9001L
         );
@@ -169,7 +170,8 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
                         user.name(),
                         "",
                         Set.of("MGR", "MGR:user:list"),
-                        false
+                        false,
+                        "MGR"
                     ),
                     9001L
                 );
@@ -206,7 +208,8 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
                 "lifecycle-" + UUID.randomUUID(),
                 "secure123",
                 Set.of("MGR", "MGR:user:list"),
-                null
+                null,
+                "MGR"
             ),
             9001L
         );

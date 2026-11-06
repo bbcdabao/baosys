@@ -7,6 +7,8 @@ interface LocalizedName {
   [locale: string]: string
 }
 interface SystemDefinition {
+  uiBaseUrl: string
+  homePath: string
   systemType: string
   name: LocalizedName
   permissions: Array<{ code: string; name: LocalizedName }>
@@ -26,6 +28,7 @@ export const useSystemCatalog = () => {
   const systemOptions = computed(() =>
     systems.value.map((system) => ({
       value: system.systemType,
+      homeUrl: new URL(system.homePath, system.uiBaseUrl).href,
       label: label(system.name, system.systemType)
     }))
   )

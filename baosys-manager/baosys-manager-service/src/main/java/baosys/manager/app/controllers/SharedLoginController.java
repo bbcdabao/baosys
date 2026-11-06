@@ -22,12 +22,10 @@ public class SharedLoginController implements BrowserAuthApi {
 
     private final BrowserAuthAppService service;
     private final SharedLoginProperties properties;
-    private final SharedLoginNavigation navigation;
 
-    public SharedLoginController(BrowserAuthAppService service, SharedLoginProperties properties, SharedLoginNavigation navigation) {
+    public SharedLoginController(BrowserAuthAppService service, SharedLoginProperties properties) {
         this.service = service;
         this.properties = properties;
-        this.navigation = navigation;
     }
 
     @Override
@@ -35,11 +33,9 @@ public class SharedLoginController implements BrowserAuthApi {
         BrowserLoginRequest login,
         String previous
     ) {
-        // 在创建会话前验证返回地址，避免无效跳转请求留下新授权。
-        String redirect = navigation.returnUrl(login.redirectUrl());
-        var tokens = service.login(login.username(), login.password(), previous);
+        var tokens = service.login(login.username(), login.password(), previous, login.redirectUrl());
         return response(tokens).body(
-            ApiResponse.success(new BrowserLoginResponse(redirect), TraceIds.current())
+            ApiResponse.success(new BrowserLoginResponse(tokens.redirectUrl()), TraceIds.current())
         );
     }
 

@@ -54,7 +54,7 @@ class UserAppServiceImplTest {
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         var updated = userAppService.update(
-            new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR"), true),
+            new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR"), true, "MGR"),
             9001L
         );
 
@@ -69,7 +69,7 @@ class UserAppServiceImplTest {
 
         assertThatThrownBy(() ->
             userAppService.update(
-                new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR:user:list"), true),
+                new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR:user:list"), true, "MGR"),
                 9001L
             )
         )
@@ -88,7 +88,8 @@ class UserAppServiceImplTest {
                 "manager-user",
                 "",
                 Set.of("MGR", "MGR:user:update"),
-                true
+                true,
+                "MGR"
             ),
             9001L
         );
@@ -112,7 +113,7 @@ class UserAppServiceImplTest {
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         userAppService.update(
-            new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR", "MGR:user:list"), false),
+            new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR", "MGR:user:list"), false, "MGR"),
             9001L
         );
 
@@ -131,7 +132,7 @@ class UserAppServiceImplTest {
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         userAppService.update(
-            new UserUpdateRequest(1001L, "renamed-user", "", Set.of("MGR", "MGR:user:list"), true),
+            new UserUpdateRequest(1001L, "renamed-user", "", Set.of("MGR", "MGR:user:list"), true, "MGR"),
             9001L
         );
 
@@ -147,7 +148,7 @@ class UserAppServiceImplTest {
         user.setEnabled(false);
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
         var result = userAppService.update(
-            new UserUpdateRequest(1001L, "renamed", "", Set.of("MGR", "MGR:user:list"), null),
+            new UserUpdateRequest(1001L, "renamed", "", Set.of("MGR", "MGR:user:list"), null, "MGR"),
             9001L
         );
         assertThat(result.enabled()).isFalse();
@@ -165,7 +166,8 @@ class UserAppServiceImplTest {
                 "test-user",
                 "new-password",
                 Set.of("MGR", "MGR:user:list"),
-                true
+                true,
+                "MGR"
             ),
             9001L
         );

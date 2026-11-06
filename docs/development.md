@@ -47,7 +47,9 @@ mvn -f baosys-manager/baosys-manager-service/pom.xml spring-boot:run
 
 客户端密钥默认使用 `{noop}local-dev-client-secret`，本地开发无需设置 `OAUTH2_CLIENT_SECRET_HASH`。该默认值和示例密码仅用于本地开发。正式部署通过 `OAUTH2_CLIENT_SECRET_HASH` 将客户端密钥覆盖为带 `{bcrypt}` 前缀的编码值，并使用独立管理员密码。当前页面登录仍复用 `baosys-web` 注册配置；网关不需要客户端密钥。
 
-管理员默认不自动创建；启用时密码至少 12 位，仅在用户名不存在时创建，不覆盖已有密码或权限。首次创建完成后关闭初始化开关。Flyway 自动执行 V1，无需手动逐个执行 SQL。
+管理员默认不自动创建；启用时密码至少 12 位，仅在用户名不存在时创建，不覆盖已有密码或权限。首次创建完成后关闭初始化开关。Flyway 自动执行 V1，无需手动逐个执行 SQL。默认管理员的默认登录子系统为 MGR。
+
+按仓库未部署首版约定，本次默认子系统字段合并到 V1：`user_info.default_system_type` 非空且禁止空白，无数据库默认值，账户写入必须显式选择目录中的系统。已执行旧 V1 的开发数据库需要保留数据后另行迁移，或使用新的隔离 schema 初始化；不要直接覆盖历史校验和或删除已有用户。正式部署库必须通过递增 Flyway 迁移增加字段、明确补齐每个已有账户的默认系统，再施加非空约束。
 
 Manager Web 终端：
 
@@ -79,14 +81,14 @@ npm --prefix baosys-manager-ui run dev
 | `DEFAULT_ADMIN_USERNAME / DEFAULT_ADMIN_PASSWORD` | Service | `admin / 空` |
 | `MANAGER_PUBLIC_ORIGIN` | Service | `http://localhost:8080`；Vite 开发改为 5173，不带路径或尾斜杠 |
 | `SHARED_LOGIN_SECURE_COOKIE` | Service | `false`；HTTPS 必须设为 `true` |
-| `SHARED_LOGIN_ALLOWED_ORIGINS` | Service | 默认空；当前仅 Manager 无需增加 |
+| `CAT_UI_BASE_URL` | Service（系统目录） | `http://localhost:8081/`；必须与 Manager 同主机、同协议，以斜杠结尾 |
 | `BAOSYS_SYSTEMS_CONFIG` | Service | `classpath:baosys-systems.yml`；可改为完整外部目录文件 URI |
 | `GATEWAY_PORT` | Web | `8080` |
 | `MANAGER_SERVICE_URL` | Web | `http://127.0.0.1:9090` |
 | `JWT_ISSUER` | 两者 | 默认均为 `http://localhost:9090/baosys-manager`，本地无需设置；覆盖时两者保持一致 |
 | `JWT_JWK_SET_URI` | 两者 | Service 默认 localhost:9090、Web 默认 127.0.0.1:9090 的 `/baosys-manager/oauth2/jwks` |
 
-目录文件构建时从根目录打包；修改后重新构建，或用 `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` 覆盖并重启。保留 `MGR` 及其接口权限；其他目录项仅为预留配置。
+目录文件构建时从根目录打包；修改后重新构建，或用 `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` 覆盖并重启。保留 `MGR` 及其接口权限；每项必须配置 `ui-base-url` 和 `home-path`。MGR 基址引用 `MANAGER_PUBLIC_ORIGIN`，CAT 基址引用 `CAT_UI_BASE_URL`；回跳白名单直接来自该目录，不再使用 `SHARED_LOGIN_ALLOWED_ORIGINS`。CAT 入口登记不代表部署了 CAT 服务；其他子系统需单独部署并接入共享登录。
 
 ## 测试与打包
 
@@ -97,7 +99,7 @@ mvn test "-Dskip.frontend=true"
 mvn -Pintegration-tests verify "-Dskip.frontend=true"
 # 前端类型检查和生产构建
 npm --prefix baosys-manager-ui run build
-# 同源双标签页认证协调测试（默认本机 Edge，HTTP 接口使用测试替身）
+# 登录回跳、默认系统表单、兜底页及同源双标签页认证测试（默认本机 Edge，HTTP 接口使用测试替身）
 npm --prefix baosys-manager-ui run test:browser
 # 包含前端的完整打包；verify 同时复制应用 Jar 到 out
 mvn clean verify

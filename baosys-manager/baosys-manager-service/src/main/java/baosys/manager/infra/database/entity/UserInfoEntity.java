@@ -19,6 +19,16 @@ public class UserInfoEntity {
 
     private String userPermissions;
 
+    private String defaultSystemType;
+
+    public String getDefaultSystemType() {
+        return defaultSystemType;
+    }
+
+    public void setDefaultSystemType(String defaultSystemType) {
+        this.defaultSystemType = defaultSystemType;
+    }
+
     private boolean enabled;
 
     @TableField(fill = FieldFill.INSERT)

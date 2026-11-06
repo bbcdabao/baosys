@@ -11,11 +11,12 @@
       v-else
       wrap
     >
-      <a-tag
+      <a-button
         v-for="system in authorized"
         :key="system.value"
-        color="arcoblue"
-        >{{ system.label }}</a-tag
+        type="primary"
+        :href="system.homeUrl"
+        >{{ system.label }}</a-button
       >
     </a-space>
     <p>{{ t('user.systemAccessHint') }}</p>

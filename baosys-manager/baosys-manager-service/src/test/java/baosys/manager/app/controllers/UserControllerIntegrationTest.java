@@ -85,7 +85,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                    {"name":"%s","pass":"secure123","permissions":["MGR","MGR:user:list"]}
+                    {"defaultSystemType":"MGR","name":"%s","pass":"secure123","permissions":["MGR","MGR:user:list"]}
                     """.formatted(name)
                 )
         )
@@ -137,7 +137,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void subsystemEntryWithoutApiPermissionIsInsufficient() throws Exception {
         var user = users.create(
-            new UserCreateRequest("entry-" + UUID.randomUUID(), "secure123", Set.of("MGR"), true),
+            new UserCreateRequest("entry-" + UUID.randomUUID(), "secure123", Set.of("MGR"), true, "MGR"),
             1L
         );
         var login = auth.login(new LoginRequest(user.name(), "secure123", null));
@@ -155,19 +155,45 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
                 .header("Authorization", "Bearer " + admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"name\":\"orphan\",\"pass\":\"secure123\",\"permissions\":[\"MGR:user:list\"]}"
+                    "{\"defaultSystemType\":\"MGR\",\"name\":\"orphan\",\"pass\":\"secure123\",\"permissions\":[\"MGR:user:list\"]}"
                 )
         ).andExpect(status().isBadRequest());
         mvc.perform(
             post("/v1/users")
                 .header("Authorization", "Bearer " + admin)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"admin\",\"pass\":\"secure123\",\"permissions\":[\"MGR\"]}")
+                .content("{\"defaultSystemType\":\"MGR\",\"name\":\"admin\",\"pass\":\"secure123\",\"permissions\":[\"MGR\"]}")
         ).andExpect(status().isConflict());
     }
 
     @Test
     void missingTokenIsUnauthorized() throws Exception {
         mvc.perform(get("/v1/users/me")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void defaultSubsystemIsRequiredAndMustExistForCreateAndUpdate() throws Exception {
+        String token = adminToken();
+        var user = users.create(new UserCreateRequest("default-" + UUID.randomUUID(), "secure123", Set.of("MGR"), true, "MGR"), 1L);
+        try {
+            for (String value : Arrays.asList(null, "", " ", "UNKNOWN")) {
+                var body = new HashMap<String, Object>();
+                body.put("name", "invalid-" + UUID.randomUUID());
+                body.put("pass", "secure123");
+                body.put("permissions", List.of("MGR"));
+                if (value != null) body.put("defaultSystemType", value);
+                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                mvc.perform(post("/v1/users").header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest());
+                body.put("id", user.id());
+                mvc.perform(put("/v1/users").header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest());
+            }
+            assertThat(userMapper.findById(user.id()).orElseThrow().getDefaultSystemType()).isEqualTo("MGR");
+        } finally {
+            users.delete(user.id(), 1L);
+        }
     }
 }

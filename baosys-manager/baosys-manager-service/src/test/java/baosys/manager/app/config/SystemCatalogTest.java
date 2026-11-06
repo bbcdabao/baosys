@@ -48,7 +48,7 @@ class SystemCatalogTest {
             .hasMessageContaining("Duplicate permission");
         assertThatThrownBy(() ->
             new SystemCatalog(
-                List.of(new SystemDefinition("MGR", Map.of("zh-CN", "管理"), List.of()))
+                List.of(new SystemDefinition("MGR", Map.of("zh-CN", "管理"), List.of(), "http://localhost:8080/", "/users-management"))
             )
         )
             .isInstanceOf(IllegalArgumentException.class)
@@ -56,7 +56,7 @@ class SystemCatalogTest {
     }
 
     private static SystemDefinition system(String type, List<PermissionDefinition> permissions) {
-        return new SystemDefinition(type, NAMES, permissions);
+        return new SystemDefinition(type, NAMES, permissions, "http://localhost:8080/", "/users-management");
     }
 
     @Test

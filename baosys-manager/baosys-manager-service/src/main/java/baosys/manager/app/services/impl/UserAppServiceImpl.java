@@ -121,6 +121,7 @@ public class UserAppServiceImpl implements UserAppService {
     public UserResponse create(UserCreateRequest request, long operatorUserId) {
         String username = normalizeName(request.name());
         Set<String> permissions = validatePermissions(request.permissions());
+        String defaultSystem = validateDefaultSystem(request.defaultSystemType());
         String encodedPermissions = PermissionPersistenceConverter.encode(permissions);
         boolean enabled = request.enabled() == null || request.enabled();
         if (userMapper.existsByUserName(username)) {
@@ -131,6 +132,7 @@ public class UserAppServiceImpl implements UserAppService {
         user.setUserName(username);
         user.setUserPass(passwordHasher.hash(request.pass()));
         user.setUserPermissions(encodedPermissions);
+        user.setDefaultSystemType(defaultSystem);
         user.setEnabled(enabled);
         userMapper.insert(user);
         auditAuthorizationChange(
@@ -155,6 +157,7 @@ public class UserAppServiceImpl implements UserAppService {
         UserInfoEntity user = requireUserForUpdate(request.id());
         String username = normalizeName(request.name());
         Set<String> permissions = validatePermissions(request.permissions());
+        String defaultSystem = validateDefaultSystem(request.defaultSystemType());
         String beforePermissions = PermissionPersistenceConverter.encode(
             PermissionPersistenceConverter.decode(user.getUserPermissions())
         );
@@ -181,6 +184,7 @@ public class UserAppServiceImpl implements UserAppService {
             passwordChanged = true;
         }
         user.setUserPermissions(afterPermissions);
+        user.setDefaultSystemType(defaultSystem);
         user.setEnabled(afterEnabled);
         userMapper.updateById(user);
         if (authorizationChanged || passwordChanged) {
@@ -302,6 +306,13 @@ public class UserAppServiceImpl implements UserAppService {
         audit.setTraceId(TraceIds.current());
         audit.setOccurredAt(now());
         permissionChangeAuditMapper.insert(audit);
+    }
+
+    private String validateDefaultSystem(String type) {
+        if (type == null || type.isBlank() || !catalog.contains(type)) {
+            throw new BusinessException("USER_400_DEFAULT_SYSTEM", HttpStatus.BAD_REQUEST, "默认子系统必须是目录中登记的子系统");
+        }
+        return type;
     }
 
     private Set<String> validatePermissions(Set<String> permissions) {

@@ -5,6 +5,7 @@ CREATE TABLE user_info (
     user_name VARCHAR(128) NOT NULL,
     user_pass VARCHAR(512) NOT NULL,
     user_permissions TEXT NOT NULL,
+    default_system_type VARCHAR(128) NOT NULL CHECK (btrim(default_system_type) <> ''),
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -105,6 +106,7 @@ CREATE INDEX idx_user_login_expires_at ON user_login (expires_at);
 COMMENT ON TABLE user_info IS '系统账户信息';
 COMMENT ON COLUMN user_info.user_pass IS 'BCrypt 密码摘要';
 COMMENT ON COLUMN user_info.user_permissions IS 'Sorted grants: uppercase subsystem abbreviation (MGR) or namespaced API permission (MGR:user:list)';
+COMMENT ON COLUMN user_info.default_system_type IS 'Required default login subsystem; navigation does not grant access';
 COMMENT ON TABLE user_login IS '账户登录客户端与授权会话';
 COMMENT ON COLUMN user_login.client_id IS 'Login client identity, independent of authorized subsystems';
 

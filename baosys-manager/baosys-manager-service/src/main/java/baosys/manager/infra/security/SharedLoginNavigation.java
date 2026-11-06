@@ -11,16 +11,18 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * 共用 Vue 登录页，登录成功只允许恢复到配置中的授权端点。
+ * 共用 Vue 登录页，区分子系统页面回跳与精确配置的 OAuth2 授权端点。
  */
 @Component
 public class SharedLoginNavigation implements AuthenticationEntryPoint {
     private final SharedLoginProperties properties;
+    private final SubsystemNavigation subsystems;
     private final URI authorizationUri;
     private final String authorizationPath;
 
-    public SharedLoginNavigation(SharedLoginProperties properties, AuthorizationServerSettings settings) {
+    public SharedLoginNavigation(SharedLoginProperties properties, AuthorizationServerSettings settings, SubsystemNavigation subsystems) {
         this.properties = properties;
+        this.subsystems = subsystems;
         this.authorizationPath = settings.getAuthorizationEndpoint();
         this.authorizationUri = URI.create(settings.getIssuer() + authorizationPath);
     }
@@ -28,7 +30,7 @@ public class SharedLoginNavigation implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException error)
         throws IOException {
-        String target = properties.returnUrl(null);
+        String target = subsystems.authorizedSystemsUrl();
         if (authorizationPath.equals(request.getRequestURI().substring(request.getContextPath().length()))) {
             var query = request.getParameterMap().entrySet().stream().flatMap(entry ->
                 java.util.Arrays.stream(entry.getValue()).map(value ->
@@ -39,6 +41,16 @@ public class SharedLoginNavigation implements AuthenticationEntryPoint {
         }
         response.sendRedirect(UriComponentsBuilder.fromUriString(properties.managerOrigin() + "/login")
             .queryParam("redirect_url", "{target}").encode().buildAndExpand(target).toUriString());
+    }
+
+    public String destination(String target, String defaultSystem, java.util.Set<String> permissions) {
+        target = returnUrl(target);
+        if (target != null && isAuthorizationReturn(target)) return target;
+        return subsystems.destination(target, defaultSystem, permissions);
+    }
+
+    private boolean isAuthorizationReturn(String value) {
+        return value.startsWith(authorizationUri.toASCIIString() + "?") || value.equals(authorizationUri.toASCIIString());
     }
 
     public String returnUrl(String value) {
@@ -58,6 +70,6 @@ public class SharedLoginNavigation implements AuthenticationEntryPoint {
                 // 由共用返回地址校验统一输出业务错误。
             }
         }
-        return properties.returnUrl(value);
+        return subsystems.validateReturnUrl(value);
     }
 }

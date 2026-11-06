@@ -28,10 +28,11 @@ public class BrowserLoginTransaction {
     private final AccountTokenSubjectResolver subjects;
     private final AuthorizationServerSettings settings;
     private final Clock clock;
+    private final SharedLoginNavigation navigation;
 
     public BrowserLoginTransaction(UserInfoMapper users, AccountAuthorizationService authorizations,
         RegisteredClientRepository clients, TokenIssuer issuer, AccountTokenSubjectResolver subjects,
-        AuthorizationServerSettings settings, Clock clock) {
+        AuthorizationServerSettings settings, Clock clock, SharedLoginNavigation navigation) {
         this.users = users;
         this.authorizations = authorizations;
         this.clients = clients;
@@ -39,22 +40,26 @@ public class BrowserLoginTransaction {
         this.subjects = subjects;
         this.settings = settings;
         this.clock = clock;
+        this.navigation = navigation;
     }
 
     @Transactional
-    public Tokens completeLogin(VerifiedAccount verified, String previousRefresh) {
+    public Tokens completeLogin(VerifiedAccount verified, String previousRefresh, String target) {
         var previous = authorizations.lockForInternalReplacement(verified.id(), previousRefresh);
         var user = users.findByIdForUpdate(verified.id()).filter(value -> value.isEnabled())
             .orElseThrow(BrowserLoginTransaction::unauthorized);
         if (!Objects.equals(user.getUserName(), verified.username())
             || !Objects.equals(user.getUserPass(), verified.passwordHash())) throw unauthorized();
+        String redirect = navigation.destination(target, user.getDefaultSystemType(),
+            baosys.manager.infra.database.converter.PermissionPersistenceConverter.decode(user.getUserPermissions()));
         if (previous != null) authorizations.remove(previous);
         var client = Objects.requireNonNull(clients.findByClientId(JwtConstants.BROWSER_CLIENT_ID));
         var authorization = OAuth2Authorization.withRegisteredClient(client)
             .principalName(user.getId().toString()).authorizationGrantType(SharedLoginGrant.TYPE)
             .authorizedScopes(Set.of()).build();
         authorizations.save(authorization);
-        return issue(authorization, clock.instant().plus(client.getTokenSettings().getRefreshTokenTimeToLive()));
+        var tokens = issue(authorization, clock.instant().plus(client.getTokenSettings().getRefreshTokenTimeToLive()));
+        return new Tokens(tokens.accessToken(), tokens.refreshToken(), tokens.accessExpiry(), tokens.refreshExpiry(), redirect);
     }
 
     @Transactional
@@ -111,7 +116,7 @@ public class BrowserLoginTransaction {
                 .refreshToken(refresh)
                 .build()
         );
-        return new Tokens(jwt.getTokenValue(), refresh.getTokenValue(), expiry, refreshExpiry);
+        return new Tokens(jwt.getTokenValue(), refresh.getTokenValue(), expiry, refreshExpiry, null);
     }
 
 

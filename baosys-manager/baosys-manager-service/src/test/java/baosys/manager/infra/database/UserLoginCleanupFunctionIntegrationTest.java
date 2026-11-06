@@ -49,11 +49,12 @@ class UserLoginCleanupFunctionIntegrationTest extends PostgreSqlIntegrationTest 
                 user_name,
                 user_pass,
                 user_permissions,
+                default_system_type,
                 created_at,
                 updated_at,
                 created_by,
                 updated_by)
-            VALUES (?, 'encoded', 'MGR', ?, ?, 'test', 'test')
+            VALUES (?, 'encoded', 'MGR', 'MGR', ?, ?, 'test', 'test')
             RETURNING id
             """,
             Long.class,

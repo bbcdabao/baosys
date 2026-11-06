@@ -1,0 +1,26 @@
+# 测试专用目录：只包含 MGR 及其权限，不依赖部署目录中的其他子系统。
+baosys:
+  systems:
+    - system-type: MGR
+      ui-base-url: http://localhost:8080/
+      home-path: /users-management
+      name: { zh-CN: 后台管理, en-US: Management }
+      permissions:
+        - code: MGR:user:list
+          name: { zh-CN: 查看用户, en-US: View users }
+        - code: MGR:user:add
+          name: { zh-CN: 新增用户, en-US: Create users }
+        - code: MGR:user:update
+          name: { zh-CN: 修改用户, en-US: Update users }
+        - code: MGR:user:delete
+          name: { zh-CN: 删除用户, en-US: Delete users }
+        - code: MGR:user:session:list
+          name: { zh-CN: 查看登录会话, en-US: View sessions }
+        - code: MGR:user:session:kick
+          name: { zh-CN: 撤销登录会话, en-US: Revoke sessions }
+
+    - system-type: CAT
+      name: { zh-CN: 拨测平台, en-US: Automated }
+      ui-base-url: http://localhost:8081/
+      home-path: /
+      permissions: []

@@ -36,7 +36,7 @@ class BrowserLoginTransactionTest {
         when(subjects.resolve(authorization, "browser"))
             .thenReturn(new TokenIssuer.AccessTokenSubject("1", "browser", List.of()));
         var transaction = new BrowserLoginTransaction(mock(UserInfoMapper.class), store, clients, issuer,
-            subjects, AuthorizationServerSettings.builder().issuer("https://issuer.example").build(), clock);
+            subjects, AuthorizationServerSettings.builder().issuer("https://issuer.example").build(), clock, mock(SharedLoginNavigation.class));
         assertThatThrownBy(() -> transaction.refresh("refresh")).isInstanceOf(BadCredentialsException.class);
         verifyNoInteractions(issuer);
         verify(store, never()).save(any());

@@ -9,11 +9,15 @@ import java.util.Map;
  * @param systemType
  * @param name
  * @param permissions
+ * @param uiBaseUrl 子系统 UI 地址范围，以斜杠结尾
+ * @param homePath 从来源根路径开始的默认主页路径
  */
 public record SystemDefinition(
     String systemType,
     Map<String, String> name,
-    List<PermissionDefinition> permissions
+    List<PermissionDefinition> permissions,
+    String uiBaseUrl,
+    String homePath
 ) {
     public record PermissionDefinition(String code, Map<String, String> name) {}
 }

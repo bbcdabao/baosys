@@ -12,5 +12,6 @@ public record UserUpdateRequest(
     String name,
     String pass,
     @NotNull(message = "权限配置不能为空") Set<String> permissions,
-    Boolean enabled
+    Boolean enabled,
+    @NotBlank(message = "默认子系统不能为空") String defaultSystemType
 ) {}

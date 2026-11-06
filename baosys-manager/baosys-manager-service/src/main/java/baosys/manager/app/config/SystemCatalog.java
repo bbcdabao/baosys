@@ -53,7 +53,7 @@ public record SystemCatalog(List<SystemDefinition> systems) {
                         );
                     })
                     .toList();
-                return new SystemDefinition(type, names(system.name(), type), copied);
+                return new SystemDefinition(type, names(system.name(), type), copied, system.uiBaseUrl(), system.homePath());
             })
             .toList();
         if (!types.contains("MGR")) {

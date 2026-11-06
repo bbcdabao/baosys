@@ -51,10 +51,13 @@ export default {
     passwordRequired: 'Please enter a password'
   },
   user: {
+    defaultSystemType: 'Default login subsystem',
+    defaultSystemRequired: 'Select a default login subsystem',
+    defaultSystemHint: 'The default does not grant access. Without entry permission, the authorized systems page is shown.',
     authorizedSystems: 'Authorized subsystems',
     noSystemAccess: 'No subsystem permissions assigned',
     systemAccessHint:
-      'Subsystem access follows your account permissions. Open management features from the menu.',
+      'Choose an authorized subsystem to enter, or sign out to use another account.',
     entryOnly: 'Subsystem entry permission only',
     retiredPermissions: 'These retired permissions will be removed',
     title: 'User Management',

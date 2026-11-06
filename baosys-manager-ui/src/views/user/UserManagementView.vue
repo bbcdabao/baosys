@@ -81,6 +81,9 @@
             {{ systemLabel(type) }}
           </a-tag>
         </template>
+        <template #defaultSystemType="{ record }">
+          {{ systemLabel(record.defaultSystemType) }}
+        </template>
         <template #permissions="{ record }">
           <a-space wrap>
             <a-tag
@@ -190,6 +193,14 @@
             </a-option>
           </a-select>
         </a-form-item>
+        <a-form-item field="defaultSystemType" :label="t('user.defaultSystemType')">
+          <a-select v-model="form.defaultSystemType" :placeholder="t('user.defaultSystemRequired')">
+            <a-option v-for="option in systemOptions" :key="option.value" :value="option.value">
+              {{ option.label }} ({{ option.value }})
+            </a-option>
+          </a-select>
+          <template #extra>{{ t('user.defaultSystemHint') }}</template>
+        </a-form-item>
         <a-form-item
           v-for="type in form.systemTypes"
           :key="type"
@@ -270,6 +281,7 @@ const filters = reactive<{ name: string; systemType?: SystemType }>({
 const form = reactive({
   name: '',
   pass: '',
+  defaultSystemType: '',
   systemTypes: [] as SystemType[],
   permissions: [] as string[],
   enabled: true
@@ -288,6 +300,7 @@ const currentPermissionOptions = computed(() =>
 const columns = computed<TableColumnData[]>(() => [
   { title: t('user.name'), dataIndex: 'name' },
   { title: t('user.systemType'), slotName: 'systemType', width: 150 },
+  { title: t('user.defaultSystemType'), slotName: 'defaultSystemType', width: 150 },
   { title: t('user.permissions'), slotName: 'permissions' },
   { title: t('user.accountStatus'), slotName: 'enabled', width: 120 },
   { title: t('user.onlineStatus'), slotName: 'status', width: 120 },
@@ -305,6 +318,7 @@ const formRules = computed(() => ({
     editingId.value === null
       ? [{ required: true, minLength: 8, message: t('user.passwordRequired') }]
       : [{ minLength: 8, message: t('user.passwordRequired') }],
+  defaultSystemType: [{ required: true, message: t('user.defaultSystemRequired') }],
   permissions: []
 }))
 
@@ -356,6 +370,7 @@ const openCreate = (): void => {
   Object.assign(form, {
     name: '',
     pass: '',
+    defaultSystemType: '',
     systemTypes: [],
     permissions: [],
     enabled: true
@@ -381,6 +396,7 @@ const openEdit = (user: UserSummary): void => {
     Message.warning(`${t('user.retiredPermissions')}: ${unknown.join(', ')}`)
   }
   Object.assign(form, {
+    defaultSystemType: user.defaultSystemType,
     enabled: user.enabled,
     name: user.name,
     pass: '',
@@ -400,6 +416,7 @@ const saveUser = async (): Promise<void> => {
   const payload = {
     name: form.name,
     pass: form.pass,
+    defaultSystemType: form.defaultSystemType,
     enabled: form.enabled,
     permissions: [...form.systemTypes, ...form.permissions]
   }

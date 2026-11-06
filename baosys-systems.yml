@@ -4,6 +4,8 @@
 baosys:
   systems:
     - system-type: MGR
+      ui-base-url: ${MANAGER_PUBLIC_ORIGIN:http://localhost:8080}/
+      home-path: /users-management
       name: { zh-CN: 后台管理, en-US: Management }
       permissions:
         - code: MGR:user:list
@@ -19,5 +21,7 @@ baosys:
         - code: MGR:user:session:kick
           name: { zh-CN: 撤销登录会话, en-US: Revoke sessions }
     - system-type: CAT
+      ui-base-url: ${CAT_UI_BASE_URL:http://localhost:8081/}
+      home-path: /
       name: { zh-CN: 拨测平台, en-US: Automated }
       permissions: []

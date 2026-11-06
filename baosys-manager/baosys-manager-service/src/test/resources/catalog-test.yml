@@ -1,6 +1,8 @@
 baosys:
   systems:
     - system-type: MGR
+      ui-base-url: http://localhost:8080/
+      home-path: /users-management
       name: { zh-CN: 后台管理, en-US: Management }
       permissions:
         - code: MGR:user:list
