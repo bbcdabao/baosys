@@ -193,9 +193,19 @@
             </a-option>
           </a-select>
         </a-form-item>
-        <a-form-item field="defaultSystemType" :label="t('user.defaultSystemType')">
-          <a-select v-model="form.defaultSystemType" :placeholder="t('user.defaultSystemRequired')">
-            <a-option v-for="option in systemOptions" :key="option.value" :value="option.value">
+        <a-form-item
+          field="defaultSystemType"
+          :label="t('user.defaultSystemType')"
+        >
+          <a-select
+            v-model="form.defaultSystemType"
+            :placeholder="t('user.defaultSystemRequired')"
+          >
+            <a-option
+              v-for="option in systemOptions"
+              :key="option.value"
+              :value="option.value"
+            >
               {{ option.label }} ({{ option.value }})
             </a-option>
           </a-select>

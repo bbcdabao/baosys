@@ -48,7 +48,7 @@ const checkIdentity = async (): Promise<void> => {
 }
 onMounted(() => document.addEventListener('visibilitychange', checkIdentity))
 
-const stopAccountChanges = onAccountChange(version => {
+const stopAccountChanges = onAccountChange((version) => {
   authStore.clearSession()
   if (router.currentRoute.value.meta.public) return
   if (version.lastOperation === 'logout' || version.lastOperation === 'invalid') goLogin()

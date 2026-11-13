@@ -1,5 +1,7 @@
 # BrowserAuthApi implementation sequences
 
+Gateway CSRF validation is disabled by default (`spring.security.gateway.csrf-enabled=false`). The CSRF validation rules below apply when explicitly enabled. When disabled, the CSRF endpoint returns `{"enabled":false}` and the UI omits the CSRF header.
+
 [简体中文](browser_auth_sequence.md) | **English**
 
 Internal systems use username/password login. OAuth authorization code flows reuse the same login page and internal identity as needed. PKCE is configured per client, not enforced globally. This document describes the current implementation.
@@ -20,7 +22,7 @@ Internal systems use username/password login. OAuth authorization code flows reu
 
 Browser paths are `/api/baosys-manager/v1/browser-auth/{login,refresh,logout}`. The gateway removes `/api`; Service defaults to context-path `/baosys-manager`; the controller matches `/v1/browser-auth/**`.
 
-All three endpoints are public but not exempt from browser CSRF. Before writes, UI obtains `/api/baosys-manager/csrf` and places the token in the specified header. The gateway validates CSRF; Service additionally requires write-request Origin to exactly match manager-origin. An expired Access JWT does not block authentication requests. All three use JSON; refresh and logout credentials come from the HttpOnly Refresh Cookie.
+All three endpoints are public but not exempt from browser CSRF. Before writes, UI obtains `/api/baosys-manager/csrf` and places the token in the specified header. The gateway validates CSRF; the internal Service does not repeat request Origin validation. An expired Access JWT does not block authentication requests. All three use JSON; refresh and logout credentials come from the HttpOnly Refresh Cookie.
 
 ## 2. Login
 
@@ -115,6 +117,10 @@ Without Web Locks or usable storage, only within-page coordination is guaranteed
 
 ## 4. Logout
 
+Browser entry sequence: the user clicks sign out in any subsystem or Manager → navigation to the configured Manager `/baosys-manager/#/sign-out` → public page loads and mounts → the page automatically starts the calls below. The initiating subsystem does not call the logout API, and no second confirmation is required. Manager UI in the diagram refers to this sign-out page.
+
+On success, the page displays completion and replaces its route with Manager `/baosys-manager/#/login`. On failure, it stays visible with an explicit retry action. Each mount starts one attempt; further retries require user action. See the [unified sign-out specification (Chinese)](../../shared-sign-out.md).
+
 ```mermaid
 sequenceDiagram
     participant UI as Manager UI
@@ -141,10 +147,10 @@ Logout succeeds even when internal authorization is absent or cannot be found. T
 
 | Cookie | Path | Attributes |
 |---|---|---|
-| BAOSYS_ACCESS_TOKEN | `/` | HttpOnly, SameSite=Lax, configurable Secure |
+| BAOSYS_ACCESS_TOKEN | `/` | HttpOnly, SameSite=Lax |
 | BAOSYS_REFRESH_TOKEN | `/api/baosys-manager/v1/browser-auth` | Same as above |
 
-Cookies do not set Domain. HTTPS manager-origin requires secure-cookie. Successful responses use Cache-Control: no-store; tokens never appear in JSON. Access Token sub is user_login.id; OAuth principalName and OIDC ID Token sub are account IDs.
+Cookies do not set Domain or Secure attributes. Successful responses use Cache-Control: no-store; tokens never appear in JSON. Access Token sub is user_login.id; OAuth principalName and OIDC ID Token sub are account IDs.
 
 Cleanup checks only expires_at, not updated_at or a day without access. Each call handles at most 100 accounts, locks in ascending ID order, skips busy accounts, and rechecks and deletes expired logins under lock. Scheduling every five minutes is recommended. Administrator revocation also locks accounts first. Request-time expiry checks do not depend on scheduled cleanup.
 

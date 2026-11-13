@@ -1,5 +1,7 @@
 # 认证与会话
 
+网关 CSRF 校验默认关闭（`spring.security.gateway.csrf-enabled=false`）。下文的 CSRF 校验规则在显式开启后生效；关闭时 CSRF 端点返回 `{"enabled":false}`，前端不发送 CSRF 请求头。
+
 **简体中文** | [English](auth_and_session.en.md)
 
 Manager 同时提供内部浏览器共享 Cookie 登录和外部 OAuth2/OIDC 授权码流程。两者共用账户、JWK 签名密钥、官方 JDBC 授权存储及登录记录，但浏览器交互与刷新期限不同。
@@ -8,7 +10,7 @@ Manager 同时提供内部浏览器共享 Cookie 登录和外部 OAuth2/OIDC 授
 
 ## 1. 内部共享登录
 
-Vue 登录页是 Manager Web 的 `/baosys-manager/login?redirect_url=...`。页面参数使用 `redirect_url`，提交给后端的 JSON 字段是 `redirectUrl`。
+Vue 登录页是 Manager Web 的 `/baosys-manager/#/login?redirect_url=...`。页面参数使用 `redirect_url`，提交给后端的 JSON 字段是 `redirectUrl`。
 
 三个共享认证接口由 manager-api 中的 `BrowserAuthApi` 声明，登录请求和响应分别使用 `BrowserLoginRequest`、`BrowserLoginResponse`。SharedLoginController 实现契约，负责设置 Cookie 和调用认证服务。
 
@@ -28,15 +30,25 @@ Vue 登录页是 Manager Web 的 `/baosys-manager/login?redirect_url=...`。页�
 | BAOSYS_ACCESS_TOKEN | `/` | HttpOnly、SameSite=Lax |
 | BAOSYS_REFRESH_TOKEN | `/api/baosys-manager/v1/browser-auth` | HttpOnly、SameSite=Lax |
 
-不设置 Domain，因此 Cookie 在同一主机的不同端口共享，不跨子域共享。Secure 由配置控制；manager-origin 为 HTTPS 时要求 secure-cookie=true。响应使用 Cache-Control: no-store。
+不设置 Domain，因此 Cookie 在同一主机的不同端口共享，不跨子域共享。Cookie 不设置 Secure 属性。响应使用 Cache-Control: no-store。
 
 网关优先读取显式 Authorization 头，否则读取 Access Cookie；无效的显式头不会回退到 Cookie。公开的共享认证端点不依赖旧 Access JWT，避免过期 JWT 阻止刷新。
 
-浏览器写请求先取得 `/api/baosys-manager/csrf` 的 token 并放入指定请求头。网关负责 CSRF 校验；直连 Service 的共享认证写请求仍须具有与 manager-origin 精确相同的 Origin。Service 该链本身为无状态且关闭 CSRF。网关仅对受保护 API 中显式 Bearer 请求豁免 CSRF，公开登录/刷新/退出不能据此豁免。
+浏览器写请求先取得 `/api/baosys-manager/csrf` 的 token 并放入指定请求头。网关负责 CSRF 校验；Service 位于网关后的内网，不重复校验请求 Origin。Service 该链本身为无状态且关闭 CSRF。网关仅对受保护 API 中显式 Bearer 请求豁免 CSRF，公开登录/刷新/退出不能据此豁免。
 
 Manager UI 对非认证接口的 401 合并并发刷新，每个请求最多重试一次。authCoordinator 使用同源 Web Locks 串行协调登录、刷新和退出，并以非敏感 accountEpoch/refreshRevision 标记识别其他标签页已经完成的刷新；消息通知不携带凭据。旧账户请求在账户切换后不自动重放，其迟到响应也不会覆盖新账户状态。
 
 刷新明确返回 401 才通知登录失效；网络错误、5xx 和锁等待超时保留登录状态。退出成功后才清理前端状态和通知其他标签页。认证接口自身不递归刷新，403 不触发刷新。无 Web Locks 或存储不可用时降级为页内协调；跨端口不共享协调锁。其他子系统继续跳转 Manager 管理登录。
+
+### 1.1 统一登出规范
+
+任意子系统（包括 Manager 自身）点击退出后，必须先跳转配置的 Manager `/baosys-manager/#/sign-out` 页面。子系统不得直接调用登出接口，也不得只跳转登录页代替登出。
+
+退出页是公开路由，加载并挂载后自动获取 Manager 同源 CSRF，再发送一次 POST `/api/baosys-manager/v1/browser-auth/logout`。服务端撤销当前内部授权并清除 Access、Refresh Cookie；成功后退出页清理前端会话、展示完成状态，再替换进入 `/baosys-manager/#/login`。失败时停留退出页显示错误，由用户重试，不自动刷新令牌或重复登出。
+
+所有子系统使用相同的 `VITE_MANAGER_UI_BASE_URL`，与服务端 Manager 公开来源配置一致。8081、8082 等业务端口不影响此规则：先导航到 Manager，再在 Manager 来源内执行请求。每次页面挂载至多发起一次 POST，显式重试或重新加载是新的尝试。
+
+完整接入规则、Cookie 范围、页面状态及验收要求见 [统一登出流程规范](../../shared-sign-out.md)。登录流程仍从 Manager `/baosys-manager/#/login` 开始。
 
 ## 2. 外部 OAuth2/OIDC
 
@@ -109,7 +121,6 @@ OAuth 投影有 Refresh Token 时使用其到期时间；尚未兑换的授权�
 | baosys.authorization.jwk-set-location | 持久化 JWK 文件，环境变量 JWT_JWK_SET_LOCATION |
 | baosys.shared-login.manager-origin | Manager 公开来源，默认 http://localhost:8080 |
 | baosys.shared-login.allowed-origins | 允许登录后返回的同主机、同协议来源列表 |
-| baosys.shared-login.secure-cookie | Secure Cookie 开关，默认 false |
 | spring.security.gateway.access-rules | 有序路径授权规则 |
 | spring.security.gateway.permit-all-paths | 公开入口路径 |
 

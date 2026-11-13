@@ -69,6 +69,7 @@ public class SecurityProperties {
     /**
      * 资源服务策略：公开路径之外的请求必须通过 JWT 认证。
      * 具体 API 权限由 {@code @PreAuthorize} 等方法级规则声明；未声明额外规则的接口仅要求认证。
+     * 非公开的 {@code /actuator/**} 运维接口统一要求 MGR 权限。
      */
     public static class Resource extends EndpointAccess {}
 
@@ -76,6 +77,33 @@ public class SecurityProperties {
      * 网关策略：按对外请求路径检查目标子系统的入口权限。
      */
     public static class Gateway extends EndpointAccess {
+        /**
+         * 要清理的完整请求头名，对应 {@code identity-header-names}，不区分大小写。
+         * 配置后替换默认列表；空列表表示不按完整头名清理。
+         */
+        private List<String> identityHeaderNames = new ArrayList<>(
+            List.of("UserId", "TenantId", "X-User", "X-Tenant")
+        );
+
+        /**
+         * 要清理的请求头名前缀，对应 {@code identity-header-prefixes}，不区分大小写。
+         * 使用普通前缀（如 X-User-），无需添加通配符。
+         * 配置后替换默认列表；空列表表示不按前缀清理。空白项忽略，避免匹配所有头。
+         */
+        private List<String> identityHeaderPrefixes = new ArrayList<>(
+            List.of("X-User-", "X-Tenant-")
+        );
+
+        public List<String> getIdentityHeaderNames() { return identityHeaderNames; }
+        public void setIdentityHeaderNames(List<String> value) { identityHeaderNames = value; }
+        public List<String> getIdentityHeaderPrefixes() { return identityHeaderPrefixes; }
+        public void setIdentityHeaderPrefixes(List<String> value) { identityHeaderPrefixes = value; }
+
+        /** 网关 CSRF 校验开关，对应 csrf-enabled，默认关闭。 */
+        private boolean csrfEnabled = false;
+        public boolean isCsrfEnabled() { return csrfEnabled; }
+        public void setCsrfEnabled(boolean value) { csrfEnabled = value; }
+
         private String csrfPath;
         private String csrfCookieName;
         public String getCsrfPath() { return csrfPath; }

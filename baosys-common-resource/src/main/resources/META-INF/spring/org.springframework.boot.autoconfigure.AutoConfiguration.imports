@@ -1,0 +1,2 @@
+baosys.common.autoconfigure.TraceAutoConfiguration
+baosys.common.autoconfigure.MvcAsyncAutoConfiguration

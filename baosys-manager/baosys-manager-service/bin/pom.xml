@@ -48,7 +48,7 @@
     </dependency>
     <dependency>
       <groupId>baosys</groupId>
-      <artifactId>baosys-common-security-resource</artifactId>
+      <artifactId>baosys-common-resource</artifactId>
     </dependency>
     <dependency>
       <groupId>baosys</groupId>

@@ -42,6 +42,7 @@ class ResourceApiSecurityTest {
     @BeforeEach
     void setup() {
         mvc = MockMvcBuilders.webAppContextSetup(context)
+            .addFilters(new baosys.common.web.TraceIdFilter())
             .apply(
                 org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity()
             )
@@ -49,8 +50,30 @@ class ResourceApiSecurityTest {
     }
 
     @Test
+    void managementEndpointsRequireManagerPermission() throws Exception {
+        mvc.perform(get("/actuator/metrics")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/metrics").header("Authorization", "Bearer api-only"))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/metrics").header("Authorization", "Bearer entry-only"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     void publicPathsDoNotRequireAuthentication() throws Exception {
         mvc.perform(get("/public")).andExpect(status().isOk());
+    }
+
+    @Test
+    void securityErrorsUseSharedEnvelopeAndRequestTrace() throws Exception {
+        mvc.perform(get("/shared").header("X-Trace-Id", "resource-trace"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-Trace-Id", "resource-trace"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.traceId").value("resource-trace"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code").value("UNAUTHORIZED"));
+        mvc.perform(get("/restricted").header("Authorization", "Bearer entry-only").header("X-Trace-Id", "resource-trace"))
+            .andExpect(status().isForbidden())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code").value("FORBIDDEN"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.traceId").value("resource-trace"));
     }
 
     @Test
@@ -105,7 +128,7 @@ class ResourceApiSecurityTest {
     @RestController
     static class Endpoints {
 
-        @GetMapping({ "/public", "/shared" })
+        @GetMapping({ "/public", "/shared", "/actuator/metrics" })
         public String shared() {
             return "ok";
         }

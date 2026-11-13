@@ -1,5 +1,7 @@
 # BrowserAuthApi 接口实现时序
 
+网关 CSRF 校验默认关闭（`spring.security.gateway.csrf-enabled=false`）。下文的 CSRF 校验规则在显式开启后生效；关闭时 CSRF 端点返回 `{"enabled":false}`，前端不发送 CSRF 请求头。
+
 **简体中文** | [English](browser_auth_sequence.en.md)
 
 内部系统通过用户名密码登录，OAuth 授权码流程按需复用同一登录页和内部身份。PKCE 按客户端配置，不全局强制。本文描述当前实现。
@@ -20,7 +22,7 @@
 
 浏览器入口为 `/api/baosys-manager/v1/browser-auth/{login,refresh,logout}`。网关移除 `/api`，Service context-path 默认 `/baosys-manager`，Controller 匹配 `/v1/browser-auth/**`。
 
-三个端点公开但不豁免浏览器 CSRF。UI 写请求先获取 `/api/baosys-manager/csrf`，将 token 放入指定请求头。网关校验 CSRF；Service 另外要求写请求 Origin 与 manager-origin 精确匹配。已有 Access JWT 失效不阻止认证请求。三者均使用 JSON；刷新和退出凭据来自 HttpOnly Refresh Cookie。
+三个端点公开但不豁免浏览器 CSRF。UI 写请求先获取 `/api/baosys-manager/csrf`，将 token 放入指定请求头。网关校验 CSRF；内网 Service 不重复校验请求 Origin。已有 Access JWT 失效不阻止认证请求。三者均使用 JSON；刷新和退出凭据来自 HttpOnly Refresh Cookie。
 
 ## 2. 登录
 
@@ -115,6 +117,10 @@ sequenceDiagram
 
 ## 4. 退出
 
+浏览器前置流程：用户在任意子系统或 Manager 点击退出 → 导航到配置的 Manager `/baosys-manager/#/sign-out` → 公开页面加载、组件挂载 → 自动启动以下服务端调用。发起子系统不调用登出接口，退出页不要求再次确认。图中的 Manager UI 专指该退出页。
+
+成功后退出页展示完成状态，再以路由替换进入 Manager `/baosys-manager/#/login`；失败时保留退出页及重试入口。每次挂载自动执行一次，重试由用户明确发起。完整约束见 [统一登出流程规范](../../shared-sign-out.md)。
+
 ```mermaid
 sequenceDiagram
     participant UI as Manager UI
@@ -141,10 +147,10 @@ sequenceDiagram
 
 | Cookie | Path | 属性 |
 |---|---|---|
-| BAOSYS_ACCESS_TOKEN | `/` | HttpOnly、SameSite=Lax、按配置 Secure |
+| BAOSYS_ACCESS_TOKEN | `/` | HttpOnly、SameSite=Lax |
 | BAOSYS_REFRESH_TOKEN | `/api/baosys-manager/v1/browser-auth` | 同上 |
 
-Cookie 不设置 Domain；HTTPS manager-origin 必须启用 secure-cookie。成功响应使用 Cache-Control: no-store，令牌不进入 JSON。Access Token sub 为 user_login.id；OAuth principalName 和 OIDC ID Token sub 为账户 ID。
+Cookie 不设置 Domain 和 Secure 属性。成功响应使用 Cache-Control: no-store，令牌不进入 JSON。Access Token sub 为 user_login.id；OAuth principalName 和 OIDC ID Token sub 为账户 ID。
 
 清理只检查 expires_at，不以 updated_at 或一天未访问作为撤销依据。函数每次处理最多 100 个账户，按 ID 升序锁账户、跳过忙碌账户、锁内复查并删除已过期登录；建议每五分钟调度一次。管理员下线操作同样先锁账户，请求时的过期检查不依赖调度执行。
 

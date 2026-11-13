@@ -2,7 +2,7 @@
 
 [简体中文](system.md) | **English**
 
-Manager Service centrally maintains users, permissions, sessions, and audits. The workspace contains Manager and shared modules. CAT has an entry in the system catalog, but its independent subsystem project is not in this workspace.
+Manager Service centrally maintains users, permissions, sessions, and audits. The workspace contains Manager and shared modules. The default catalog contains only MGR; other subsystems can be registered when integrated.
 
 ## Request flow and module boundaries
 
@@ -35,7 +35,7 @@ Service retains standard OAuth2 Authorization Server support. The Manager UI use
 
 ## Default subsystem and login returns
 
-Account creation and editing must submit a `defaultSystemType` present in the catalog. It is stored in `user_info.default_system_type`, which is non-null and cannot be blank. The initialized administrator defaults to MGR. The default system determines navigation only, not access or operation permissions. An account can default to CAT without CAT access; login then uses the shared fallback.
+Account creation and editing must submit a `defaultSystemType` present in the catalog. It is stored in `user_info.default_system_type`, which is non-null and cannot be blank. The initialized administrator defaults to MGR. The default system determines navigation only, not access or operation permissions. After extending the catalog, an account can default to a subsystem without its access permission; login then uses the shared fallback.
 
 `baosys-systems.yml` registers each system's `ui-base-url` and `home-path`. The former is the full UI address range ending in a slash; the latter is the home path starting at the origin root and may include a hash route. The home page must stay within its UI range. System ranges must not overlap; every origin must share Manager's host and protocol. The MGR base URL must equal the Manager origin plus a trailing slash. The catalog API returns both fields for authorized-system links.
 
@@ -43,13 +43,13 @@ Login validates the return URL's format and ownership before authenticating the 
 
 - A valid return URL takes priority, preserving query parameters and hash. Access requires the target system's entry permission.
 - Without a return URL, use the account's default subsystem home page. Do not choose another system based on permission count.
-- Missing target system access, no grants, or a default system removed from configuration always leads to Manager's `/baosys-manager/authorized-systems`.
-- `/baosys-manager/authorized-systems` requires login but not MGR. It shows authorized systems or a message if none are available. Users can sign out from the top bar and sign in again; there is no automatic redirect.
+- Missing target system access, no grants, or a default system removed from configuration always leads to Manager's `/baosys-manager/#/authorized-systems`.
+- `/baosys-manager/#/authorized-systems` requires login but not MGR. It shows authorized systems or a message if none are available. Users can sign out from the top bar and sign in again; there is no automatic redirect.
 - Unregistered external origins, non-HTTP(S) URLs, user information, ambiguous encodings, and login/authentication/API targets return `400/AUTH_400_REDIRECT` without creating a new login session. Standard OAuth2 authorization endpoints retain a separate exact-address check.
 
-On authentication expiry, subsystem frontends use `URL.searchParams.set('redirect_url', window.location.href)` to navigate to Manager's `/baosys-manager/login`. A signed-in user lacking system access goes directly to `/baosys-manager/authorized-systems`. Insufficient operation permission displays 403 rather than repeatedly redirecting to login. Subsystem Web hosts must support SPA fallback for deep routes, read the shared Access Cookie through their own gateway, and forward Bearer tokens. Services independently enforce access and operation permissions.
+On authentication expiry, subsystem frontends encode the complete return URL with `URLSearchParams({ redirect_url: window.location.href })` and place it inside `#/login?redirect_url=...`, not in the URL query before `#`. A signed-in user lacking system access goes to `/baosys-manager/#/authorized-systems`. Insufficient operation permission displays 403 rather than repeatedly redirecting to login. Manager Web retains SPA fallback for historical links; new Hash entries request only the application root. Subsystems read the shared Access Cookie through their own gateway and forward Bearer tokens. Services independently enforce access and operation permissions.
 
-The repository does not implement a cross-port `/auth-bridge` refresh coordination page. Manager coordinates same-origin tabs; independent subsystems still need session checks, 401 returns, and cross-port session coordination. Manager return-navigation testing is not full CAT end-to-end testing. Never pass tokens through URLs or frontend storage.
+The repository does not implement a cross-port `/auth-bridge` refresh coordination page. Manager coordinates same-origin tabs; independent subsystems still need session checks, 401 returns, and cross-port session coordination. Manager return-navigation testing is not full subsystem end-to-end testing. Never pass tokens through URLs or frontend storage.
 
 ## Permissions
 

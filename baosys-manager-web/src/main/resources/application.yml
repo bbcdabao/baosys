@@ -1,12 +1,14 @@
 server:
   port: ${GATEWAY_PORT:8080}
-  shutdown: graceful
   compression:
     enabled: true
 
 spring:
+  config:
+    import: classpath:baosys/operations.yml
   security:
     gateway:
+      csrf-enabled: ${CSRF_ENABLED:false}
       csrf-path: /api/baosys-manager/csrf
       csrf-cookie-name: BAOSYS-MGR-XSRF-TOKEN
       access-rules:
@@ -51,8 +53,6 @@ spring:
     #     group: ${NACOS_GROUP:DEFAULT_GROUP}
     #     username: ${NACOS_USERNAME:nacos}
     #     password: ${NACOS_PASSWORD:nacos}
-  lifecycle:
-    timeout-per-shutdown-phase: 20s
   web:
     resources:
       cache:
@@ -60,11 +60,18 @@ spring:
           max-age: 1h
           cache-public: true
 
+common:
+  spa:
+    enabled: true
+    base-path: /baosys-manager
+    resource-location: classpath:/static/
+---
+# Application overrides follow the shared imported baseline.
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,metrics,gateway
   endpoint:
     health:
       probes:

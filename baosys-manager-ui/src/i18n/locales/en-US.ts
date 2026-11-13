@@ -1,5 +1,31 @@
 export default {
+  signOut: {
+    brand: 'Account center',
+    eyebrow: 'ACCOUNT · SIGN OUT',
+    title: 'Signing you out',
+    description: 'Ending your session and clearing your browser’s sign-in credentials.',
+    session: 'End login session',
+    credentials: 'Clear sign-in credentials',
+    login: 'Return to sign in',
+    pending: 'In progress',
+    waiting: 'Waiting',
+    completed: 'Complete',
+    redirecting: 'Redirecting',
+    unconfirmed: 'Unconfirmed',
+    done: 'You’re signed out',
+    doneHint: 'Your sign-in credentials are cleared. Returning to sign in shortly.',
+    failed: 'Sign-out incomplete',
+    failedHint: 'We could not confirm your credentials were cleared. Please retry.',
+    retry: 'Try signing out again',
+    continue: 'Continue to sign in',
+    waitHint: 'Please wait. No further action is needed.',
+    footer: 'One account · One place'
+  },
   common: {
+    fullscreen: 'Enter fullscreen',
+    exitFullscreen: 'Exit fullscreen',
+    fullscreenUnavailable:
+      'Unable to toggle fullscreen. Check whether your browser supports and allows it.',
     query: 'Search',
     reset: 'Reset',
     create: 'Create',
@@ -53,7 +79,8 @@ export default {
   user: {
     defaultSystemType: 'Default login subsystem',
     defaultSystemRequired: 'Select a default login subsystem',
-    defaultSystemHint: 'The default does not grant access. Without entry permission, the authorized systems page is shown.',
+    defaultSystemHint:
+      'The default does not grant access. Without entry permission, the authorized systems page is shown.',
     authorizedSystems: 'Authorized subsystems',
     noSystemAccess: 'No subsystem permissions assigned',
     systemAccessHint:

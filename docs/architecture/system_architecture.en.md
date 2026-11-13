@@ -14,7 +14,7 @@ flowchart LR
     Manager --> DB[("PostgreSQL / manager schema")]
 ```
 
-The runnable application consists of UI, Manager Web, Manager Service, and PostgreSQL. The default gateway configures only Manager routes; there is no Plant route or Plant service. `CAT` in the system catalog is an assignable system access permission, not evidence that the corresponding business service exists in the repository.
+The runnable application consists of UI, Manager Web, Manager Service, and PostgreSQL. The default gateway configures only Manager routes; there is no Plant route or Plant service. The default system catalog contains only `MGR`; other projects can register their own systems.
 
 ## 2. Layer responsibilities
 
@@ -25,13 +25,13 @@ The runnable application consists of UI, Manager Web, Manager Service, and Postg
 | Business | manager-service | Shared login, OAuth2/OIDC authorization server, account CRUD, permission catalog, login records, revocation, and auditing |
 | Shared contracts | common-api | `ApiResponse<T>` and `PageResponse<T>` |
 | Shared security | common-security-core | Security configuration properties, JWT validation contract, permission conversion, shared cookie constants |
-| Servlet security | common-security-resource | JWT decoder, stateless resource service chain, method authorization enablement |
-| Gateway security | common-security-gateway | Reactive JWT decoder, security chain, CSRF endpoint, token relay, optional external OAuth2 client integration |
+| MVC infrastructure | common-resource | JWT decoder, resource security, Servlet errors, tracing and MVC async configuration |
+| Gateway infrastructure | common-gateway | Reactive JWT, security chain, CSRF, token relay, errors, tracing, SPA and optional OAuth2 client integration |
 | Passwords | common-password | BCrypt, password interfaces, and auto-configuration |
 
 Manager Service uses `app + infra` layers. Controllers call application services, which orchestrate mappers and infrastructure. `app/services/BrowserAuthAppService` orchestrates shared login; `app/services/impl/BrowserLoginTransaction` handles login completion, refresh, and logout transactions; `infra/security/AccountAuthenticator` checks passwords outside transactions. There is no separate Domain/Agent layer.
 
-JWT issuance lives in Manager Service. There is no separate issuer module or `baosys-common` compatibility entry point. The gateway does not access business databases, and frontend permission display is not a trusted authorization boundary.
+JWT issuance lives in Manager Service; there is no separate issuer module. `baosys-common` provides error codes, trace IDs and managed executors; Web error handling and tracing live in common-resource and common-gateway. The gateway does not access business databases, and frontend permission display is not a trusted authorization boundary.
 
 ## 3. Build dependencies
 
@@ -39,8 +39,11 @@ Arrows below represent direct project module dependencies, not root POM aggregat
 
 ```mermaid
 flowchart TD
-    Resource["common-security-resource"] --> Core["common-security-core"]
-    Gateway["common-security-gateway"] --> Core
+    Resource["common-resource"] --> Core["common-security-core"]
+    Gateway["common-gateway"] --> Core
+    Resource --> Common["common"]
+    Gateway --> Common
+    Common --> CommonApi["common-api"]
     Api["manager-api"] --> CommonApi["common-api"]
     Service["manager-service"] --> Api
     Service --> CommonApi
@@ -51,7 +54,7 @@ flowchart TD
     Web -. "Build and copy dist" .-> UI["manager-ui"]
 ```
 
-The root reactor aggregates five shared modules, the Manager aggregator, and Manager Web. The Manager aggregator includes API and Service. Manager Web's build plugin integrates the UI. See [Maven dependency boundaries](dependency-boundaries.en.md) for scopes and verification.
+The root reactor aggregates six shared modules, the Manager aggregator, and Manager Web. Manager includes API and Service. The Web build plugins integrate the UIs. See [Maven dependency boundaries](dependency-boundaries.en.md) for scopes and verification.
 
 ## 4. HTTP path model
 
@@ -63,7 +66,7 @@ The root reactor aggregates five shared modules, the Manager aggregator, and Man
 | Service context path | `/baosys-manager` |
 | API prefix | `/v1/users` |
 
-The gateway provides `/api/baosys-manager/csrf`; `/baosys-manager/login` is the Vue login page. Server-side OAuth2/OIDC endpoints use Manager Service's context path. The gateway currently has no additional dedicated forwarding routes for these protocol endpoints.
+The gateway provides `/api/baosys-manager/csrf`; `/baosys-manager/#/login` is the Vue login page. Server-side OAuth2/OIDC endpoints use Manager Service's context path. The gateway currently has no additional dedicated forwarding routes for these protocol endpoints.
 
 ## 5. Authentication and authorization flow
 
@@ -105,7 +108,7 @@ Other business services should cooperate through public APIs rather than reading
 
 `JWT_JWK_SET_LOCATION` points to an external persistent signing JWK file; `OAUTH2_CLIENT_SECRET_HASH` supplies the OAuth2 client secret. Explicitly align `JWT_ISSUER`: the current authorization-server/gateway default is `baosys-manager`, while the Manager resource-server default is `http://localhost:9090/baosys-manager`. Using these defaults together causes issuer validation failures.
 
-The system and permission catalog comes from the root [baosys-systems.yml](../../baosys-systems.yml), copied into Manager Service at build time. `BAOSYS_SYSTEMS_CONFIG` can select an external catalog at runtime. The current catalog contains MGR and CAT. Configuration changes require a restart; there is no online catalog editing API.
+The system and permission catalog comes from the root [baosys-systems.yml](../../baosys-systems.yml), copied into Manager Service at build time. `BAOSYS_SYSTEMS_CONFIG` can select an external catalog at runtime. The default catalog contains only MGR. Configuration changes require a restart; there is no online catalog editing API.
 
 ## 8. Cross-cutting capabilities and current boundaries
 

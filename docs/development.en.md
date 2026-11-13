@@ -83,10 +83,8 @@ See [Service application.yml](../baosys-manager/baosys-manager-service/src/main/
 | `DEFAULT_ADMIN_ENABLED` | Service | `false` |
 | `DEFAULT_ADMIN_USERNAME / DEFAULT_ADMIN_PASSWORD` | Service | `admin / empty` |
 | `MANAGER_PUBLIC_ORIGIN` | Service | `http://localhost:8080`; use port 5173 for Vite development, without a path or trailing slash |
-| `SHARED_LOGIN_SECURE_COOKIE` | Service | `false`; must be `true` for HTTPS |
 | `BASE_URL` | Service (system catalog) | `http://localhost:`; concatenated directly with each suffix |
 | `MANAGER_UI_URL_SUFFIX` | Service (system catalog) | `8080/baosys-manager/`; use `5173/baosys-manager/` for Vite development |
-| `CAT_UI_URL_SUFFIX` | Service (system catalog) | `8081/baosys-xxxx/`; an example path, since CAT is not deployed |
 | `VITE_MANAGER_UI_BASE_URL` | Frontend build | Other subsystems must provide the complete Manager UI base URL; Manager derives it from the current origin and Vite base by default |
 | `BAOSYS_SYSTEMS_CONFIG` | Service | `classpath:baosys-systems.yml`; can be a full external catalog file URI |
 | `GATEWAY_PORT` | Web | `8080` |
@@ -94,7 +92,7 @@ See [Service application.yml](../baosys-manager/baosys-manager-service/src/main/
 | `JWT_ISSUER` | Both | Both default to `http://localhost:9090/baosys-manager`; no local override needed; keep overrides consistent |
 | `JWT_JWK_SET_URI` | Both | `/baosys-manager/oauth2/jwks`, at localhost:9090 for Service and 127.0.0.1:9090 for Web by default |
 
-The catalog is packaged from the repository root at build time. Rebuild after changes, or override it with `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` and restart. Retain `MGR` and its API permissions; every entry needs `ui-base-url` and `home-path`. Each base URL concatenates `BASE_URL` with its `*_UI_URL_SUFFIX`. The MGR base URL's origin must match `MANAGER_PUBLIC_ORIGIN`; `home-path` is relative to the subsystem root. The catalog directly defines the return URL allowlist; `SHARED_LOGIN_ALLOWED_ORIGINS` is no longer used. Registering CAT does not deploy a CAT service; other subsystems must be deployed and integrated with shared login separately.
+The catalog is packaged from the repository root at build time. Rebuild after changes, or override it with `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` and restart. Retain `MGR` and its API permissions; every entry needs `ui-base-url` and `home-path`. Each base URL concatenates `BASE_URL` with its `*_UI_URL_SUFFIX`. The MGR base URL's origin must match `MANAGER_PUBLIC_ORIGIN`; `home-path` is relative to the subsystem root. The catalog directly defines the return URL allowlist; `SHARED_LOGIN_ALLOWED_ORIGINS` is no longer used. The platform registers only MGR by default; other subsystems must be deployed and integrated with shared login separately.
 
 ## Testing and packaging
 
@@ -143,12 +141,18 @@ Browser tests use an installed Edge browser by default. Elsewhere, set `PLAYWRIG
 
 The packaged Manager entry point is `http://localhost:8080/baosys-manager/`. When switching from Vite to packaged execution, also restore `MANAGER_UI_URL_SUFFIX=8080/baosys-manager/`. Web adds a missing trailing slash while preserving query parameters.
 
-Production settings: `BASE_URL=https://example.com`, `MANAGER_PUBLIC_ORIGIN=https://example.com`, `MANAGER_UI_URL_SUFFIX=/baosys-manager/`, `CAT_UI_URL_SUFFIX=/baosys-xxxx/`, and `SHARED_LOGIN_SECURE_COOKIE=true`. Prefixes and suffixes are concatenated literally. Restart Service after changes. The old `CAT_UI_BASE_URL` and `VITE_MANAGER_ORIGIN` are no longer used.
+Production settings: `BASE_URL=https://example.com`, `MANAGER_PUBLIC_ORIGIN=https://example.com`, `MANAGER_UI_URL_SUFFIX=/baosys-manager/`, `CAT_UI_URL_SUFFIX=/baosys-xxxx/`. Prefixes and suffixes are concatenated literally. Restart Service after changes. The old `CAT_UI_BASE_URL` and `VITE_MANAGER_ORIGIN` are no longer used.
 
 See [nginx-path-routing.conf](nginx-path-routing.conf) for an Nginx example. Frontend forwarding strips the frontend prefix; API forwarding retains the complete path. OAuth2 issuer, JWKS, and callback addresses did not change with the UI path migration; protocol endpoints keep their existing independent addresses. The example does not include TLS certificates or OAuth2 protocol forwarding; configure these for the actual deployment.
 
-Other subsystems need their own Vite base, Router base, and static-host prefix, and must set `VITE_MANAGER_UI_BASE_URL=https://example.com/baosys-manager/` at build time. Each gateway must configure `spring.security.gateway.csrf-path=/api/baosys-xxxx/csrf` and a distinct `spring.security.gateway.csrf-cookie-name=BAOSYS-CAT-XSRF-TOKEN`. The frontend requests the same CSRF path.
+Gateway CSRF is controlled by `spring.security.gateway.csrf-enabled`, defaulting to `false`. Set `CSRF_ENABLED=true` to enable it in Manager Web. When disabled, no CSRF validation or CSRF cookie is applied; the token endpoint returns `{"enabled":false}` and the UI skips the CSRF header. When enabled, existing token validation and Bearer exemptions apply.
+
+Other subsystems need their own Vite base, Router base, and static-host prefix, and must set `VITE_MANAGER_UI_BASE_URL=https://example.com/baosys-manager/` at build time. Each gateway must configure `spring.security.gateway.csrf-path=/api/baosys-xxxx/csrf` and a distinct `spring.security.gateway.csrf-cookie-name=BAOSYS-APP-XSRF-TOKEN`. The frontend requests the same CSRF path.
 
 The shared security module automatically permits this exact path, and the controller handles it locally at the gateway. CSRF cookies are HttpOnly with Path=/ and distinct names per gateway. Authentication cookie sharing and the Refresh Cookie path remain unchanged.
 
-Local applications on different ports share cookies, but not localStorage, BroadcastChannel, or Web Locks; this does not provide cross-port refresh coordination. The repository has no CAT application. Two-system account switching, logout, concurrent refresh, and the production Nginx/TLS chain require acceptance testing in the deployment environment.
+Local applications on different ports share cookies, but not localStorage, BroadcastChannel, or Web Locks; this does not provide cross-port refresh coordination. The platform foundation includes only Manager. Two-system account switching, logout, concurrent refresh, and the production Nginx/TLS chain require acceptance testing in the deployment environment.
+
+Base error codes, trace IDs and bounded executors live in baosys-common. WebFlux error handling and tracing live in baosys-common-gateway; Servlet error handling, tracing and MVC async configuration live in baosys-common-resource. Generic errors now use VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN and INTERNAL_ERROR (see [component reference](../baosys-common/README.md)); domain-specific codes and OAuth2/OIDC protocol responses are preserved. Trace IDs flow through gateway forwarding, Servlet dispatch, Reactor Context and managed tasks. The executor setting shutdown-timeout-seconds controls the grace wait and a second wait after interruption. MVC Callable uses common.mvc.async-executor.*. Forced process termination cannot guarantee cleanup.
+
+See [shared infrastructure](shared-infrastructure.en.md) for SPA hosting, the frontend package, Logback fragments, build and operations defaults, and storage JSON serialization compatibility.

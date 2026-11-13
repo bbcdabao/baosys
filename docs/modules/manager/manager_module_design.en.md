@@ -1,5 +1,7 @@
 # Manager module design
 
+Gateway CSRF validation is disabled by default (`spring.security.gateway.csrf-enabled=false`). The CSRF validation rules below apply when explicitly enabled. When disabled, the CSRF endpoint returns `{"enabled":false}` and the UI omits the CSRF header.
+
 [简体中文](manager_module_design.md) | **English**
 
 Manager provides account management, shared browser login, an OAuth2/OIDC authorization server, a permission catalog, session inspection and revocation, and account authorization auditing. The separate Manager Web application handles gateway routing and Vue static resources.
@@ -36,7 +38,7 @@ baosys-manager/
 
 The API JAR depends on common-api; spring-web and jakarta.validation-api are optional. It contains public interfaces and DTOs, not controllers, entities, or FeignClient definitions.
 
-Service directly depends on manager-api, common-api, common-password, common-security-core, and common-security-resource. It assembles Spring Authorization Server, Spring Session JDBC, MyBatis Plus, Flyway, and PostgreSQL. There is no baosys-common or security-issuer module.
+Service directly depends on manager-api, common, common-api, common-password, common-security-core, and common-resource. It assembles Spring Authorization Server, Spring Session JDBC, MyBatis Plus, Flyway, and PostgreSQL. common provides error codes, trace IDs and managed executors; Web error handling and tracing live in common-resource and common-gateway; there is no security-issuer module.
 
 ## 2. Calls and responsibilities
 
@@ -75,9 +77,9 @@ Paths below omit the common browser prefix `/api/baosys-manager`. The gateway fo
 | DELETE | /v1/users/{id}/login-clients | Revoke all clients | MGR:user:session:kick |
 | GET | /v1/login-sessions | Valid-session pagination across users | MGR:user:session:list |
 | GET | /v1/systems | All systems and assignable permission catalog | Authenticated |
-| POST | /v1/browser-auth/login | Log in and set shared cookies | Public authentication entry; validates origin and credentials |
-| POST | /v1/browser-auth/refresh | Rotate using Refresh Cookie | Public entry; validates origin and refresh credentials |
-| POST | /v1/browser-auth/logout | Revoke current internal authorization and clear cookies | Public entry; validates origin |
+| POST | /v1/browser-auth/login | Log in and set shared cookies | Public authentication entry; validates credentials |
+| POST | /v1/browser-auth/refresh | Rotate using Refresh Cookie | Public entry; validates refresh credentials |
+| POST | /v1/browser-auth/logout | Revoke current internal authorization and clear cookies | Public entry |
 
 “Public” does not mean CSRF-exempt: browser writes through the gateway still carry the token returned by /api/baosys-manager/csrf. Shared login requests use application/json. The framework provides OAuth2/OIDC protocol endpoints with their own protocol responses. See [Authentication and sessions](auth_and_session.en.md).
 
@@ -139,8 +141,9 @@ Business APIs return ApiResponse with code, message, data, traceId, and timestam
 
 | Error code | HTTP status | Scenario |
 |---|---:|---|
-| REQUEST_400_001 | 400 | Method parameter validation or missing query parameter |
-| AUTH_400_001 | 400 | Body validation or unreadable JSON, including account request bodies |
+| VALIDATION_ERROR | 400 | Validation, missing parameters or unreadable JSON |
+| UNAUTHORIZED | 401 | Business API authentication failure |
+| FORBIDDEN | 403 | Insufficient API permissions or gateway CSRF rejection |
 | AUTH_400_REDIRECT | 400 | Disallowed login return URL |
 | AUTH_401_001 | 401 | Invalid shared login/refresh credentials or invalid business login record |
 | USER_400_001 | 400 | Empty username |
@@ -149,9 +152,10 @@ Business APIs return ApiResponse with code, message, data, traceId, and timestam
 | USER_404_001 | 404 | User not found |
 | USER_409_001 | 409 | Duplicate username |
 | LOGIN_404_001 | 404 | Valid login client not found |
-| SYS_500_001 | 500 | Unexpected exception |
+| INTERNAL_ERROR | 500 | Unexpected exception |
+| SERVICE_UNAVAILABLE | 503 | Managed executor rejection or temporary unavailability |
 
-Spring Security handles JWT authentication/authorization failures with standard 401/403 and WWW-Authenticate where applicable; the business JSON structure is not guaranteed. CSRF and Origin rejection return 403. OAuth2 token/revoke endpoints use protocol responses.
+Business API JWT failures retain standard 401/403 and WWW-Authenticate where applicable and return ApiResponse. Gateway CSRF rejection uses the same envelope without a Bearer challenge. Standard OAuth2 token/revoke endpoints retain their protocol responses. See the [shared component reference](../../../baosys-common/README.md) for the full error and tracing contract.
 
 ## 8. Startup configuration
 

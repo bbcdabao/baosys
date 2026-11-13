@@ -5,8 +5,7 @@ import baosys.common.security.resource.SharedTokenCookies;
 import baosys.manager.api.module.contract.BrowserAuthApi;
 import baosys.manager.api.module.payloads.BrowserLoginRequest;
 import baosys.manager.api.module.responses.BrowserLoginResponse;
-import baosys.manager.app.config.web.TraceIds;
-import baosys.manager.infra.security.*;
+import baosys.common.web.TraceIds;
 import baosys.manager.app.services.BrowserAuthAppService;
 import java.time.*;
 import org.springframework.http.*;
@@ -21,11 +20,9 @@ import org.springframework.web.bind.annotation.*;
 public class SharedLoginController implements BrowserAuthApi {
 
     private final BrowserAuthAppService service;
-    private final SharedLoginProperties properties;
 
-    public SharedLoginController(BrowserAuthAppService service, SharedLoginProperties properties) {
+    public SharedLoginController(BrowserAuthAppService service) {
         this.service = service;
-        this.properties = properties;
     }
 
     @Override
@@ -100,7 +97,6 @@ public class SharedLoginController implements BrowserAuthApi {
     private String cookie(String name, String value, String path, Duration age) {
         return ResponseCookie.from(name, value)
             .httpOnly(true)
-            .secure(properties.secureCookie())
             .sameSite("Lax")
             .path(path)
             .maxAge(age.isNegative() ? Duration.ZERO : age)

@@ -11,19 +11,36 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 class SharedLoginNavigationTest {
     @Test
+    void fallbackTargetIsEncodedInsideLoginHash() throws Exception {
+        var subsystems = mock(SubsystemNavigation.class);
+        when(subsystems.loginUrl()).thenReturn("http://localhost:8080/baosys-manager/#/login");
+        String target = "http://localhost:8080/baosys-manager/#/authorized-systems";
+        when(subsystems.authorizedSystemsUrl()).thenReturn(target);
+        var settings = AuthorizationServerSettings.builder().issuer("http://localhost:9090/baosys-manager").build();
+        var navigation = new SharedLoginNavigation(new SharedLoginProperties("http://localhost:8080"), settings, subsystems);
+        var response = new MockHttpServletResponse();
+        navigation.commence(new MockHttpServletRequest("GET", "/private"), response, null);
+        var uri = java.net.URI.create(response.getRedirectedUrl());
+        assertThat(uri.getRawQuery()).isNull();
+        assertThat(uri.getPath()).isEqualTo("/baosys-manager/");
+        assertThat(java.net.URLDecoder.decode(uri.getRawFragment().substring("/login?redirect_url=".length()),
+            java.nio.charset.StandardCharsets.UTF_8)).isEqualTo(target);
+    }
+
+    @Test
     void authorizationEntryUsesCatalogLoginAndPreservesOnlyExactOAuthEndpoint() throws Exception {
         var subsystems = mock(SubsystemNavigation.class);
-        when(subsystems.loginUrl()).thenReturn("http://localhost:8080/baosys-manager/login");
+        when(subsystems.loginUrl()).thenReturn("http://localhost:8080/baosys-manager/#/login");
         var settings = AuthorizationServerSettings.builder().issuer("http://localhost:9090/baosys-manager").build();
-        var navigation = new SharedLoginNavigation(new SharedLoginProperties("http://localhost:8080", false), settings, subsystems);
+        var navigation = new SharedLoginNavigation(new SharedLoginProperties("http://localhost:8080"), settings, subsystems);
         var request = new MockHttpServletRequest("GET", "/baosys-manager/oauth2/authorize");
         request.setContextPath("/baosys-manager");
         request.addParameter("client_id", "test");
         request.addParameter("state", "a+b &c");
         var response = new MockHttpServletResponse();
         navigation.commence(request, response, null);
-        assertThat(response.getRedirectedUrl()).startsWith("http://localhost:8080/baosys-manager/login?redirect_url=");
-        String target = java.net.URLDecoder.decode(UriComponentsBuilder.fromUriString(response.getRedirectedUrl())
+        assertThat(response.getRedirectedUrl()).startsWith("http://localhost:8080/baosys-manager/#/login?redirect_url=");
+        String target = java.net.URLDecoder.decode(UriComponentsBuilder.fromUriString(java.net.URI.create(response.getRedirectedUrl()).getRawFragment())
             .build().getQueryParams().getFirst("redirect_url"), java.nio.charset.StandardCharsets.UTF_8);
         assertThat(target).startsWith("http://localhost:9090/baosys-manager/oauth2/authorize?");
         assertThat(navigation.destination(target, "MGR", Set.of())).isEqualTo(target);

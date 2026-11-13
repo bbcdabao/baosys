@@ -1,15 +1,14 @@
 server:
   port: ${MANAGER_PORT:9090}
-  shutdown: graceful
   servlet:
     context-path: ${MANAGER_CONTEXT_PATH:/baosys-manager}
 spring:
   application:
     name: baosys-manager
   config:
-    import: ${BAOSYS_SYSTEMS_CONFIG:classpath:baosys-systems.yml}
-  lifecycle:
-    timeout-per-shutdown-phase: 20s
+    import:
+      - classpath:baosys/operations.yml
+      - ${BAOSYS_SYSTEMS_CONFIG:classpath:baosys-systems.yml}
   security:
     resource:
       permit-all-paths:
@@ -60,15 +59,6 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      probes:
-        enabled: true
 auth:
   default-admin-enabled: ${DEFAULT_ADMIN_ENABLED:false}
   default-admin-username: ${DEFAULT_ADMIN_USERNAME:admin}
@@ -80,6 +70,5 @@ common:
 baosys:
   shared-login:
     manager-origin: ${MANAGER_PUBLIC_ORIGIN:http://localhost:8080}
-    secure-cookie: ${SHARED_LOGIN_SECURE_COOKIE:false}
   authorization:
     jwk-set-location: ${JWT_JWK_SET_LOCATION}

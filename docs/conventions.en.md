@@ -2,7 +2,7 @@
 
 [简体中文](conventions.md) | **English**
 
-Manager is currently maintained while the Pingmoniter probing subsystem is being integrated. Implement new capabilities in the relevant business module first; do not create empty modules or business directories in advance. Newly imported modules must inherit the root POM. Use BaoSys versions for existing Java, Spring, and frontend dependencies.
+The platform foundation contains Manager and shared modules. Implement new capabilities in the relevant business module first; do not create empty modules or business directories in advance. Newly imported modules must inherit the root POM. Use BaoSys versions for existing Java, Spring, and frontend dependencies.
 
 Documentation comments use a multiline format: put `/**` and `*/` on separate lines and begin each body line with ` * `. Do not use a single-line `/** ... */`, even for a one-sentence comment.
 
@@ -10,7 +10,7 @@ Documentation comments use a multiline format: put `/**` and `*/` on separate li
 
 - `manager-api` contains API contracts, request/response DTOs, and validation annotations, not entities, mappers, service implementations, or full starters.
 - `manager-service` depends on its own API. Controllers adapt input, application services orchestrate business logic and transactions, and infrastructure implements persistence and security. Controllers must not call mappers directly.
-- Shared contracts belong in `common-api`; security and password implementations belong in their existing modules. Do not restore an all-purpose Common module.
+- Shared contracts belong in `common-api`; base error codes, trace IDs and managed executors belong in `baosys-common`. WebFlux adapters and security belong in `baosys-common-gateway`; MVC adapters and security belong in `baosys-common-resource`. security-core and password remain separate. Common must not depend on business modules. See the [component reference](../baosys-common/README.md) for error codes and lifecycle rules.
 - The gateway handles routing, authentication, and system access permissions. It does not implement business CRUD or access the database directly.
 - Each module explicitly declares libraries directly used by its source code. The root POM aggregates modules and manages versions; application modules select starters, while shared libraries depend only on the framework libraries they need.
 - Do not depend on another business service's implementation JAR or expose database entities. Do not force a domain layer onto simple business logic.

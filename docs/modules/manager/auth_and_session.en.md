@@ -1,5 +1,7 @@
 # Authentication and sessions
 
+Gateway CSRF validation is disabled by default (`spring.security.gateway.csrf-enabled=false`). The CSRF validation rules below apply when explicitly enabled. When disabled, the CSRF endpoint returns `{"enabled":false}` and the UI omits the CSRF header.
+
 [简体中文](auth_and_session.md) | **English**
 
 Manager supports internal browser login with shared cookies and external OAuth2/OIDC authorization code flows. Both share accounts, JWK signing keys, the framework JDBC authorization store, and login records, but differ in browser interaction and refresh lifetimes.
@@ -8,7 +10,7 @@ For step-by-step internal login, refresh, and logout calls, see [BrowserAuthApi 
 
 ## 1. Internal shared login
 
-The Vue login page is Manager Web's `/baosys-manager/login?redirect_url=...`. The page parameter is `redirect_url`; the submitted JSON field is `redirectUrl`.
+The Vue login page is Manager Web's `/baosys-manager/#/login?redirect_url=...`. The page parameter is `redirect_url`; the submitted JSON field is `redirectUrl`.
 
 `BrowserAuthApi` in manager-api declares the three shared authentication APIs. Login uses `BrowserLoginRequest` and `BrowserLoginResponse`. SharedLoginController implements the contract, sets cookies, and calls the authentication service.
 
@@ -28,15 +30,25 @@ Ordinary return addresses are validated by `SharedLoginProperties`: they must sh
 | BAOSYS_ACCESS_TOKEN | `/` | HttpOnly, SameSite=Lax |
 | BAOSYS_REFRESH_TOKEN | `/api/baosys-manager/v1/browser-auth` | HttpOnly, SameSite=Lax |
 
-Domain is not set, so cookies are shared across ports on the same host, not across subdomains. Secure is configurable; an HTTPS manager-origin requires secure-cookie=true. Responses use Cache-Control: no-store.
+Domain is not set, so cookies are shared across ports on the same host, not across subdomains. Cookies do not set the Secure attribute. Responses use Cache-Control: no-store.
 
 The gateway prioritizes explicit Authorization headers and otherwise reads the Access Cookie. An invalid explicit header never falls back to cookies. Public shared authentication endpoints do not depend on an old Access JWT, so expiry cannot block refresh.
 
-Before browser writes, the UI obtains a token from `/api/baosys-manager/csrf` and sends it in the specified header. The gateway validates CSRF. Shared authentication writes sent directly to Service must still have an Origin exactly matching manager-origin. This Service chain is stateless with CSRF disabled. Gateway CSRF exemptions apply only to protected APIs carrying explicit Bearer credentials, not public login/refresh/logout requests.
+Before browser writes, the UI obtains a token from `/api/baosys-manager/csrf` and sends it in the specified header. The gateway validates CSRF. Service runs on the internal network behind the gateway and does not repeat request Origin validation. This Service chain is stateless with CSRF disabled. Gateway CSRF exemptions apply only to protected APIs carrying explicit Bearer credentials, not public login/refresh/logout requests.
 
 Manager UI coalesces concurrent refreshes for 401 responses from non-authentication APIs, retrying each request at most once. authCoordinator uses same-origin Web Locks to serialize login, refresh, and logout, and non-sensitive accountEpoch/refreshRevision markers to recognize refreshes completed by other tabs. Notifications contain no credentials. Old-account requests are not automatically replayed after account switching, and late responses cannot overwrite the new account's state.
 
 Only an explicit refresh 401 signals login expiry. Network errors, 5xx responses, and lock-wait timeouts retain login state. Frontend state is cleared and other tabs notified only after successful logout. Authentication APIs do not recursively refresh, and 403 never triggers refresh. Without Web Locks or usable storage, coordination falls back to the current page. Ports do not share coordination locks; other subsystems continue to use Manager for login.
+
+### 1.1 Unified sign-out contract
+
+Every subsystem, including Manager itself, must navigate to the configured Manager `/baosys-manager/#/sign-out` page when the user signs out. The initiating subsystem must not call the logout API first or substitute a direct navigation to the login page for logout.
+
+This public page automatically starts sign-out on mount: obtain Manager same-origin CSRF, then send one POST to `/api/baosys-manager/v1/browser-auth/logout`. The server revokes the current internal authorization and clears the Access and Refresh cookies. Only after success does the page clear frontend state, show completion, and replace the route with `/baosys-manager/#/login`. Failure keeps the page visible for an explicit retry, without automatic token refresh or repeated logout calls.
+
+All subsystems use the same `VITE_MANAGER_UI_BASE_URL`, consistent with the configured Manager public origin. Business ports such as 8081 and 8082 do not change the sequence: navigate to Manager first, then perform the requests on its origin. Each mount sends at most one POST; a reload or explicit retry is a new attempt.
+
+See the [unified sign-out specification (Chinese)](../../shared-sign-out.md) for configuration, cookie scope, page states, and acceptance criteria. Login still starts at Manager `/baosys-manager/#/login`.
 
 ## 2. External OAuth2/OIDC
 
@@ -111,7 +123,6 @@ See [Manager application.yml](../../../baosys-manager/baosys-manager-service/src
 | baosys.authorization.jwk-set-location | Persistent JWK file; environment variable JWT_JWK_SET_LOCATION |
 | baosys.shared-login.manager-origin | Public Manager origin; defaults to http://localhost:8080 |
 | baosys.shared-login.allowed-origins | Same-host, same-protocol origins permitted after login |
-| baosys.shared-login.secure-cookie | Secure cookie switch; defaults to false |
 | spring.security.gateway.access-rules | Ordered path authorization rules |
 | spring.security.gateway.permit-all-paths | Public entry paths |
 

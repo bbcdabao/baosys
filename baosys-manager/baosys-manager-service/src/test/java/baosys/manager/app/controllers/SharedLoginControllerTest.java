@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import baosys.common.security.resource.SharedTokenCookies;
 import baosys.manager.app.error.GlobalExceptionHandler;
-import baosys.manager.infra.security.SharedLoginProperties;
 import baosys.manager.app.services.BrowserAuthAppService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
@@ -30,10 +29,7 @@ class SharedLoginControllerTest {
     void setUp() {
         service = mock(BrowserAuthAppService.class);
         mvc = MockMvcBuilders.standaloneSetup(
-            new SharedLoginController(
-                service,
-                new SharedLoginProperties("http://localhost:8080", false)
-            )
+            new SharedLoginController(service)
         ).setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
@@ -72,7 +68,7 @@ class SharedLoginControllerTest {
                     .content(mapper.writeValueAsString(request))
             )
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("AUTH_400_001"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(cookie().doesNotExist(SharedTokenCookies.ACCESS));
         }
         verifyNoInteractions(service);

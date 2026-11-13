@@ -44,6 +44,8 @@ declare module 'vue' {
     ATooltip: typeof import('@arco-design/web-vue')['Tooltip']
     IconDesktop: typeof import('@arco-design/web-vue/es/icon')['IconDesktop']
     IconExport: typeof import('@arco-design/web-vue/es/icon')['IconExport']
+    IconFullscreen: typeof import('@arco-design/web-vue/es/icon')['IconFullscreen']
+    IconFullscreenExit: typeof import('@arco-design/web-vue/es/icon')['IconFullscreenExit']
     IconMoonFill: typeof import('@arco-design/web-vue/es/icon')['IconMoonFill']
     IconPlus: typeof import('@arco-design/web-vue/es/icon')['IconPlus']
     IconSearch: typeof import('@arco-design/web-vue/es/icon')['IconSearch']

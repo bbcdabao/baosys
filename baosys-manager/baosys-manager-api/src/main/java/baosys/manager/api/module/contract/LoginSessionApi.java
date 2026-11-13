@@ -11,6 +11,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface LoginSessionApi {
     String PREFIX = "/v1/login-sessions";
 
+    /**
+     * userId优先级高于userName，如果提供了userId，则忽略userName。
+     * @param userId
+     * @param userName
+     * @param page
+     * @param size
+     * @return
+     */
     @GetMapping
     ApiResponse<PageResponse<LoginSessionResponse>> list(
         @Min(1) @RequestParam(name = "userId", required = false) Long userId,

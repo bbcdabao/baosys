@@ -11,9 +11,10 @@ The root [baosys-systems.yml](../../../baosys-systems.yml) currently defines:
 | System | Name | API permissions |
 |---|---|---|
 | MGR | Management | user:list, user:add, user:update, user:delete, user:session:list, user:session:kick, all prefixed with `MGR:` |
-| CAT | Probing platform | Empty list; system access only |
 
 At startup, `SystemCatalog` validates that the catalog is nonempty; system codes are nonempty and unique; MGR is present; API codes are nonempty and globally unique across systems; and system/API names contain nonempty `zh-CN` and `en-US` values. Display names may repeat.
+
+The default catalog contains only MGR. CAT below is an example for an extended catalog.
 
 System access uses codes such as `MGR` and `CAT` directly; do not add them to the API permission list. Catalog grouping determines which system owns an API permission. Code does not validate ownership from the permission string's prefix.
 

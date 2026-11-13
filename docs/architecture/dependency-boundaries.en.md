@@ -12,18 +12,19 @@ The table omits the `baosys-` prefix:
 
 | Module | Current direct dependencies and responsibility |
 |---|---|
+| common | common-api, SLF4J, Jackson and base Spring beans/core/context; error codes, trace IDs, managed executors and shared resources; no Servlet/MVC/WebFlux/Reactor/Security dependency |
 | common-api | No third-party dependencies; provides `ApiResponse` and `PageResponse` |
 | common-security-core | Spring Boot configuration properties and Spring Security JWT/authority fundamentals; no common-api or Web starter dependency |
-| common-security-resource | core and libraries required for Servlet resource service security; Servlet API is provided; no common-api dependency |
-| common-security-gateway | core and required Gateway/WebFlux/Reactor and OAuth2 Client/Resource Server libraries; no common-api dependency |
+| common-resource | security-core, common, common-api, MVC and Servlet security; Servlet error responses, tracing and MVC async configuration; Servlet API is provided |
+| common-gateway | security-core, common, common-api, Gateway/WebFlux/Reactor and OAuth2; reactive errors, tracing, context-propagation and SPA hosting |
 | common-password | Spring configuration and BCrypt password support; no JWT or common-api dependency |
 | manager-api | common-api; spring-web and jakarta.validation-api are optional |
 | manager-service | manager-api, common-api, core, resource, password; selects Servlet, authorization server, resource server, database, and Session JDBC runtime support |
-| manager-web | gateway; selects Gateway, OAuth2 Client/Resource Server, and Actuator runtime support; LoadBalancer and Caffeine are runtime dependencies |
+| manager-web | common, gateway; selects Gateway, OAuth2 Client/Resource Server, and Actuator runtime support; LoadBalancer and Caffeine are runtime dependencies |
 
-There is no `baosys-common` compatibility module or `baosys-common-security-issuer` module. JWT issuance and authorization server assembly live in Manager Service's `infra/security`.
+`baosys-common` provides shared errors, tracing and managed execution. Manager Service and Manager Web depend on it directly. There is no `baosys-common-security-issuer` module. JWT issuance and authorization server assembly live in Manager Service's `infra/security`.
 
-`baosys-manager-ui` is not part of the Maven reactor. Manager Web's `frontend-maven-plugin` installs Node/npm, runs `npm install --no-audit --no-fund` and `npm run build`, and the resources plugin copies `dist` into the JAR's static resource directory.
+`baosys-manager-ui` is not part of the Maven reactor. Manager Web's `frontend-maven-plugin` installs Node/npm, runs `npm ci --no-audit --no-fund` and `npm run build`, and the resources plugin copies `dist` into the JAR's static resource directory.
 
 ## 2. Declaration rules
 
@@ -37,6 +38,23 @@ There is no `baosys-common` compatibility module or `baosys-common-security-issu
 Manager Service's PostgreSQL driver and Flyway PostgreSQL dialect are runtime dependencies. Manager Web retains the OAuth2 Client starter, but its default configuration contains no client registration. Internal shared-cookie login does not depend on an OAuth2 Client WebSession.
 
 ## 3. Verification
+
+Base common has no Web auto-configuration imports. MVC auto-configuration lives in common-resource;
+Reactive and SPA auto-configuration live in common-gateway. Java packages and properties are unchanged;
+consumers must use the new Maven coordinates. Neither adapter depends on the other.
+Only gateway brings context-propagation; non-web applications can use base common.
+
+DependencyIsolationTest checks that foreign framework and adapter classes are absent and verifies auto-configuration discovery.
+Use a clean build so stale target/classes cannot mask migration errors:
+
+```powershell
+mvn -B clean verify -Pintegration-tests '-Dskip.frontend=true' '-Dmaven.antrun.skip=true'
+./scripts/check-dependency-isolation.ps1
+```
+
+The script checks actual runtime dependency trees for common, both adapters, the Manager gateway and MVC service.
+common-api must have no runtime dependencies. MVC exclude WebFlux, Reactor and context-propagation;
+gateways exclude MVC, Servlet API and the Tomcat container. The validator's tomcat-embed-el is not forbidden.
 
 Run from the repository root:
 
@@ -53,3 +71,5 @@ This is the verification command for dependency changes, not a claim that it pas
 - Dependency changes must also pass compilation, unit tests, integration tests, and application packaging.
 
 `skip.frontend=true` skips frontend plugin execution. A complete release build should generate up-to-date frontend static resources.
+
+Manager UI depend on the local npm package `baosys-common-ui`. SPA hosting lives in `baosys-common-gateway`; Logback, operations defaults and storage JSON live in `baosys-common`; the root POM manages frontend builds. See [shared infrastructure](../shared-infrastructure.en.md).

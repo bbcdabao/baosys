@@ -4,7 +4,7 @@ import baosys.common.api.ApiResponse;
 import baosys.common.api.PageResponse;
 import baosys.manager.api.module.contract.LoginSessionApi;
 import baosys.manager.api.module.responses.LoginSessionResponse;
-import baosys.manager.app.config.web.TraceIds;
+import baosys.common.web.TraceIds;
 import baosys.manager.app.services.LoginSessionAppService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -8,7 +8,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * 共用 Vue 登录页，区分子系统页面回跳与精确配置的 OAuth2 授权端点。
@@ -39,8 +38,9 @@ public class SharedLoginNavigation implements AuthenticationEntryPoint {
                 .collect(java.util.stream.Collectors.joining("&"));
             target = authorizationUri + "?" + query;
         }
-        response.sendRedirect(UriComponentsBuilder.fromUriString(subsystems.loginUrl())
-            .queryParam("redirect_url", "{target}").encode().buildAndExpand(target).toUriString());
+        // The SPA query belongs inside the hash; encode the complete return URL once.
+        response.sendRedirect(subsystems.loginUrl() + "?redirect_url="
+            + java.net.URLEncoder.encode(target, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20"));
     }
 
     public String destination(String target, String defaultSystem, java.util.Set<String> permissions) {

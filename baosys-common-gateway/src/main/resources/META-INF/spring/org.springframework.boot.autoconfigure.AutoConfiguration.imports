@@ -1,0 +1,3 @@
+baosys.common.autoconfigure.ReactiveTraceAutoConfiguration
+baosys.common.autoconfigure.ReactiveApiAutoConfiguration
+baosys.common.web.SpaWebConfiguration

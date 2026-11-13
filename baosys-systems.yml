@@ -6,7 +6,7 @@ baosys:
   systems:
     - system-type: MGR
       ui-base-url: "${baosys.ui-base-url-pre}${MANAGER_UI_URL_SUFFIX:8080/baosys-manager/}"
-      home-path: /users-management
+      home-path: /
       name: { zh-CN: 后台管理, en-US: Management }
       permissions:
         - code: MGR:user:list
@@ -21,8 +21,3 @@ baosys:
           name: { zh-CN: 查看登录会话, en-US: View sessions }
         - code: MGR:user:session:kick
           name: { zh-CN: 撤销登录会话, en-US: Revoke sessions }
-    - system-type: CAT
-      ui-base-url: "${baosys.ui-base-url-pre}${CAT_UI_URL_SUFFIX:8081/baosys-xxxx/}"
-      home-path: /
-      name: { zh-CN: 拨测平台, en-US: Automated }
-      permissions: []

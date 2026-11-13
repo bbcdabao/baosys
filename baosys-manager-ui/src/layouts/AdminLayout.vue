@@ -9,7 +9,11 @@
       :collapsed-width="64"
     >
       <div class="brand">
-        <span class="brand-mark" :aria-label="t('app.name')">{{ t('app.shortName') }}</span>
+        <span
+          class="brand-mark"
+          :aria-label="t('app.name')"
+          >{{ t('app.shortName') }}</span
+        >
         <span
           v-if="!collapsed"
           class="brand-name"
@@ -86,6 +90,17 @@
               <icon-moon-fill v-else />
             </a-button>
           </a-tooltip>
+          <a-tooltip :content="t(fullscreen ? 'common.exitFullscreen' : 'common.fullscreen')">
+            <a-button
+              shape="circle"
+              :aria-label="t(fullscreen ? 'common.exitFullscreen' : 'common.fullscreen')"
+              :aria-pressed="fullscreen"
+              @click="toggleFullscreen"
+            >
+              <icon-fullscreen-exit v-if="fullscreen" />
+              <icon-fullscreen v-else />
+            </a-button>
+          </a-tooltip>
           <div class="user-chip">
             <icon-user />
             <span>{{ authStore.currentUser?.displayName }}</span>
@@ -108,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -116,6 +131,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useLocale } from '@/composables/useLocale'
 import { useTheme } from '@/composables/useTheme'
 import { useAuthStore } from '@/store/auth'
+import { goToManagerSignOut } from '@/utils/loginRedirect'
 
 const route = useRoute()
 const router = useRouter()
@@ -124,6 +140,23 @@ const { t } = useI18n()
 const { locale } = useLocale()
 const { isDark, toggleTheme } = useTheme()
 const collapsed = ref(false)
+const fullscreen = ref(false)
+const updateFullscreen = (): void => {
+  fullscreen.value = Boolean(document.fullscreenElement)
+}
+const toggleFullscreen = async (): Promise<void> => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen()
+    else await document.documentElement.requestFullscreen()
+  } catch {
+    Message.warning(t('common.fullscreenUnavailable'))
+  }
+}
+onMounted(() => {
+  document.addEventListener('fullscreenchange', updateFullscreen)
+  updateFullscreen()
+})
+onUnmounted(() => document.removeEventListener('fullscreenchange', updateFullscreen))
 const can = (permission: string): boolean => {
   const grants = authStore.currentUser?.permissions || []
   return grants.includes('MGR') && grants.includes(permission)
@@ -143,8 +176,7 @@ const logout = async (): Promise<void> => {
   if (loggingOut.value) return
   loggingOut.value = true
   try {
-    await authStore.logout()
-    await router.replace({ name: 'login' })
+    goToManagerSignOut()
   } catch (error) {
     Message.error(error instanceof Error ? error.message : '退出失败，请重试')
   } finally {

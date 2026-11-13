@@ -4,7 +4,7 @@ import baosys.common.api.ApiResponse;
 import baosys.manager.api.module.contract.SystemCatalogApi;
 import baosys.manager.api.module.responses.SystemDefinition;
 import baosys.manager.app.config.SystemCatalog;
-import baosys.manager.app.config.web.TraceIds;
+import baosys.common.web.TraceIds;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;

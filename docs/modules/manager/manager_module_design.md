@@ -1,5 +1,7 @@
 # Manager 模块设计
 
+网关 CSRF 校验默认关闭（`spring.security.gateway.csrf-enabled=false`）。下文的 CSRF 校验规则在显式开启后生效；关闭时 CSRF 端点返回 `{"enabled":false}`，前端不发送 CSRF 请求头。
+
 **简体中文** | [English](manager_module_design.en.md)
 
 Manager 提供账户管理、共享浏览器登录、OAuth2/OIDC 授权服务器、权限目录、登录会话查询与撤销，以及账户授权审计。网关路由和 Vue 静态资源由独立的 Manager Web 承担。
@@ -36,7 +38,7 @@ baosys-manager/
 
 API Jar 依赖 common-api，spring-web 和 jakarta.validation-api 为 optional。它包含公开接口和 DTO，不包含 Controller、Entity 或 FeignClient。
 
-Service 直接依赖 manager-api、common-api、common-password、common-security-core 和 common-security-resource，并装配 Spring Authorization Server、Spring Session JDBC、MyBatis Plus、Flyway 和 PostgreSQL。当前没有 baosys-common 或 security-issuer 模块。
+Service 直接依赖 manager-api、common、common-api、common-password、common-security-core 和 common-resource，并装配 Spring Authorization Server、Spring Session JDBC、MyBatis Plus、Flyway 和 PostgreSQL。common 提供错误码、追踪标识和受管执行器；Web 异常处理与追踪装配分别位于 common-resource 和 common-gateway；当前没有 security-issuer 模块。
 
 ## 2. 调用与职责
 
@@ -75,9 +77,9 @@ Controller 调用应用服务，应用服务直接编排 Mapper、Assembler 和�
 | DELETE | /v1/users/{id}/login-clients | 全部客户端下线 | MGR:user:session:kick |
 | GET | /v1/login-sessions | 跨用户有效会话分页 | MGR:user:session:list |
 | GET | /v1/systems | 全部系统及可分配权限目录 | 已认证 |
-| POST | /v1/browser-auth/login | 登录并设置共享 Cookie | 公开认证入口，校验来源和凭据 |
-| POST | /v1/browser-auth/refresh | 使用 Refresh Cookie 轮换 | 公开入口，校验来源和刷新凭据 |
-| POST | /v1/browser-auth/logout | 撤销当前内部授权、清 Cookie | 公开入口，校验来源 |
+| POST | /v1/browser-auth/login | 登录并设置共享 Cookie | 公开认证入口，校验凭据 |
+| POST | /v1/browser-auth/refresh | 使用 Refresh Cookie 轮换 | 公开入口，校验刷新凭据 |
+| POST | /v1/browser-auth/logout | 撤销当前内部授权、清 Cookie | 公开入口 |
 
 “公开入口”不代表免 CSRF：通过网关的浏览器写请求还要携带 /api/baosys-manager/csrf 返回的 token。共享登录请求均使用 application/json。OAuth2/OIDC 的协议端点由框架提供，使用自己的协议响应，详见 [认证与会话](auth_and_session.md)。
 
@@ -139,8 +141,9 @@ UserResponse.status 表示是否存在未过期登录记录，enabled 表示账�
 
 | 错误码 | HTTP 状态 | 场景 |
 |---|---:|---|
-| REQUEST_400_001 | 400 | 方法参数校验或缺少查询参数 |
-| AUTH_400_001 | 400 | 请求体校验或无法读取 JSON，包括账户请求体 |
+| VALIDATION_ERROR | 400 | 参数校验、缺少参数或无法读取 JSON |
+| UNAUTHORIZED | 401 | 业务 API 安全链认证失败 |
+| FORBIDDEN | 403 | 业务 API 权限不足或网关 CSRF 拒绝 |
 | AUTH_400_REDIRECT | 400 | 不允许的登录返回地址 |
 | AUTH_401_001 | 401 | 共享登录/刷新凭据无效，或业务登录记录失效 |
 | USER_400_001 | 400 | 用户名为空 |
@@ -149,9 +152,10 @@ UserResponse.status 表示是否存在未过期登录记录，enabled 表示账�
 | USER_404_001 | 404 | 用户不存在 |
 | USER_409_001 | 409 | 用户名重复 |
 | LOGIN_404_001 | 404 | 有效登录客户端不存在 |
-| SYS_500_001 | 500 | 未预期异常 |
+| INTERNAL_ERROR | 500 | 未预期异常 |
+| SERVICE_UNAVAILABLE | 503 | 受管执行器拒绝任务等暂时不可用场景 |
 
-JWT 认证/授权失败由 Spring Security 处理，采用标准 401/403 及适用的 WWW-Authenticate，不保证业务 JSON 结构。CSRF 和 Origin 拒绝为 403；OAuth2 token/revoke 等端点使用协议响应。
+业务 API 的 JWT 认证/授权失败保留标准 401/403 及适用的 WWW-Authenticate，并返回公共 ApiResponse；网关 CSRF 拒绝返回同结构的 403，不附加 Bearer challenge。OAuth2 token/revoke 等标准端点仍使用协议响应。完整通用错误码与追踪约定见 [公共组件](../../../baosys-common/README.md)。
 
 ## 8. 启动配置
 

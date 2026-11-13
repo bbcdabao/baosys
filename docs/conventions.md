@@ -1,8 +1,10 @@
 # 开发约定
 
+前端开发参见 [前端公共开发规范](frontend-conventions.md)，适用于 Manager 及后续接入的平台应用。
+
 **简体中文** | [English](conventions.en.md)
 
-当前维护 Manager，并进行 Pingmoniter 拨测子系统整合。新增能力优先在对应业务模块内完成，不预建空模块或业务目录。新迁入模块统一继承根 POM；已有 Java、Spring 和前端依赖版本以 BaoSys 为准。
+当前平台底座包含 Manager 与公共模块。新增能力优先在对应业务模块内完成，不预建空模块或业务目录。新迁入模块统一继承根 POM；已有 Java、Spring 和前端依赖版本以 BaoSys 为准。
 
 文档注释统一使用多行格式：`/**` 和 `*/` 各占一行，正文每行以 ` * ` 开头；即使只有一句说明，也不写成单行 `/** ... */`。
 
@@ -10,7 +12,7 @@
 
 - `manager-api` 放接口契约、请求/响应 DTO 和校验注解，不放 Entity、Mapper、Service 实现或完整 starter。
 - `manager-service` 依赖自己的 API。Controller 做输入适配，App Service 编排业务与事务，Infra 实现持久化和安全能力；Controller 不直接调用 Mapper。
-- 公共协议放 `common-api`，安全与密码实现按现有模块归属；不恢复一个包揽所有能力的 Common 模块。
+- 公共协议放 `common-api`，基础错误码、追踪标识和执行器放 `baosys-common`；WebFlux 适配与安全放 `baosys-common-gateway`，MVC 适配与安全放 `baosys-common-resource`；security-core 和 password 保持独立，Common 不依赖业务模块。
 - 网关负责路由、认证和入口权限，不承载业务 CRUD 或直接访问数据库。
 - 源码直接使用的库由本模块 POM 显式声明。根 POM 聚合模块、管理版本，应用模块选择 starter，公共库仅依赖所需框架库。
 - 不依赖其他业务服务的实现 Jar，不对外暴露数据库实体，不为简单业务强行增加领域层。
@@ -27,7 +29,7 @@
 
 ## 接口与权限
 
-统一使用 `ApiResponse` 和 `PageResponse`。分页从 0 开始，限制每页最多 200 条；错误由统一异常处理返回稳定错误码和 traceId，不向客户端暴露堆栈。
+统一使用 `ApiResponse` 和 `PageResponse`。分页从 0 开始，限制每页最多 200 条；错误由统一异常处理返回稳定错误码和 traceId，不向客户端暴露堆栈。通用错误码、追踪传播和线程池约定见 [公共基础组件](../baosys-common/README.md)；业务 Advice 仅扩展业务专有错误。
 
 业务接口及浏览器共享登录接口的参数、映射和请求/响应 DTO 写在 API 契约，Controller 实现契约并声明授权。Cookie 设置和认证流程实现保留在 Service；框架提供的 OAuth2/OIDC 端点由安全配置装配。网关入口路径保持 `/api/baosys-manager`，变更 context-path 时同步修改转发、前端和认证配置。
 

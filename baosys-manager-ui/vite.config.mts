@@ -7,6 +7,7 @@ import { ArcoResolver } from 'unplugin-vue-components/resolvers'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  optimizeDeps: { include: ['@baosys/common-ui/request', '@baosys/common-ui/authCoordinator'] },
   base: '/baosys-manager/',
   plugins: [
     vue(),

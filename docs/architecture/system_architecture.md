@@ -14,7 +14,7 @@ flowchart LR
     Manager --> DB[("PostgreSQL / manager schema")]
 ```
 
-当前可运行闭环由 UI、Manager Web、Manager Service 和 PostgreSQL 组成。默认网关只配置 Manager 路由，没有 Plant 路由或 Plant 服务。系统目录中的 `CAT` 是可分配的系统入口，并不代表仓库已经实现对应业务服务。
+当前可运行闭环由 UI、Manager Web、Manager Service 和 PostgreSQL 组成。默认网关只配置 Manager 路由，没有 Plant 路由或 Plant 服务。默认系统目录仅登记 `MGR`，其他项目按需接入。
 
 ## 2. 分层职责
 
@@ -25,13 +25,13 @@ flowchart LR
 | 业务 | manager-service | 共享登录、OAuth2/OIDC 授权服务器、账户 CRUD、权限目录、登录记录、撤销和审计 |
 | 公共协议 | common-api | `ApiResponse<T>`、`PageResponse<T>` |
 | 公共安全 | common-security-core | 安全配置属性、JWT 校验契约、权限转换、共享 Cookie 常量 |
-| Servlet 安全 | common-security-resource | JWT decoder、无状态资源服务链、方法级授权启用 |
-| 网关安全 | common-security-gateway | 响应式 JWT decoder、安全链、CSRF 端点、Token relay、可选外部 OAuth2 客户端适配 |
+| MVC 基础设施 | common-resource | JWT decoder、资源服务安全、Servlet 错误处理、追踪和 MVC 异步配置 |
+| 网关基础设施 | common-gateway | 响应式 JWT、安全链、CSRF、Token relay、错误处理、追踪、SPA 和可选 OAuth2 客户端适配 |
 | 密码 | common-password | BCrypt 与密码接口/自动配置 |
 
 Manager Service 使用 `app + infra` 分层：Controller 调用应用服务，应用服务编排 Mapper 和基础设施。共享登录由 `app/services/BrowserAuthAppService` 编排，`app/services/impl/BrowserLoginTransaction` 承担登录完成、刷新和退出事务，`infra/security/AccountAuthenticator` 负责事务外密码校验。当前没有独立 Domain/Agent 层。
 
-JWT 签发位于 Manager Service，当前没有独立 issuer 模块或 `baosys-common` 兼容入口。网关不访问业务数据库，前端权限展示也不构成可信授权边界。
+JWT 签发位于 Manager Service，当前没有独立 issuer 模块。`baosys-common` 提供错误码、追踪标识和受管执行器；Web 异常处理与追踪装配分别位于 common-resource 和 common-gateway。网关不访问业务数据库，前端权限展示也不构成可信授权边界。
 
 ## 3. 构建依赖
 
@@ -39,8 +39,11 @@ JWT 签发位于 Manager Service，当前没有独立 issuer 模块或 `baosys-c
 
 ```mermaid
 flowchart TD
-    Resource["common-security-resource"] --> Core["common-security-core"]
-    Gateway["common-security-gateway"] --> Core
+    Resource["common-resource"] --> Core["common-security-core"]
+    Gateway["common-gateway"] --> Core
+    Resource --> Common["common"]
+    Gateway --> Common
+    Common --> CommonApi["common-api"]
     Api["manager-api"] --> CommonApi["common-api"]
     Service["manager-service"] --> Api
     Service --> CommonApi
@@ -51,7 +54,7 @@ flowchart TD
     Web -. "构建并复制 dist" .-> UI["manager-ui"]
 ```
 
-根 Reactor 聚合五个公共模块、Manager 聚合模块和 Manager Web；Manager 聚合模块包含 API 和 Service。UI 由 Manager Web 构建插件集成。详细作用域和验证方式见 [Maven 依赖边界](dependency-boundaries.md)。
+根 Reactor 聚合六个公共模块、Manager 聚合模块和 Manager Web 网关；Manager 包含 API 和 Service。UI 由 Manager Web 构建插件集成。详细作用域和验证方式见 [Maven 依赖边界](dependency-boundaries.md)。
 
 ## 4. HTTP 路径模型
 
@@ -63,7 +66,7 @@ flowchart TD
 | 服务 context-path | `/baosys-manager` |
 | API 前缀 | `/v1/users` |
 
-`/api/baosys-manager/csrf` 由网关提供，`/baosys-manager/login` 是 Vue 登录页。服务端 OAuth2/OIDC 端点使用 Manager Service 的 context-path，当前网关没有额外配置这些协议端点的专用转发路由。
+`/api/baosys-manager/csrf` 由网关提供，`/baosys-manager/#/login` 是 Vue 登录页。服务端 OAuth2/OIDC 端点使用 Manager Service 的 context-path，当前网关没有额外配置这些协议端点的专用转发路由。
 
 ## 5. 认证与授权链路
 
@@ -105,7 +108,7 @@ Flyway 另维护 `flyway_schema_history_manager`。V1 同时创建空闲清理�
 
 签名密钥由 `JWT_JWK_SET_LOCATION` 指向外部持久化 JWK 文件，OAuth2 客户端密钥由 `OAUTH2_CLIENT_SECRET_HASH` 提供。必须显式统一 `JWT_ISSUER`：当前授权服务器/网关默认是 `baosys-manager`，Manager 资源服务器默认却是 `http://localhost:9090/baosys-manager`，直接使用各自默认值会导致验签 issuer 不一致。
 
-系统与权限目录来自根 [baosys-systems.yml](../../baosys-systems.yml)，构建时复制进 Manager Service，运行时可用 `BAOSYS_SYSTEMS_CONFIG` 指向外部配置。当前目录为 MGR 和 CAT。配置变更需要重启加载，没有在线编辑目录 API。
+系统与权限目录来自根 [baosys-systems.yml](../../baosys-systems.yml)，构建时复制进 Manager Service，运行时可用 `BAOSYS_SYSTEMS_CONFIG` 指向外部配置。当前默认目录仅包含 MGR。配置变更需要重启加载，没有在线编辑目录 API。
 
 ## 8. 横切能力与当前边界
 

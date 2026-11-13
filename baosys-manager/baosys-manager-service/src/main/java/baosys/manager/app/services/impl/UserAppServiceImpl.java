@@ -9,7 +9,7 @@ import baosys.manager.api.module.responses.UserResponse;
 import baosys.manager.api.module.payloads.UserUpdateRequest;
 import baosys.manager.app.assembler.UserAssembler;
 import baosys.manager.app.config.SystemCatalog;
-import baosys.manager.app.config.web.TraceIds;
+import baosys.common.web.TraceIds;
 import baosys.manager.app.error.BusinessException;
 import baosys.manager.app.services.UserAppService;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;

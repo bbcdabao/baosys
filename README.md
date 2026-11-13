@@ -1,5 +1,7 @@
 # BaoSys
 
+前端开发参见 [前端公共开发规范](docs/frontend-conventions.md)，适用于 Manager 及后续接入的平台应用。
+
 **简体中文** | [English](README.en.md)
 
 **一个面向小型项目的多子系统平台底座。**
@@ -39,10 +41,11 @@ BaoSys 适合作为个人项目、小团队内部平台、多个后台工具的�
 
 | 模块 | 职责 |
 |---|---|
+| `baosys-common` | 基础工具、追踪标识、执行器、存储 JSON 和公共资源 |
 | `baosys-common-api` | 统一响应与分页协议 |
 | `baosys-common-security-core` | 安全配置、JWT 和权限基础能力 |
-| `baosys-common-security-resource` | Servlet 服务的认证与接口授权 |
-| `baosys-common-security-gateway` | 网关认证、入口授权和 CSRF |
+| `baosys-common-resource` | MVC 资源服务安全、错误处理、请求追踪和异步配置 |
+| `baosys-common-gateway` | WebFlux 网关安全、错误处理、请求追踪和 SPA 托管 |
 | `baosys-common-password` | 密码编码与校验 |
 | `baosys-manager/baosys-manager-api` | Manager 接口契约和 DTO |
 | `baosys-manager/baosys-manager-service` | 业务、认证中心和数据库访问，默认 9090 |

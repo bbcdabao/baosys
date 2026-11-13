@@ -8,7 +8,7 @@ import baosys.manager.api.module.responses.LoginClientResponse;
 import baosys.manager.api.module.payloads.UserCreateRequest;
 import baosys.manager.api.module.responses.UserResponse;
 import baosys.manager.api.module.payloads.UserUpdateRequest;
-import baosys.manager.app.config.web.TraceIds;
+import baosys.common.web.TraceIds;
 import baosys.manager.app.services.UserAppService;
 import java.security.Principal;
 import java.util.List;

@@ -11,14 +11,14 @@ import org.junit.jupiter.api.Test;
 
 class SubsystemNavigationTest {
     private final SubsystemNavigation navigation = navigation("http://localhost:8081/", "/");
-    private static final String FALLBACK = "http://localhost:8080/baosys-manager/authorized-systems";
+    private static final String FALLBACK = "http://localhost:8080/baosys-manager/#/authorized-systems";
 
     private static SubsystemNavigation navigation(String base, String home) {
         var names = Map.of("zh-CN", "系统", "en-US", "System");
         return new SubsystemNavigation(new SystemCatalog(List.of(
             new SystemDefinition("MGR", names, List.of(), "http://localhost:8080/baosys-manager/", "/users-management"),
             new SystemDefinition("CAT", names, List.of(), base, home)
-        )), new SharedLoginProperties("http://localhost:8080", false));
+        )), new SharedLoginProperties("http://localhost:8080"));
     }
 
     @Test
@@ -28,7 +28,7 @@ class SubsystemNavigationTest {
             .isEqualTo("http://localhost:8080/baosys-cat/tasks?q=1#detail");
         assertThat(scoped.validateReturnUrl("/baosys-cat/tasks?q=1#detail"))
             .isEqualTo("http://localhost:8080/baosys-cat/tasks?q=1#detail");
-        assertThat(scoped.loginUrl()).isEqualTo("http://localhost:8080/baosys-manager/login");
+        assertThat(scoped.loginUrl()).isEqualTo("http://localhost:8080/baosys-manager/#/login");
         for (String path : List.of("/../tasks", "/x/../tasks", "/%2e%2e/tasks", "/%252e/tasks",
             "//evil.test/", "/x%2ftasks", "/login", "https://evil.test/")) {
             assertThatThrownBy(() -> navigation("http://localhost:8080/baosys-cat/", path))

@@ -61,11 +61,11 @@ public class SubsystemNavigation {
     }
 
     public String loginUrl() {
-        return managerUiBase.resolve("login").toASCIIString();
+        return managerUiBase.resolve("#/login").toASCIIString();
     }
 
     public String authorizedSystemsUrl() {
-        return managerUiBase.resolve("authorized-systems").toASCIIString();
+        return managerUiBase.resolve("#/authorized-systems").toASCIIString();
     }
 
     /**

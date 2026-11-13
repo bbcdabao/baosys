@@ -11,9 +11,10 @@
 | 系统 | 名称 | 接口权限 |
 |---|---|---|
 | MGR | 后台管理 | user:list、user:add、user:update、user:delete、user:session:list、user:session:kick，均带 `MGR:` 前缀 |
-| CAT | 拨测平台 | 空列表，仅提供系统入口 |
 
 `SystemCatalog` 在启动时校验：目录非空、系统编码非空且不重复、必须包含 MGR、接口编码非空且在所有系统中全局唯一、系统及接口名称均含非空的 `zh-CN` 和 `en-US`。展示名称可以重复。
+
+默认目录仅包含 MGR。下文 CAT 仅作为扩展目录后的权限示例。
 
 系统入口直接使用 `MGR`、`CAT` 等编码，无需放入接口权限列表。接口所属系统由目录分组决定，代码不会根据权限字符串前缀校验归属。
 

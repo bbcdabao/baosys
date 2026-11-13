@@ -26,7 +26,7 @@ import reactor.netty.http.server.HttpServer;
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "baosys.browser-oauth2.enabled=true"
+    properties = { "baosys.browser-oauth2.enabled=true", "spring.security.gateway.csrf-enabled=true" }
 )
 @Import(GatewaySecurityIntegrationTest.JwtTestConfiguration.class)
 @ActiveProfiles("test")

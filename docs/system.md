@@ -2,7 +2,7 @@
 
 **简体中文** | [English](system.en.md)
 
-用户、权限、会话和审计由 Manager Service 统一维护。当前工作区包含 Manager 与公共模块；CAT 在系统目录中登记入口，独立子系统工程不在当前工作区。
+用户、权限、会话和审计由 Manager Service 统一维护。当前工作区包含 Manager 与公共模块；默认系统目录仅登记 MGR，其他子系统按需扩展。
 
 ## 请求与模块边界
 
@@ -35,7 +35,7 @@ Cookie 为 host-only、SameSite=Lax；Access 路径为 `/`，Refresh 路径为 `
 
 ## 默认子系统与登录回跳
 
-账户创建、编辑必须提交目录中存在的 `defaultSystemType`，存入 `user_info.default_system_type`，数据库非空且禁止空白。初始化管理员默认 MGR。默认系统只决定导航，不授予入口或操作权限；允许默认 CAT 而尚未授予 CAT，登录时统一兜底。
+账户创建、编辑必须提交目录中存在的 `defaultSystemType`，存入 `user_info.default_system_type`，数据库非空且禁止空白。初始化管理员默认 MGR。默认系统只决定导航，不授予入口或操作权限；例如扩展目录后，允许默认某子系统而尚未授予其入口权限，登录时统一兜底。
 
 `baosys-systems.yml` 同时登记每个系统的 `ui-base-url` 和 `home-path`。前者是以斜杠结尾的完整 UI 地址范围，后者是从来源根路径开始的主页路径，可带 hash 路由。主页必须属于自己的 UI 范围；系统范围不能重叠，所有来源须与 Manager 同主机、同协议。MGR 基址必须等于 Manager 来源加尾斜杠。系统目录接口返回这两个字段，用于已授权系统入口。
 
@@ -43,13 +43,13 @@ Cookie 为 host-only、SameSite=Lax；Access 路径为 `/`，Refresh 路径为 `
 
 - 有合法回跳地址时，优先返回原始页面，保留查询参数和 hash；只有目标系统入口权限才能进入。
 - 无回跳地址时，进入账户默认子系统主页，不按权限数量自动选择其他系统。
-- 没有目标系统入口权限、没有任何授权，或默认系统已从配置移除时，一律返回 Manager 的 `/baosys-manager/authorized-systems`。
-- `/baosys-manager/authorized-systems` 只要求登录，不要求 MGR；展示已授权系统入口，无授权时显示提示。用户可通过页面顶栏退出登录后重新登录，不自动跳转。
+- 没有目标系统入口权限、没有任何授权，或默认系统已从配置移除时，一律返回 Manager 的 `/baosys-manager/#/authorized-systems`。
+- `/baosys-manager/#/authorized-systems` 只要求登录，不要求 MGR；展示已授权系统入口，无授权时显示提示。用户可通过页面顶栏退出登录后重新登录，不自动跳转。
 - 外部未登记来源、非 HTTP(S) URL、含用户信息或歧义编码的地址、登录/认证/API 路径均返回 `400/AUTH_400_REDIRECT`，不会创建新登录会话。标准 OAuth2 授权端点保留独立的精确地址校验。
 
-子系统接入时，前端在身份失效后使用 `URL.searchParams.set('redirect_url', window.location.href)` 跳转到 Manager 的 `/baosys-manager/login`。已登录但缺少本系统入口权限时，直接跳到 Manager 的 `/baosys-manager/authorized-systems`；具体操作权限不足显示 403，不反复跳登录。子系统 Web 必须支持深层路由的 SPA 回退，并通过自己的网关读取共享 Access Cookie、转发 Bearer，服务端独立校验入口和操作权限。
+子系统接入时，前端在身份失效后使用 `URLSearchParams({ redirect_url: window.location.href })` 编码完整返回地址，将参数放在 `#/login?redirect_url=...` 中，而不是 `#` 前的 URL 查询部分。已登录但缺少本系统入口权限时，跳到 Manager 的 `/baosys-manager/#/authorized-systems`；具体操作权限不足显示 403，不反复跳登录。Manager Web 保留 SPA 回退以兼容历史链接；新 Hash 入口只请求应用根路径。子系统通过自己的网关读取共享 Access Cookie、转发 Bearer，服务端独立校验入口和操作权限。
 
-当前仓库尚未实现跨端口 `/auth-bridge` 刷新协调页。Manager 内已有同源标签页刷新协调；独立子系统仍需接入登录状态检查、401 回跳及跨端口会话协调，不能把本次 Manager 回跳验证视为完整 CAT 端到端联调。Token 不得通过 URL 或前端存储传递。
+当前仓库尚未实现跨端口 `/auth-bridge` 刷新协调页。Manager 内已有同源标签页刷新协调；独立子系统仍需接入登录状态检查、401 回跳及跨端口会话协调，不能把本次 Manager 回跳验证视为完整子系统端到端联调。Token 不得通过 URL 或前端存储传递。
 
 ## 权限
 

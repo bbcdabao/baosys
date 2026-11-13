@@ -63,7 +63,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
         var user = users.create(new baosys.manager.api.module.payloads.UserCreateRequest(
             "fallback-" + java.util.UUID.randomUUID(), "secure123", java.util.Set.of("MGR"), true, "CAT"), 1L);
         try {
-            String fallback = "http://localhost:8080/baosys-manager/authorized-systems";
+            String fallback = "http://localhost:8080/baosys-manager/#/authorized-systems";
             loginAs(user.name(), null, fallback);
             loginAs(user.name(), "http://localhost:8081/task?id=1", fallback);
             users.update(new baosys.manager.api.module.payloads.UserUpdateRequest(
@@ -75,7 +75,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.permissions").isEmpty());
             mvc.perform(get("/v1/systems").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data[1].uiBaseUrl").value("http://localhost:8081/"));
-            mvc.perform(post(PREFIX + "/logout").header("Origin", "http://localhost:8080")
+            mvc.perform(post(PREFIX + "/logout")
                 .cookie(result.getResponse().getCookie(SharedTokenCookies.REFRESH))
                 .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isOk()).andExpect(cookie().maxAge(SharedTokenCookies.ACCESS, 0));
@@ -89,7 +89,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
         body.put("username", name);
         body.put("password", "secure123");
         if (target != null) body.put("redirectUrl", target);
-        return mvc.perform(post(PREFIX + "/login").header("Origin", "http://localhost:8080")
+        return mvc.perform(post(PREFIX + "/login")
             .contentType(MediaType.APPLICATION_JSON).content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.redirectUrl").value(expected))
             .andExpect(cookie().httpOnly(SharedTokenCookies.ACCESS, true)).andReturn();
@@ -103,7 +103,6 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
         return mvc
             .perform(
                 request
-                    .header("Origin", "http://localhost:8080")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         "{\"username\":\"admin\",\"password\":\"Admin123!test\",\"redirectUrl\":\"http://localhost:8081/orders?page=2#row\"}"
@@ -111,7 +110,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             )
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$.data.redirectUrl").value("http://localhost:8080/baosys-manager/authorized-systems")
+                jsonPath("$.data.redirectUrl").value("http://localhost:8080/baosys-manager/#/authorized-systems")
             )
             .andExpect(jsonPath("$.data.accessToken").doesNotExist())
             .andReturn();
@@ -138,7 +137,6 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             .perform(
                 post(PREFIX + "/refresh")
                     .cookie(refresh)
-                    .header("Origin", "http://localhost:8080")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
             )
@@ -150,7 +148,6 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
         mvc.perform(
             post(PREFIX + "/refresh")
                 .cookie(refresh)
-                .header("Origin", "http://localhost:8080")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}")
         ).andExpect(status().isUnauthorized());
@@ -158,7 +155,6 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             .perform(
                 post(PREFIX + "/logout")
                     .cookie(renewed)
-                    .header("Origin", "http://localhost:8080")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
             )
@@ -190,23 +186,9 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
-    void rejectsInvalidCredentialsOriginAndReturnAddress() throws Exception {
-        for (String endpoint : new String[] { "login", "refresh", "logout" }) {
-            mvc.perform(
-                post(PREFIX + "/" + endpoint)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-            ).andExpect(status().isForbidden());
-            mvc.perform(
-                post(PREFIX + "/" + endpoint)
-                    .header("Origin", "http://localhost:8081")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-            ).andExpect(status().isForbidden());
-        }
+    void rejectsInvalidCredentialsAndReturnAddress() throws Exception {
         mvc.perform(
             post(PREFIX + "/login")
-                .header("Origin", "http://localhost:8080")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"admin\",\"password\":\"wrong\"}")
         )
@@ -214,7 +196,6 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             .andExpect(cookie().doesNotExist(SharedTokenCookies.ACCESS));
         mvc.perform(
             post(PREFIX + "/login")
-                .header("Origin", "http://localhost:8080")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     "{\"username\":\"admin\",\"password\":\"Admin123!test\",\"redirectUrl\":\"https://evil.test\"}"
@@ -242,7 +223,6 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
             var result = mvc
                 .perform(
                     post(PREFIX + "/login")
-                        .header("Origin", "http://localhost:8080")
                         .cookie(first.getResponse().getCookie(SharedTokenCookies.REFRESH))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + name + "\",\"password\":\"Other123!test\"}")

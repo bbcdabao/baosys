@@ -5,14 +5,14 @@ import org.junit.jupiter.api.Test;
 
 class SharedLoginPropertiesTest {
     @Test
-    void requiresSecureCookiesForHttpsAndAnOriginWithoutPath() {
-        assertThat(new SharedLoginProperties("http://127.0.0.1:8080", false).managerOrigin())
+    void acceptsHttpAndHttpsOriginsWithoutPath() {
+        assertThat(new SharedLoginProperties("http://127.0.0.1:8080").managerOrigin())
             .isEqualTo("http://127.0.0.1:8080");
-        assertThatThrownBy(() -> new SharedLoginProperties("https://example.com", false))
-            .isInstanceOf(IllegalArgumentException.class);
+        assertThat(new SharedLoginProperties("https://example.com").managerOrigin())
+            .isEqualTo("https://example.com");
         for (String value : java.util.List.of("http://localhost:8080/path", "javascript:alert(1)",
             "http://user@localhost:8080", "http://localhost:8080?x=1")) {
-            assertThatThrownBy(() -> new SharedLoginProperties(value, false))
+            assertThatThrownBy(() -> new SharedLoginProperties(value))
                 .isInstanceOf(IllegalArgumentException.class);
         }
     }

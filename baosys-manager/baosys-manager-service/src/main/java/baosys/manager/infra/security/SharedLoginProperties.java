@@ -7,19 +7,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 浏览器可访问的公开来源配置，用于校验共享登录的返回地址。
  * SharedLoginProperties
  * @param managerOrigin
- * @param secureCookie
  */
 @ConfigurationProperties("baosys.shared-login")
 public record SharedLoginProperties(
-    String managerOrigin,
-    boolean secureCookie
+    String managerOrigin
 ) {
     public SharedLoginProperties {
         managerOrigin = managerOrigin == null ? "http://localhost:8080" : managerOrigin;
-        URI manager = origin(managerOrigin);
-        if ("https".equals(manager.getScheme()) && !secureCookie) {
-            throw new IllegalArgumentException("HTTPS shared login requires secure-cookie=true");
-        }
+        origin(managerOrigin);
     }
 
     /**

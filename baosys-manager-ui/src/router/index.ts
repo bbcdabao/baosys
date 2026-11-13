@@ -1,12 +1,29 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 import { useAuthStore } from '@/store/auth'
 
 import { Message } from '@arco-design/web-vue'
 
+// 兼容服务端、其他子系统及书签中的旧 History 地址，保留查询参数和页内锚点。
+const base = import.meta.env.BASE_URL
+if (window.location.pathname.startsWith(base) && window.location.pathname !== base) {
+  const path = window.location.pathname.slice(base.length)
+  window.history.replaceState(
+    window.history.state,
+    '',
+    `${base}#/${path}${window.location.search}${window.location.hash}`
+  )
+}
+
 export const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(base),
   routes: [
+    {
+      path: '/sign-out',
+      name: 'sign-out',
+      component: () => import('@/views/login/SignOutView.vue'),
+      meta: { public: true, titleKey: 'signOut.title' }
+    },
     {
       path: '/login',
       name: 'login',

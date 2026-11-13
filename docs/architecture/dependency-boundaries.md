@@ -12,18 +12,19 @@
 
 | 模块 | 当前直接依赖和职责 |
 |---|---|
+| common | common-api、SLF4J、Jackson、基础 Spring beans/core/context；提供错误码、追踪标识、受管执行器和共享资源；不依赖 Servlet/MVC/WebFlux/Reactor/Security |
 | common-api | 无第三方依赖，提供 `ApiResponse`、`PageResponse` |
 | common-security-core | Spring Boot 配置属性及 Spring Security JWT/authority 基础能力；不依赖 common-api 或 Web starter |
-| common-security-resource | core、Servlet 资源服务安全所需库；Servlet API 为 provided；不依赖 common-api |
-| common-security-gateway | core、Gateway/WebFlux/Reactor、OAuth2 Client/Resource Server 所需库；不依赖 common-api |
+| common-resource | security-core、common、common-api、MVC 和 Servlet 安全；包含 Servlet 错误响应、追踪和 MVC 异步配置；Servlet API 为 provided |
+| common-gateway | security-core、common、common-api、Gateway/WebFlux/Reactor、OAuth2；包含响应式错误响应、追踪、context-propagation 和 SPA 托管 |
 | common-password | Spring 配置与 BCrypt 密码能力；不依赖 JWT 或 common-api |
 | manager-api | common-api；spring-web、jakarta.validation-api 为 optional |
 | manager-service | manager-api、common-api、core、resource、password；选择 Servlet、授权服务器、资源服务器、数据库和 Session JDBC 运行环境 |
-| manager-web | gateway；选择 Gateway、OAuth2 Client/Resource Server、Actuator 运行环境；LoadBalancer 与 Caffeine 为 runtime |
+| manager-web | common、gateway；选择 Gateway、OAuth2 Client/Resource Server、Actuator 运行环境；LoadBalancer 与 Caffeine 为 runtime |
 
-当前没有 `baosys-common` 兼容模块，也没有 `baosys-common-security-issuer` 模块。JWT 签发和授权服务器装配位于 Manager Service 的 `infra/security`。
+`baosys-common` 承载跨业务基础实现，Manager Service 和 Manager Web 直接依赖。不提供 `baosys-common-security-issuer` 模块。JWT 签发和授权服务器装配位于 Manager Service 的 `infra/security`。
 
-`baosys-manager-ui` 不加入 Maven Reactor。Manager Web 的 `frontend-maven-plugin` 执行 Node/npm 安装、`npm install --no-audit --no-fund`、`npm run build`，资源插件将 `dist` 复制到 Jar 的静态资源目录。
+`baosys-manager-ui` 不加入 Maven Reactor。Manager Web 的 `frontend-maven-plugin` 执行 Node/npm 安装、`npm ci --no-audit --no-fund`、`npm run build`，资源插件将 `dist` 复制到 Jar 的静态资源目录。
 
 ## 2. 声明原则
 
@@ -37,6 +38,22 @@
 Manager Service 的 PostgreSQL 驱动和 Flyway PostgreSQL 方言是 runtime 依赖。Manager Web 保留 OAuth2 Client starter，但默认配置没有客户端注册；内部共享 Cookie 登录不依赖 OAuth2 Client WebSession。
 
 ## 3. 验证方式
+
+公共基础模块没有 Web 自动配置入口；MVC 自动配置在 common-resource，Reactive 与 SPA 自动配置在 common-gateway。
+Java 包名和配置属性保持不变，消费者需使用新的 Maven 坐标。两种适配模块互不依赖。
+context-propagation 仅由网关模块引入；非 Web 应用可使用基础 common。
+
+公共模块的 DependencyIsolationTest 检查另一套框架及自有适配 class 不在类路径，并检查自动配置清单。
+迁移后必须使用 clean 构建，避免旧 target/classes 残留掩盖问题：
+
+```powershell
+mvn -B clean verify -Pintegration-tests '-Dskip.frontend=true' '-Dmaven.antrun.skip=true'
+./scripts/check-dependency-isolation.ps1
+```
+
+脚本解析实际 runtime 依赖树，检查 common、两类适配模块、Manager 网关和 MVC 服务。
+common-api 必须没有运行时依赖。MVC 禁止 WebFlux、Reactor 和 context-propagation；
+网关禁止 MVC、Servlet API 和 Tomcat 容器。校验器使用的 tomcat-embed-el 不属于禁止项。
 
 在根目录执行：
 
@@ -53,3 +70,5 @@ mvn -B clean verify dependency:analyze -Pintegration-tests '-Dskip.frontend=true
 - 依赖整改还应通过编译、单元测试、集成测试和应用打包。
 
 `skip.frontend=true` 跳过前端插件执行；完整发布构建应生成最新的前端静态资源。
+
+Manager UI 共同依赖本地 npm 包 `baosys-common-ui`。SPA 位于 `baosys-common-gateway`，Logback、运维配置与存储 JSON 位于 `baosys-common`；前端构建插件由根 POM 集中管理，详见 [公共基础设施](../shared-infrastructure.md)。
