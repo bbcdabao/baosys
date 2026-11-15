@@ -44,6 +44,12 @@ export const goToManagerLogin = (returnUrl = window.location.href): void => {
     throw new Error('Manager must use the same host and protocol as the subsystem')
   }
   navigating = true
-  login.hash = `/login?${new URLSearchParams({ redirect_url: returnUrl })}`
+  const target = new URL(returnUrl, window.location.origin)
+  // Manager 的站点根入口不属于子系统路径，登录后使用账户默认系统。
+  const isRootEntry = target.origin === login.origin && target.pathname === '/' &&
+    (!target.hash || target.hash === '#/')
+  if (!isRootEntry) {
+    login.hash = `/login?${new URLSearchParams({ redirect_url: returnUrl })}`
+  }
   window.location.assign(login.href)
 }

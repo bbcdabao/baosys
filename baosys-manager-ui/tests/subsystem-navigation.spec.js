@@ -167,6 +167,30 @@ test('login navigation puts the return URL inside the hash query', async ({ page
   )
 })
 
+for (const entry of ['/', '/#/']) {
+  test(`root entry ${entry} omits the login return URL`, async ({ page }) => {
+    await page.goto('/baosys-manager/tests/auth-harness.html')
+    await page.evaluate(async (path) => {
+      const { goToManagerLogin } = await import('/baosys-manager/src/utils/loginRedirect.ts')
+      window.history.replaceState(null, '', path)
+      goToManagerLogin()
+    }, entry)
+    await expect(page).toHaveURL('/baosys-manager/#/login')
+  })
+}
+
+test('another subsystem root preserves the login return URL', async ({ page }) => {
+  await page.goto('/baosys-manager/tests/auth-harness.html')
+  const target = 'http://localhost:8081/#/'
+  await page.evaluate(async (url) => {
+    const { goToManagerLogin } = await import('/baosys-manager/src/utils/loginRedirect.ts')
+    goToManagerLogin(url)
+  }, target)
+  await expect(page).toHaveURL(
+    `/baosys-manager/#/login?${new URLSearchParams({ redirect_url: target })}`
+  )
+})
+
 test('system home URLs preserve prefixes and reject traversal', async ({ page }) => {
   await page.goto('/baosys-manager/tests/auth-harness.html')
   const result = await page.evaluate(async () => {

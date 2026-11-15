@@ -308,7 +308,7 @@ const currentPermissionOptions = computed(() =>
 )
 
 const columns = computed<TableColumnData[]>(() => [
-  { title: t('user.name'), dataIndex: 'name' },
+  { title: t('user.name'), dataIndex: 'name', width: 280 },
   { title: t('user.systemType'), slotName: 'systemType', width: 150 },
   { title: t('user.defaultSystemType'), slotName: 'defaultSystemType', width: 150 },
   { title: t('user.permissions'), slotName: 'permissions' },

@@ -118,7 +118,7 @@ const canKick = computed(
   () => authStore.currentUser?.permissions.includes('MGR:user:session:kick') === true
 )
 const columns = computed<TableColumnData[]>(() => [
-  { title: t('session.userName'), dataIndex: 'userName', width: 160 },
+  { title: t('session.userName'), dataIndex: 'userName', width: 280 },
   { title: t('user.systemType'), slotName: 'systemType', width: 150 },
   { title: t('session.client'), dataIndex: 'loginClient' },
   { title: t('session.loginAt'), slotName: 'loginAt', width: 190 },
