@@ -48,7 +48,7 @@ class SystemCatalogIntegrationTest extends PostgreSqlIntegrationTest {
             .containsExactly("MGR");
         var user = users.create(
             new UserCreateRequest(
-                "manager-" + UUID.randomUUID(),
+                "m" + UUID.randomUUID().toString().replace("-", "").substring(0, 9),
                 "secure123",
                 Set.of("MGR", "MGR:user:list"),
                 true,

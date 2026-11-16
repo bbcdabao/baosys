@@ -21,7 +21,7 @@ const systems = [
   }
 ]
 
-async function setup(page, permissions) {
+async function setup(page, permissions, username = 'existing') {
   const state = { saved: [], loggedOut: false }
   await page.addInitScript(() => localStorage.setItem('baosys-locale', 'zh-CN'))
   await page.route('**/csrf', (route) =>
@@ -46,7 +46,7 @@ async function setup(page, permissions) {
         items: [
           {
             id: 2,
-            name: 'existing',
+            name: username,
             permissions: ['MGR'],
             defaultSystemType: 'CAT',
             enabled: true,
@@ -110,6 +110,7 @@ test('create requires a default subsystem and edit preserves and changes it', as
     defaultSystemType: 'CAT',
     permissions: []
   })
+  await page.getByRole('button', { name: '详情: existing', exact: true }).click()
   await page.getByRole('button', { name: '编辑', exact: true }).click()
   const selector = drawer
     .locator('.arco-form-item')
@@ -221,4 +222,112 @@ test('system home URLs preserve prefixes and reject traversal', async ({ page })
     root: 'https://example.com/baosys-manager/',
     rejected: true
   })
+})
+
+for (const width of [320, 768, 1440]) {
+  test('compact tables and full details at width ' + width, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const username = '用户名'.repeat(10) + '测试'
+    await setup(
+      page,
+      ['MGR', 'MGR:user:list', 'MGR:user:session:list', 'MGR:user:session:kick'],
+      username
+    )
+    const longClient = 'client-'.repeat(150)
+    let kicked = false
+    await page.route('**/api/baosys-manager/v1/login-sessions*', (route) =>
+      route.fulfill({
+        json: {
+          code: 'SUCCESS',
+          data: {
+            items: [
+              {
+                id: 9,
+                userId: 2,
+                userName: username,
+                permissions: ['MGR'],
+                loginClient: longClient,
+                loginAt: '2026-11-16T00:00:00Z',
+                expiresAt: '2026-11-17T00:00:00Z'
+              }
+            ],
+            total: 1
+          }
+        }
+      })
+    )
+    await page.route('**/users/2/login-clients/9', (route) => {
+      kicked = true
+      return route.fulfill({ json: { code: 'SUCCESS', data: null } })
+    })
+    await page.goto('/baosys-manager/#/users-management')
+    const table = page.locator('.management-table')
+    await expect(table.locator('th')).toHaveText(['用户名称', '平台类型', '账号状态'])
+    const fits = async () => {
+      expect(await table.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true)
+      expect(
+        await page.locator('.admin-content').evaluate((el) => el.scrollWidth <= el.clientWidth + 1)
+      ).toBe(true)
+      for (const el of await table.locator('.arco-table-content, .arco-table-body').all()) {
+        expect(await el.evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true)
+      }
+    }
+    await expect
+      .poll(async () =>
+        page.locator('.admin-sider').evaluate((el) => el.getBoundingClientRect().width)
+      )
+      .toBe(width < 992 ? 64 : 232)
+    await fits()
+    await page.getByRole('button', { name: `详情: ${username}`, exact: true }).click()
+    await expect(page.locator('.arco-drawer')).toContainText('默认登录子系统')
+    await page
+      .locator('.arco-drawer')
+      .getByRole('button', { name: '登录管理', exact: true })
+      .click()
+    await expect(table.locator('th')).toHaveText(['用户名称', '登录时间', '过期时间'])
+    await fits()
+    await page.getByRole('button', { name: `详情: ${username}`, exact: true }).click()
+    const drawer = page.locator('.arco-drawer')
+    await expect(drawer).toContainText(longClient)
+    expect(
+      await drawer
+        .locator('.arco-drawer-body')
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 1)
+    ).toBe(true)
+    await drawer.getByRole('button', { name: '踢出', exact: true }).click()
+    await page
+      .locator('.arco-popconfirm')
+      .getByRole('button', { name: '确定', exact: true })
+      .click()
+    await expect(drawer).toBeHidden()
+    expect(kicked).toBe(true)
+  })
+}
+
+test('authorized tree groups only granted permissions and preserves system links', async ({
+  page
+}) => {
+  await setup(page, ['MGR', 'MGR:user:list', 'CAT'])
+  await page.goto('/baosys-manager/#/authorized-systems')
+  const tree = page.locator('.authorized-tree')
+  await expect(tree.getByRole('link', { name: '后台管理', exact: true })).toHaveAttribute(
+    'href',
+    'http://localhost:5178/baosys-manager/users-management'
+  )
+  await expect(tree.getByRole('link', { name: '拨测平台', exact: true })).toBeVisible()
+  await expect(tree.locator('.permission-node')).toHaveCount(1)
+  await expect(tree.locator('.permission-node')).toContainText('MGR:user:list')
+  await expect(tree.locator('.system-node').filter({ hasText: '拨测平台' })).toContainText(
+    '仅子系统入口权限'
+  )
+  await expect(
+    page.locator('.arco-menu-item').filter({ hasText: '已授权子系统' }).locator('svg')
+  ).toBeVisible()
+  const branch = tree
+    .locator('.arco-tree-node')
+    .filter({ has: page.getByRole('link', { name: '后台管理', exact: true }) })
+  await branch.locator('.arco-tree-node-switcher').click()
+  await expect(tree.locator('.permission-node')).toBeHidden()
+  await branch.locator('.arco-tree-node-switcher').click()
+  await expect(tree.locator('.permission-node')).toBeVisible()
 })

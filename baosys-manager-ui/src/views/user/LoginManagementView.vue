@@ -46,6 +46,8 @@
       </a-form>
 
       <a-table
+        class="management-table"
+        table-layout-fixed
         row-key="id"
         :columns="columns"
         :data="sessions"
@@ -53,33 +55,72 @@
         :pagination="pagination"
         @page-change="changePage"
       >
-        <template #systemType="{ record }">
-          <a-tag
-            v-for="type in systemTypesFromPermissions(record.permissions)"
-            :key="type"
-            color="arcoblue"
-            >{{ systemLabel(type) }}</a-tag
+        <template #userName="{ record }">
+          <button
+            class="table-detail-link"
+            :aria-label="`${t('common.details')}: ${record.userName}`"
+            @click="openDetails(record)"
           >
+            {{ record.userName }}
+          </button>
         </template>
         <template #loginAt="{ record }">{{ formatTime(record.loginAt) }}</template>
         <template #expiresAt="{ record }">{{ formatTime(record.expiresAt) }}</template>
-        <template #actions="{ record }">
-          <a-popconfirm
-            v-if="canKick"
-            :content="t('session.kickConfirm')"
-            @ok="kickOne(record)"
-          >
-            <a-button
-              type="text"
-              status="danger"
-              size="small"
-            >
-              {{ t('session.kick') }}
-            </a-button>
-          </a-popconfirm>
-        </template>
       </a-table>
     </a-card>
+    <a-drawer
+      v-model:visible="detailsVisible"
+      :width="460"
+      :title="t('session.detailsTitle')"
+      :footer="false"
+      unmount-on-close
+    >
+      <div
+        v-if="selectedSession"
+        class="record-details"
+      >
+        <a-descriptions
+          :column="1"
+          layout="vertical"
+          bordered
+        >
+          <a-descriptions-item :label="t('session.userName')">{{
+            selectedSession.userName
+          }}</a-descriptions-item>
+          <a-descriptions-item :label="t('user.systemType')"
+            ><a-space wrap
+              ><a-tag
+                v-for="type in systemTypesFromPermissions(selectedSession.permissions)"
+                :key="type"
+                >{{ systemLabel(type) }}</a-tag
+              ></a-space
+            ></a-descriptions-item
+          >
+          <a-descriptions-item :label="t('session.client')">{{
+            selectedSession.loginClient
+          }}</a-descriptions-item>
+          <a-descriptions-item :label="t('session.loginAt')">{{
+            formatTime(selectedSession.loginAt)
+          }}</a-descriptions-item>
+          <a-descriptions-item :label="t('session.expiresAt')">{{
+            formatTime(selectedSession.expiresAt)
+          }}</a-descriptions-item>
+        </a-descriptions>
+        <a-popconfirm
+          v-if="canKick"
+          :content="t('session.kickConfirm')"
+          @ok="kickOne(selectedSession)"
+        >
+          <a-button
+            type="text"
+            status="danger"
+            size="small"
+          >
+            {{ t('session.kick') }}
+          </a-button>
+        </a-popconfirm>
+      </div>
+    </a-drawer>
   </section>
 </template>
 
@@ -106,6 +147,12 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
+const detailsVisible = ref(false)
+const selectedSession = ref<LoginSession | null>(null)
+const openDetails = (record: LoginSession): void => {
+  selectedSession.value = record
+  detailsVisible.value = true
+}
 const sessions = ref<LoginSession[]>([])
 const total = ref(0)
 const currentPage = ref(1)
@@ -118,12 +165,9 @@ const canKick = computed(
   () => authStore.currentUser?.permissions.includes('MGR:user:session:kick') === true
 )
 const columns = computed<TableColumnData[]>(() => [
-  { title: t('session.userName'), dataIndex: 'userName', width: 280 },
-  { title: t('user.systemType'), slotName: 'systemType', width: 150 },
-  { title: t('session.client'), dataIndex: 'loginClient' },
-  { title: t('session.loginAt'), slotName: 'loginAt', width: 190 },
-  { title: t('session.expiresAt'), slotName: 'expiresAt', width: 190 },
-  { title: t('common.actions'), slotName: 'actions', width: 110 }
+  { title: t('session.userName'), slotName: 'userName' },
+  { title: t('session.loginAt'), slotName: 'loginAt' },
+  { title: t('session.expiresAt'), slotName: 'expiresAt' }
 ])
 const pagination = computed(() => ({
   current: currentPage.value,
@@ -193,6 +237,7 @@ const changePage = async (page: number): Promise<void> => {
 const kickOne = async (session: LoginSession): Promise<void> => {
   try {
     await kickLoginClient(session.userId, session.id)
+    detailsVisible.value = false
     // 删除当前页唯一记录时先回退，避免停留在空页。
     if (sessions.value.length === 1 && currentPage.value > 1) {
       currentPage.value--
@@ -210,6 +255,7 @@ const kickAll = async (): Promise<void> => {
   }
   try {
     await kickAllLoginClients(exactUserId.value)
+    detailsVisible.value = false
     currentPage.value = 1
     await loadSessions()
     Message.success(t('session.kickedAll'))

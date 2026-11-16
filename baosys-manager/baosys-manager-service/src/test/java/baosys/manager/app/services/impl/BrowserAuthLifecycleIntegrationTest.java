@@ -34,7 +34,7 @@ class BrowserAuthLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
     @Autowired org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository clients;
 
     private UserResponse createUser() {
-        return users.create(new UserCreateRequest("browser-" + UUID.randomUUID(), "secure123",
+        return users.create(new UserCreateRequest("b" + UUID.randomUUID().toString().replace("-", "").substring(0, 9), "secure123",
             Set.of("MGR", "MGR:user:list"), null, "MGR"), 9001L);
     }
 

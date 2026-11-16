@@ -22,6 +22,7 @@ export default {
     footer: '一个账户 · 统一管理'
   },
   common: {
+    details: '详情',
     fullscreen: '进入全屏',
     exitFullscreen: '退出全屏',
     fullscreenUnavailable: '无法切换全屏，请检查浏览器是否支持或允许全屏',
@@ -76,6 +77,8 @@ export default {
     passwordRequired: '请输入密码'
   },
   user: {
+    detailsTitle: '用户详情',
+    nameTooLong: '用户名最多32个字符',
     defaultSystemType: '默认登录子系统',
     defaultSystemRequired: '请选择默认登录子系统',
     defaultSystemHint: '默认子系统不授予权限；没有入口权限时进入已授权子系统页面。',
@@ -111,6 +114,7 @@ export default {
     permissionsRequired: '请至少选择一项权限'
   },
   session: {
+    detailsTitle: '登录详情',
     title: '登录管理',
     description: '查询并管理当前仍然有效的登录状态',
     userName: '用户名称',

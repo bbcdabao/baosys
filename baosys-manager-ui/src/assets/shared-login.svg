@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 240" fill="none">
+  <ellipse cx="220" cy="125" rx="167" ry="99" fill="#92A9FF" fill-opacity=".08"/>
+  <ellipse cx="220" cy="217" rx="68" ry="8" fill="#7188C7" fill-opacity=".12"/>
+  <g stroke="#9CAFE5" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 7">
+    <path d="M114 75C154 75 144 119 178 119"/>
+    <path d="M326 75C286 75 296 119 262 119"/>
+    <path d="M109 178C150 178 145 154 178 154"/>
+    <path d="M331 178C290 178 295 154 262 154"/>
+  </g>
+  <!-- Four small application windows share one friendly sign-in companion. -->
+  <g stroke="#526594" stroke-width="2" stroke-linejoin="round">
+    <rect x="32" y="34" width="90" height="70" rx="15" fill="#EAF0FF"/>
+    <path d="M33 53H121"/>
+    <rect x="318" y="34" width="90" height="70" rx="15" fill="#E6F6EF"/>
+    <path d="M319 53H407"/>
+    <rect x="24" y="145" width="90" height="65" rx="15" fill="#FFF1DD"/>
+    <path d="M25 164H113"/>
+    <rect x="326" y="145" width="90" height="65" rx="15" fill="#F1EBFF"/>
+    <path d="M327 164H415"/>
+  </g>
+  <g fill="#8295BF">
+    <circle cx="45" cy="44" r="2"/><circle cx="53" cy="44" r="2"/>
+    <circle cx="331" cy="44" r="2"/><circle cx="339" cy="44" r="2"/>
+    <circle cx="37" cy="155" r="2"/><circle cx="45" cy="155" r="2"/>
+    <circle cx="339" cy="155" r="2"/><circle cx="347" cy="155" r="2"/>
+  </g>
+  <g fill="#7895EF">
+    <rect x="59" y="65" width="13" height="13" rx="4"/>
+    <rect x="79" y="65" width="13" height="13" rx="4"/>
+    <rect x="59" y="84" width="13" height="9" rx="3"/>
+    <rect x="79" y="84" width="13" height="9" rx="3"/>
+  </g>
+  <g stroke="#64AA92" stroke-width="5" stroke-linecap="round">
+    <path d="M346 87V79M362 87V68M378 87V74"/>
+  </g>
+  <g stroke="#C79B5E" stroke-width="2.5" stroke-linecap="round">
+    <path d="M48 178L52 182L58 175M65 179H90M48 192L52 196L58 189M65 193H82"/>
+  </g>
+  <g stroke="#A28BCB" stroke-width="2.5" stroke-linecap="round">
+    <path d="M349 181H393M349 194H393"/>
+    <circle cx="362" cy="181" r="4" fill="#F1EBFF"/>
+    <circle cx="382" cy="194" r="4" fill="#F1EBFF"/>
+  </g>
+  <!-- Rounded lock, waving arms and a small key badge. -->
+  <path d="M191 102V82A29 29 0 0 1 249 82V102" stroke="#526594" stroke-width="13" stroke-linecap="round"/>
+  <path d="M191 100V82A29 29 0 0 1 249 82V100" stroke="#BCD0FF" stroke-width="8" stroke-linecap="round"/>
+  <path d="M178 137Q153 138 151 116M262 137Q285 138 289 116" stroke="#526594" stroke-width="7" stroke-linecap="round"/>
+  <path d="M201 183L196 207H186M239 183L244 207H254" stroke="#526594" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="174" y="99" width="92" height="88" rx="27" fill="#91ADFF" stroke="#526594" stroke-width="2.5"/>
+  <path d="M188 115Q196 109 207 110" stroke="#DCE6FF" stroke-width="5" stroke-linecap="round"/>
+  <rect x="190" y="126" width="60" height="37" rx="17" fill="#F6F8FF"/>
+  <path d="M204 139V143M236 139V143" stroke="#435780" stroke-width="4" stroke-linecap="round"/>
+  <path d="M215 147Q220 152 225 147" stroke="#435780" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="200" cy="149" rx="4" ry="2.5" fill="#F3B7BD"/>
+  <ellipse cx="240" cy="149" rx="4" ry="2.5" fill="#F3B7BD"/>
+  <circle cx="265" cy="180" r="20" fill="#FFE6AE" stroke="#526594" stroke-width="2"/>
+  <g stroke="#9B783D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="260" cy="177" r="5"/>
+    <path d="M264 181L273 190M270 187L273 184"/>
+  </g>
+  <g stroke="#A6B8E8" stroke-width="2" stroke-linecap="round">
+    <path d="M157 34V44M152 39H162M293 208V218M288 213H298"/>
+  </g>
+  <circle cx="278" cy="30" r="4" fill="#EBC98F"/>
+  <circle cx="139" cy="219" r="3" fill="#A7CDBD"/>
+</svg>

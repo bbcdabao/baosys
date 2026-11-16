@@ -332,6 +332,9 @@ public class UserAppServiceImpl implements UserAppService {
         if (!StringUtils.hasLength(normalized)) {
             throw new BusinessException("USER_400_001", HttpStatus.BAD_REQUEST, "账户名称不能为空");
         }
+        if (normalized.length() > 32) {
+            throw new BusinessException("USER_400_001", HttpStatus.BAD_REQUEST, "账户名称不能超过 32 个字符");
+        }
         return normalized;
     }
 

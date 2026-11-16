@@ -205,7 +205,7 @@ class AccountLifecycleIntegrationTest extends PostgreSqlIntegrationTest {
     private UserResponse createUser() {
         return users.create(
             new UserCreateRequest(
-                "lifecycle-" + UUID.randomUUID(),
+                "l" + UUID.randomUUID().toString().replace("-", "").substring(0, 9),
                 "secure123",
                 Set.of("MGR", "MGR:user:list"),
                 null,

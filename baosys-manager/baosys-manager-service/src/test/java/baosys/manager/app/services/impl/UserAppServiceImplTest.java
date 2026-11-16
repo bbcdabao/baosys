@@ -35,10 +35,43 @@ class UserAppServiceImplTest {
     );
 
     @Test
+    void shouldValidateNameLengthOnCreateAndUpdateRequests() {
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            for (String name : new String[] { "a".repeat(32), "名".repeat(32), "a".repeat(33) }) {
+                var create = new baosys.manager.api.module.payloads.UserCreateRequest(
+                    name, "password123", Set.of("MGR"), true, "MGR"
+                );
+                var update = new UserUpdateRequest(1001L, name, "", Set.of("MGR"), true, "MGR");
+                assertThat(validator.validate(create).isEmpty()).isEqualTo(name.length() <= 32);
+                assertThat(validator.validate(update).isEmpty()).isEqualTo(name.length() <= 32);
+            }
+        }
+    }
+
+    @Test
+    void shouldRejectUsernamesLongerThanThirtyTwoCharacters() {
+        when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user("MGR", "")));
+        assertThatThrownBy(() -> userAppService.update(
+            new UserUpdateRequest(1001L, "a".repeat(33), "", Set.of("MGR"), true, "MGR"), 9001L
+        )).isInstanceOf(BusinessException.class).hasMessageContaining("32 个字符");
+    }
+
+    @Test
+    void shouldAcceptThirtyTwoCharacterUsername() {
+        UserInfoEntity user = user("MGR", "");
+        when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
+        var updated = userAppService.update(
+            new UserUpdateRequest(1001L, "a".repeat(32), "", Set.of("MGR"), true, "MGR"), 9001L
+        );
+        assertThat(updated.name()).isEqualTo("a".repeat(32));
+    }
+
+    @Test
     void shouldLoadFlatPermissionsFromPersistedUser() {
         UserInfoEntity user = new UserInfoEntity();
         user.setId(1001L);
-        user.setUserName("manager-user");
+        user.setUserName("manager");
         user.setUserPermissions("MGR:user:list,MGR");
         when(userMapper.findById(1001L)).thenReturn(Optional.of(user));
 
@@ -54,7 +87,7 @@ class UserAppServiceImplTest {
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         var updated = userAppService.update(
-            new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR"), true, "MGR"),
+            new UserUpdateRequest(1001L, "manager", "", Set.of("MGR"), true, "MGR"),
             9001L
         );
 
@@ -69,7 +102,7 @@ class UserAppServiceImplTest {
 
         assertThatThrownBy(() ->
             userAppService.update(
-                new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR:user:list"), true, "MGR"),
+                new UserUpdateRequest(1001L, "manager", "", Set.of("MGR:user:list"), true, "MGR"),
                 9001L
             )
         )
@@ -85,7 +118,7 @@ class UserAppServiceImplTest {
         userAppService.update(
             new UserUpdateRequest(
                 1001L,
-                "manager-user",
+                "manager",
                 "",
                 Set.of("MGR", "MGR:user:update"),
                 true,
@@ -113,7 +146,7 @@ class UserAppServiceImplTest {
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         userAppService.update(
-            new UserUpdateRequest(1001L, "manager-user", "", Set.of("MGR", "MGR:user:list"), false, "MGR"),
+            new UserUpdateRequest(1001L, "manager", "", Set.of("MGR", "MGR:user:list"), false, "MGR"),
             9001L
         );
 
@@ -132,7 +165,7 @@ class UserAppServiceImplTest {
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
 
         userAppService.update(
-            new UserUpdateRequest(1001L, "renamed-user", "", Set.of("MGR", "MGR:user:list"), true, "MGR"),
+            new UserUpdateRequest(1001L, "renamed", "", Set.of("MGR", "MGR:user:list"), true, "MGR"),
             9001L
         );
 

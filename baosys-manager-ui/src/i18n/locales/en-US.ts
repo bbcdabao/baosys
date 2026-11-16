@@ -22,6 +22,7 @@ export default {
     footer: 'One account · One place'
   },
   common: {
+    details: 'Details',
     fullscreen: 'Enter fullscreen',
     exitFullscreen: 'Exit fullscreen',
     fullscreenUnavailable:
@@ -77,6 +78,8 @@ export default {
     passwordRequired: 'Please enter a password'
   },
   user: {
+    detailsTitle: 'User details',
+    nameTooLong: 'Username must be at most 32 characters',
     defaultSystemType: 'Default login subsystem',
     defaultSystemRequired: 'Select a default login subsystem',
     defaultSystemHint:
@@ -116,6 +119,7 @@ export default {
     permissionsRequired: 'Select at least one permission'
   },
   session: {
+    detailsTitle: 'Login details',
     title: 'Login Management',
     description: 'Find and manage login sessions that are still active',
     userName: 'Username',

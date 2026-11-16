@@ -65,6 +65,8 @@
       </a-form>
 
       <a-table
+        class="management-table"
+        table-layout-fixed
         row-key="id"
         :columns="columns"
         :data="users"
@@ -72,6 +74,15 @@
         :pagination="pagination"
         @page-change="changePage"
       >
+        <template #name="{ record }">
+          <button
+            class="table-detail-link"
+            :aria-label="`${t('common.details')}: ${record.name}`"
+            @click="openDetails(record)"
+          >
+            {{ record.name }}
+          </button>
+        </template>
         <template #systemType="{ record }">
           <a-tag
             v-for="type in systemTypesFromPermissions(record.permissions)"
@@ -81,66 +92,92 @@
             {{ systemLabel(type) }}
           </a-tag>
         </template>
-        <template #defaultSystemType="{ record }">
-          {{ systemLabel(record.defaultSystemType) }}
-        </template>
-        <template #permissions="{ record }">
-          <a-space wrap>
-            <a-tag
-              v-for="permission in record.permissions"
-              :key="permission"
-            >
-              {{ permissionLabel(permission) }}
-            </a-tag>
-          </a-space>
-        </template>
         <template #enabled="{ record }">
           <a-tag :color="record.enabled ? 'green' : 'gray'">
             {{ t(record.enabled ? 'common.enabled' : 'common.disabled') }}
           </a-tag>
         </template>
-        <template #status="{ record }">
-          <a-badge
-            :status="record.status ? 'success' : 'normal'"
-            :text="t(record.status ? 'common.online' : 'common.offline')"
-          />
-        </template>
-        <template #actions="{ record }">
-          <a-space>
-            <a-button
-              v-if="canViewSessions"
-              type="text"
-              size="small"
-              @click="openLoginManagement(record)"
-            >
-              {{ t('user.loginManagement') }}
-            </a-button>
-            <a-button
-              v-if="canUpdate"
-              type="text"
-              size="small"
-              @click="openEdit(record)"
-            >
-              {{ t('common.edit') }}
-            </a-button>
-            <a-popconfirm
-              v-if="canDelete"
-              :content="t('user.deleteConfirm')"
-              @ok="removeUser(record)"
-            >
-              <a-button
-                type="text"
-                status="danger"
-                size="small"
-                :disabled="record.id === authStore.currentUser?.userId"
-              >
-                {{ t('common.delete') }}
-              </a-button>
-            </a-popconfirm>
-          </a-space>
-        </template>
       </a-table>
     </a-card>
+    <a-drawer
+      v-model:visible="detailsVisible"
+      :width="460"
+      :title="t('user.detailsTitle')"
+      :footer="false"
+      unmount-on-close
+    >
+      <div
+        v-if="selectedUser"
+        class="record-details"
+      >
+        <a-descriptions
+          :column="1"
+          layout="vertical"
+          bordered
+        >
+          <a-descriptions-item :label="t('user.name')">{{ selectedUser.name }}</a-descriptions-item>
+          <a-descriptions-item :label="t('user.systemType')"
+            ><a-space wrap
+              ><a-tag
+                v-for="type in systemTypesFromPermissions(selectedUser.permissions)"
+                :key="type"
+                >{{ systemLabel(type) }}</a-tag
+              ></a-space
+            ></a-descriptions-item
+          >
+          <a-descriptions-item :label="t('user.defaultSystemType')">{{
+            systemLabel(selectedUser.defaultSystemType)
+          }}</a-descriptions-item>
+          <a-descriptions-item :label="t('user.permissions')"
+            ><a-space wrap
+              ><a-tag
+                v-for="permission in selectedUser.permissions"
+                :key="permission"
+                >{{ permissionLabel(permission) }}</a-tag
+              ></a-space
+            ></a-descriptions-item
+          >
+          <a-descriptions-item :label="t('user.accountStatus')">{{
+            t(selectedUser.enabled ? 'common.enabled' : 'common.disabled')
+          }}</a-descriptions-item>
+          <a-descriptions-item :label="t('user.onlineStatus')">{{
+            t(selectedUser.status ? 'common.online' : 'common.offline')
+          }}</a-descriptions-item>
+        </a-descriptions>
+        <a-space wrap>
+          <a-button
+            v-if="canViewSessions"
+            type="text"
+            size="small"
+            @click="openLoginManagement(selectedUser)"
+          >
+            {{ t('user.loginManagement') }}
+          </a-button>
+          <a-button
+            v-if="canUpdate"
+            type="text"
+            size="small"
+            @click="openEdit(selectedUser)"
+          >
+            {{ t('common.edit') }}
+          </a-button>
+          <a-popconfirm
+            v-if="canDelete"
+            :content="t('user.deleteConfirm')"
+            @ok="removeUser(selectedUser)"
+          >
+            <a-button
+              type="text"
+              status="danger"
+              size="small"
+              :disabled="selectedUser.id === authStore.currentUser?.userId"
+            >
+              {{ t('common.delete') }}
+            </a-button>
+          </a-popconfirm>
+        </a-space>
+      </div>
+    </a-drawer>
 
     <a-drawer
       v-model:visible="editorVisible"
@@ -160,6 +197,8 @@
         >
           <a-input
             v-model="form.name"
+            :max-length="32"
+            show-word-limit
             :placeholder="t('user.namePlaceholder')"
           />
         </a-form-item>
@@ -274,6 +313,12 @@ const { systemOptions, systemLabel, permissionOptionsFor, permissionLabel } = us
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
+const detailsVisible = ref(false)
+const selectedUser = ref<UserSummary | null>(null)
+const openDetails = (record: UserSummary): void => {
+  selectedUser.value = record
+  detailsVisible.value = true
+}
 const saving = ref(false)
 const editorVisible = ref(false)
 const editingId = ref<number | null>(null)
@@ -308,13 +353,9 @@ const currentPermissionOptions = computed(() =>
 )
 
 const columns = computed<TableColumnData[]>(() => [
-  { title: t('user.name'), dataIndex: 'name', width: 280 },
-  { title: t('user.systemType'), slotName: 'systemType', width: 150 },
-  { title: t('user.defaultSystemType'), slotName: 'defaultSystemType', width: 150 },
-  { title: t('user.permissions'), slotName: 'permissions' },
-  { title: t('user.accountStatus'), slotName: 'enabled', width: 120 },
-  { title: t('user.onlineStatus'), slotName: 'status', width: 120 },
-  { title: t('common.actions'), slotName: 'actions', width: 260 }
+  { title: t('user.name'), slotName: 'name' },
+  { title: t('user.systemType'), slotName: 'systemType' },
+  { title: t('user.accountStatus'), slotName: 'enabled' }
 ])
 const pagination = computed(() => ({
   current: currentPage.value,
@@ -323,7 +364,10 @@ const pagination = computed(() => ({
   showTotal: true
 }))
 const formRules = computed(() => ({
-  name: [{ required: true, message: t('user.nameRequired') }],
+  name: [
+    { required: true, message: t('user.nameRequired') },
+    { maxLength: 32, message: t('user.nameTooLong') }
+  ],
   pass:
     editingId.value === null
       ? [{ required: true, minLength: 8, message: t('user.passwordRequired') }]
@@ -389,6 +433,7 @@ const openCreate = (): void => {
 }
 
 const openEdit = (user: UserSummary): void => {
+  detailsVisible.value = false
   editingId.value = user.id
   originalUser.value = { ...user, permissions: [...user.permissions] }
   const availableSystems = new Set(systemOptions.value.map((option) => option.value))
@@ -458,6 +503,7 @@ const saveUser = async (): Promise<void> => {
 const removeUser = async (user: UserSummary): Promise<void> => {
   try {
     await deleteUser(user.id)
+    detailsVisible.value = false
     if (users.value.length === 1 && currentPage.value > 1) {
       currentPage.value--
     }

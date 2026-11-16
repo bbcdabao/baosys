@@ -8,7 +8,7 @@ import java.util.Set;
 public record UserUpdateRequest(
     @NotNull(message = "账户 ID 不能为空") Long id,
     @NotBlank(message = "账户名称不能为空")
-    @Size(max = 128, message = "账户名称不能超过 128 个字符")
+    @Size(max = 32, message = "账户名称不能超过 32 个字符")
     String name,
     String pass,
     @NotNull(message = "权限配置不能为空") Set<String> permissions,

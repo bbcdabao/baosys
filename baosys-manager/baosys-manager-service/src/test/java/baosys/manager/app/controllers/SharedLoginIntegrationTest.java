@@ -39,7 +39,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void defaultSubsystemIsPersistedAndExplicitDeepLinkTakesPrecedence() throws Exception {
         var user = users.create(new baosys.manager.api.module.payloads.UserCreateRequest(
-            "nav-" + java.util.UUID.randomUUID(), "secure123", java.util.Set.of("MGR", "CAT"), true, "CAT"), 1L);
+            "n" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 9), "secure123", java.util.Set.of("MGR", "CAT"), true, "CAT"), 1L);
         try {
             assertThat(user.defaultSystemType()).isEqualTo("CAT");
             assertThat(jdbc.queryForObject("SELECT default_system_type FROM user_info WHERE id=?", String.class, user.id()))
@@ -61,7 +61,7 @@ class SharedLoginIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void missingTargetEntryAndEmptyPermissionsAlwaysLeadToAuthorizedSystems() throws Exception {
         var user = users.create(new baosys.manager.api.module.payloads.UserCreateRequest(
-            "fallback-" + java.util.UUID.randomUUID(), "secure123", java.util.Set.of("MGR"), true, "CAT"), 1L);
+            "f" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 9), "secure123", java.util.Set.of("MGR"), true, "CAT"), 1L);
         try {
             String fallback = "http://localhost:8080/baosys-manager/#/authorized-systems";
             loginAs(user.name(), null, fallback);

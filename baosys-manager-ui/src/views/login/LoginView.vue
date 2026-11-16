@@ -40,6 +40,14 @@
           />{{ t('login.configDescription') }}
         </p>
       </div>
+      <img
+        class="login-illustration"
+        :src="sharedLoginIllustration"
+        alt=""
+        aria-hidden="true"
+        width="440"
+        height="240"
+      />
     </section>
 
     <a-card
@@ -102,6 +110,7 @@ import { login } from '@/api/auth'
 import { useAuthStore } from '@/store/auth'
 import { useLocale } from '@/composables/useLocale'
 import { useTheme } from '@/composables/useTheme'
+import sharedLoginIllustration from '@/assets/shared-login.svg'
 const { t } = useI18n()
 const { locale } = useLocale()
 const { isDark, toggleTheme } = useTheme()
@@ -179,6 +188,13 @@ const submit = async (): Promise<void> => {
 }
 .login-intro {
   color: var(--color-text-1);
+}
+.login-illustration {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  margin-top: 28px;
 }
 .eyebrow {
   margin: 0 0 24px;
@@ -269,6 +285,10 @@ const submit = async (): Promise<void> => {
   .center-descriptions {
     margin-top: 20px;
     gap: 12px 20px;
+  }
+  .login-illustration {
+    width: min(100%, 280px);
+    margin: 20px auto 0;
   }
   .login-card {
     padding: 32px 0 0;

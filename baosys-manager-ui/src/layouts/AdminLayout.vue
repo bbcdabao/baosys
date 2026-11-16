@@ -27,7 +27,10 @@
         :default-open-keys="['user', 'system']"
         @menu-item-click="handleMenuClick"
       >
-        <a-menu-item key="/authorized-systems">{{ t('user.authorizedSystems') }}</a-menu-item>
+        <a-menu-item key="/authorized-systems">
+          <template #icon><icon-apps /></template>
+          {{ t('user.authorizedSystems') }}
+        </a-menu-item>
         <a-sub-menu
           v-if="can('MGR:user:list') || can('MGR:user:session:list')"
           key="user"
@@ -243,7 +246,8 @@ const logout = async (): Promise<void> => {
 }
 .admin-content {
   padding: 24px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 @media (max-width: 768px) {
   .admin-header {

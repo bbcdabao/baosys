@@ -38,3 +38,106 @@ button,
 input {
   font: inherit;
 }
+
+/* Keep management tables within the available width, including long values. */
+.page-section,
+.page-section .arco-card,
+.management-table {
+  min-width: 0;
+  max-width: 100%;
+}
+.management-table .arco-table-container,
+.management-table .arco-table-content,
+.management-table .arco-table-body {
+  overflow-x: hidden;
+}
+.management-table .arco-table-element {
+  width: 100%;
+  table-layout: fixed;
+}
+.management-table .arco-table-cell {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.management-table .arco-tag,
+.record-details .arco-tag {
+  height: auto;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* Ten full-width characters plus the cell padding. */
+.management-table col:first-child {
+  width: calc(10em + 32px);
+}
+.table-detail-link {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--primary-6));
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.table-detail-link:hover {
+  text-decoration: underline;
+}
+.record-details {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.record-details .arco-descriptions-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.arco-drawer {
+  max-width: 100vw;
+}
+.page-section .filter-form .arco-input-wrapper,
+.page-section .filter-form .arco-select-view {
+  max-width: 100%;
+}
+.management-table .arco-pagination {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+@media (max-width: 600px) {
+  .management-table col:first-child {
+    width: 35% !important;
+    min-width: 0 !important;
+  }
+  .management-table .arco-table-cell {
+    padding: 9px 6px;
+  }
+  .page-section .arco-card-body {
+    padding: 12px;
+  }
+  .page-section .filter-form .arco-form-item {
+    max-width: 100%;
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-section .page-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .page-section .filter-form .arco-form-item {
+    display: block;
+    width: 100%;
+  }
+  .page-section .filter-form .arco-form-item-label-col {
+    width: 100%;
+    text-align: left;
+  }
+  .page-section .filter-form .arco-space {
+    flex-wrap: wrap;
+  }
+}

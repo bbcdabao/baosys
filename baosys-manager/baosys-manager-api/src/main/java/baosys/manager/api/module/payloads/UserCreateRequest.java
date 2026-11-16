@@ -7,7 +7,7 @@ import java.util.Set;
 
 public record UserCreateRequest(
     @NotBlank(message = "账户名称不能为空")
-    @Size(max = 128, message = "账户名称不能超过 128 个字符")
+    @Size(max = 32, message = "账户名称不能超过 32 个字符")
     String name,
     @NotBlank(message = "密码不能为空")
     @Size(min = 8, max = 128, message = "密码长度必须为 8 到 128 个字符")

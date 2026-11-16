@@ -78,7 +78,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void createManagerAccountFilterAndDeleteThroughApi() throws Exception {
         String admin = adminToken();
-        String name = "manager-" + UUID.randomUUID();
+        String name = "m" + UUID.randomUUID().toString().replace("-", "").substring(0, 9);
         mvc.perform(
             post("/v1/users")
                 .header("Authorization", "Bearer " + admin)
@@ -137,7 +137,7 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void subsystemEntryWithoutApiPermissionIsInsufficient() throws Exception {
         var user = users.create(
-            new UserCreateRequest("entry-" + UUID.randomUUID(), "secure123", Set.of("MGR"), true, "MGR"),
+            new UserCreateRequest("e" + UUID.randomUUID().toString().replace("-", "").substring(0, 9), "secure123", Set.of("MGR"), true, "MGR"),
             1L
         );
         var login = auth.login(new LoginRequest(user.name(), "secure123", null));
@@ -174,11 +174,11 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
     @Test
     void defaultSubsystemIsRequiredAndMustExistForCreateAndUpdate() throws Exception {
         String token = adminToken();
-        var user = users.create(new UserCreateRequest("default-" + UUID.randomUUID(), "secure123", Set.of("MGR"), true, "MGR"), 1L);
+        var user = users.create(new UserCreateRequest("d" + UUID.randomUUID().toString().replace("-", "").substring(0, 9), "secure123", Set.of("MGR"), true, "MGR"), 1L);
         try {
             for (String value : Arrays.asList(null, "", " ", "UNKNOWN")) {
                 var body = new HashMap<String, Object>();
-                body.put("name", "invalid-" + UUID.randomUUID());
+                body.put("name", "i" + UUID.randomUUID().toString().replace("-", "").substring(0, 9));
                 body.put("pass", "secure123");
                 body.put("permissions", List.of("MGR"));
                 if (value != null) body.put("defaultSystemType", value);
