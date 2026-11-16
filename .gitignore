@@ -1,5 +1,4 @@
 **/target/
-baosys-manager/baosys-manager-service/bin/src/main/resources/db/migration/
 **/node/
 **/node_modules/
 **/dist/
