@@ -21,11 +21,6 @@
     </div>
 
     <section class="login-intro">
-      <p class="eyebrow">{{ t('login.subtitle') }}</p>
-      <h1>
-        <span>{{ t('login.userCenter') }}</span>
-        <span>{{ t('login.configCenter') }}</span>
-      </h1>
       <div class="center-descriptions">
         <p>
           <span
