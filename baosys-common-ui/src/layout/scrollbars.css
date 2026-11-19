@@ -1,0 +1,46 @@
+/* Arco tokens change with body[arco-theme], including teleported dialogs. */
+:root {
+  color-scheme: light;
+}
+body[arco-theme='dark'] {
+  color-scheme: dark;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-fill-4) var(--color-bg-2);
+}
+/* Chromium/WebKit: standard non-auto values override the pixel-sized pseudo
+   elements. Use one styling mechanism so both tracks stay exactly 8px wide.
+   Firefox retains the standard-property fallback above. */
+@supports selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+}
+.admin-content,
+.sidebar-menu .arco-menu-inner {
+  scrollbar-gutter: stable;
+}
+*::-webkit-scrollbar {
+  width: var(--baosys-scrollbar-size);
+  height: var(--baosys-scrollbar-size);
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: var(--color-bg-2);
+}
+*::-webkit-scrollbar-thumb {
+  box-sizing: border-box;
+  background: var(--color-fill-4);
+  border: var(--baosys-scrollbar-border) solid var(--color-bg-2);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-4);
+}

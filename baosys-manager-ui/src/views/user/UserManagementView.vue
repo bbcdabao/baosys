@@ -1,21 +1,20 @@
 <template>
-  <section class="page-section">
-    <div class="page-heading">
-      <div>
-        <p>{{ t('user.description') }}</p>
-      </div>
-      <a-button
-        v-if="canCreate"
-        type="primary"
-        @click="openCreate"
-      >
-        <template #icon><icon-plus /></template>
-        {{ t('common.create') }}
-      </a-button>
-    </div>
+  <PageContainer>
+    <PageHeader :description="t('user.description')">
+      <template #actions>
+        <a-button
+          v-if="canCreate"
+          type="primary"
+          @click="openCreate"
+        >
+          <template #icon><icon-plus /></template>
+          {{ t('common.create') }}
+        </a-button>
+      </template>
+    </PageHeader>
 
-    <a-card :bordered="false">
-      <a-form
+    <PageCard :bordered="false">
+      <FilterToolbar
         :model="filters"
         layout="inline"
         class="filter-form"
@@ -62,10 +61,9 @@
             <a-button @click="resetFilters">{{ t('common.reset') }}</a-button>
           </a-space>
         </a-form-item>
-      </a-form>
+      </FilterToolbar>
 
-      <a-table
-        class="management-table"
+      <ManagementTable
         table-layout-fixed
         row-key="id"
         :columns="columns"
@@ -97,11 +95,10 @@
             {{ t(record.enabled ? 'common.enabled' : 'common.disabled') }}
           </a-tag>
         </template>
-      </a-table>
-    </a-card>
-    <a-drawer
+      </ManagementTable>
+    </PageCard>
+    <DetailsDrawer
       v-model:visible="detailsVisible"
-      :width="460"
       :title="t('user.detailsTitle')"
       :footer="false"
       unmount-on-close
@@ -177,11 +174,11 @@
           </a-popconfirm>
         </a-space>
       </div>
-    </a-drawer>
+    </DetailsDrawer>
 
     <a-drawer
       v-model:visible="editorVisible"
-      :width="460"
+      width="var(--baosys-detail-width)"
       :title="t(editingId === null ? 'user.createTitle' : 'user.editTitle')"
       :unmount-on-close="true"
     >
@@ -290,10 +287,18 @@
         </a-space>
       </template>
     </a-drawer>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
+import ManagementTable from '@/components/user/ManagementTable.vue'
+import {
+  PageContainer,
+  PageHeader,
+  PageCard,
+  FilterToolbar,
+  DetailsDrawer
+} from '@baosys/common-ui/components'
 import type { FormInstance, TableColumnData } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import '@arco-design/web-vue/es/message/style/css.js'
@@ -531,27 +536,7 @@ onMounted(loadUsers)
   color: var(--color-text-3);
   font-size: 12px;
 }
-.page-section {
-  display: grid;
-  gap: 18px;
-}
-.page-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.page-heading h2 {
-  margin: 0;
-  color: var(--color-text-1);
-  font-size: 22px;
-}
-.page-heading p {
-  margin: 6px 0 0;
-  color: var(--color-text-3);
-}
-.filter-form {
-  margin-bottom: 18px;
-}
+
 .filter-form :deep(.arco-form-item) {
   margin-bottom: 12px;
 }

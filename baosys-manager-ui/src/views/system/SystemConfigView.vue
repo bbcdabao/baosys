@@ -1,7 +1,7 @@
 <template>
-  <a-card
+  <PageCard
     :bordered="false"
-    class="building-card"
+    class="building-card baosys-page"
   >
     <a-result
       :title="t('system.building')"
@@ -9,10 +9,11 @@
     >
       <template #icon><icon-settings /></template>
     </a-result>
-  </a-card>
+  </PageCard>
 </template>
 
 <script setup lang="ts">
+import { PageCard } from '@baosys/common-ui/components'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

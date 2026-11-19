@@ -1,0 +1,109 @@
+/* Shared workspace primitives. Domain-specific tables/charts retain local styles. */
+.baosys-page {
+  width: 100%;
+  min-width: 0;
+  max-width: var(--baosys-workspace-max-width);
+  margin-inline: auto;
+}
+.page-section {
+  display: grid;
+  gap: var(--baosys-section-gap);
+}
+.page-heading,
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--baosys-toolbar-gap);
+  flex-wrap: wrap;
+}
+.page-heading h2 {
+  margin: 0;
+  color: var(--color-text-1);
+  font-size: var(--baosys-heading-size);
+}
+.page-heading p {
+  margin: 6px 0 0;
+  color: var(--color-text-3);
+}
+.section-title {
+  font-weight: 600;
+}
+.filter-form {
+  margin-bottom: var(--baosys-section-gap);
+}
+.filter-form .arco-form-item {
+  margin-bottom: var(--baosys-toolbar-gap);
+  max-width: 100%;
+}
+.filter-form .arco-input-wrapper,
+.filter-form .arco-select-view {
+  max-width: 100%;
+}
+.page-card {
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: var(--baosys-card-gap);
+  border-radius: var(--baosys-card-radius);
+}
+.page-card.baosys-page {
+  max-width: var(--baosys-workspace-max-width);
+}
+.page-section > .page-card {
+  margin-bottom: 0;
+}
+.page-card--spaced {
+  margin-bottom: var(--baosys-card-gap-large);
+}
+.page-card > .arco-card-body {
+  padding: var(--baosys-card-padding);
+}
+.record-details {
+  display: grid;
+  gap: var(--baosys-detail-gap);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.record-details .arco-descriptions-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.record-details .arco-tag {
+  height: auto;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.arco-drawer {
+  max-width: 100vw;
+}
+.baosys-page-state {
+  display: grid;
+  place-items: center;
+  padding: var(--baosys-card-padding);
+}
+.admin-content .interval-line {
+  margin: var(--baosys-card-gap) 0;
+}
+.admin-content .fade-slide-enter-active,
+.admin-content .fade-slide-leave-active {
+  transition: opacity var(--baosys-motion-duration) ease;
+}
+.admin-content .fade-slide-enter-from,
+.admin-content .fade-slide-leave-to {
+  opacity: 0;
+}
+@media (max-width: 600px) {
+  .filter-form .arco-form-item {
+    display: block;
+    width: 100%;
+    margin-right: 0;
+  }
+  .filter-form .arco-form-item-label-col {
+    width: 100%;
+    text-align: left;
+  }
+  .filter-form .arco-space {
+    flex-wrap: wrap;
+  }
+}

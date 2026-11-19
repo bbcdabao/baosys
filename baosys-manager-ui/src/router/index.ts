@@ -1,3 +1,11 @@
+import {
+  IconUserGroup,
+  IconUser,
+  IconDesktop,
+  IconSettings,
+  IconTool
+} from '@arco-design/web-vue/es/icon'
+import type {} from '@baosys/common-ui/layout'
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 import { useAuthStore } from '@/store/auth'
@@ -51,6 +59,11 @@ export const router = createRouter({
           meta: {
             menuTitleKey: 'menu.user',
             titleKey: 'menu.userManagement',
+            menu: {
+              icon: IconUser,
+              order: 10,
+              group: { key: 'user', titleKey: 'menu.user', icon: IconUserGroup }
+            },
             requiredPermission: 'MGR:user:list'
           }
         },
@@ -61,6 +74,11 @@ export const router = createRouter({
           meta: {
             menuTitleKey: 'menu.user',
             titleKey: 'menu.loginManagement',
+            menu: {
+              icon: IconDesktop,
+              order: 20,
+              group: { key: 'user', titleKey: 'menu.user', icon: IconUserGroup }
+            },
             requiredPermission: 'MGR:user:session:list'
           }
         },
@@ -71,6 +89,11 @@ export const router = createRouter({
           meta: {
             menuTitleKey: 'menu.system',
             titleKey: 'menu.systemConfig',
+            menu: {
+              icon: IconTool,
+              order: 30,
+              group: { key: 'system', titleKey: 'menu.system', icon: IconSettings }
+            },
             requiredPermission: 'MGR'
           }
         }

@@ -1,66 +1,225 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 240" fill="none">
-  <ellipse cx="220" cy="125" rx="167" ry="99" fill="#92A9FF" fill-opacity=".08"/>
-  <ellipse cx="220" cy="217" rx="68" ry="8" fill="#7188C7" fill-opacity=".12"/>
-  <g stroke="#9CAFE5" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 7">
-    <path d="M114 75C154 75 144 119 178 119"/>
-    <path d="M326 75C286 75 296 119 262 119"/>
-    <path d="M109 178C150 178 145 154 178 154"/>
-    <path d="M331 178C290 178 295 154 262 154"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+<title id="title">J.A.R.V.I.S. inspired adaptive holographic AI interface</title>
+<desc id="desc">A futuristic cyan holographic HUD with concentric segmented rings, a glowing AI core, and theme-adaptive transparent styling for both light and dark UI themes.</desc>
+<defs>
+  <radialGradient id="bgSoft" cx="50%" cy="49%" r="70%">
+    <stop offset="0%" style="stop-color:var(--bg-glow);stop-opacity:var(--bg-glow-opacity)"/>
+    <stop offset="60%" style="stop-color:var(--bg-mid);stop-opacity:var(--bg-mid-opacity)"/>
+    <stop offset="100%" style="stop-color:var(--bg-edge);stop-opacity:var(--bg-edge-opacity)"/>
+  </radialGradient>
+  <radialGradient id="core">
+    <stop stop-color="var(--core-white)" stop-opacity="0.95"/>
+    <stop offset=".19" stop-color="var(--core-bright)" stop-opacity="0.98"/>
+    <stop offset=".47" stop-color="var(--core-mid)" stop-opacity=".62"/>
+    <stop offset="1" stop-color="var(--core-mid)" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="bright" x1="0" y1="0" x2="1" y2="1">
+    <stop stop-color="var(--line-bright)"/>
+    <stop offset=".5" stop-color="var(--line-primary)"/>
+    <stop offset="1" stop-color="var(--line-secondary)"/>
+  </linearGradient>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M40 0H0V40" fill="none" stroke="var(--grid-stroke)" stroke-opacity="var(--grid-opacity)" stroke-width="1"/>
+  </pattern>
+  <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="5" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="soft"><feGaussianBlur stdDeviation="16"/></filter>
+  <style>
+    :root{
+      color-scheme: light dark;
+      --bg-glow:#7edfff;
+      --bg-glow-opacity:.14;
+      --bg-mid:#2d87b3;
+      --bg-mid-opacity:.06;
+      --bg-edge:#0b2232;
+      --bg-edge-opacity:.00;
+
+      --line-primary:#1cb6dc;
+      --line-secondary:#127a9d;
+      --line-bright:#baf8ff;
+      --line-fine:#63def4;
+      --line-dim:#2e9bc0;
+      --line-muted:#4abada;
+      --line-heavy:#58e3ff;
+      --line-heavy-2:#a1faff;
+      --grid-stroke:#2789aa;
+      --grid-opacity:.12;
+
+      --text-primary:#0c89ad;
+      --text-secondary:#159dc3;
+      --text-bright:#1aaed0;
+      --text-title:#0891b5;
+      --text-main:#0ea0c2;
+      --text-soft:#2794b2;
+
+      --disc-fill:#dff7ff;
+      --disc-fill-opacity:.07;
+      --inner-fill:#c7efff;
+      --inner-fill-opacity:.08;
+      --center-dot:#ffffff;
+      --center-dot-opacity:1;
+
+      --core-white:#ffffff;
+      --core-bright:#7feeff;
+      --core-mid:#11a8d0;
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg-glow:#70deff;
+        --bg-glow-opacity:.19;
+        --bg-mid:#113954;
+        --bg-mid-opacity:.25;
+        --bg-edge:#04111b;
+        --bg-edge-opacity:.45;
+
+        --line-primary:#44dafa;
+        --line-secondary:#0d8bab;
+        --line-bright:#c4fdff;
+        --line-fine:#7be8fa;
+        --line-dim:#2ba6c5;
+        --line-muted:#4abada;
+        --line-heavy:#58e3ff;
+        --line-heavy-2:#a1faff;
+        --grid-stroke:#49a9ca;
+        --grid-opacity:.12;
+
+        --text-primary:#a4ebfc;
+        --text-secondary:#73cee8;
+        --text-bright:#d1fbff;
+        --text-title:#7ddaf0;
+        --text-main:#c4faff;
+        --text-soft:#8cdef5;
+
+        --disc-fill:#041827;
+        --disc-fill-opacity:.62;
+        --inner-fill:#082c41;
+        --inner-fill-opacity:.50;
+        --center-dot:#ffffff;
+        --center-dot-opacity:1;
+
+        --core-white:#e6ffff;
+        --core-bright:#89f4ff;
+        --core-mid:#16b9e3;
+      }
+    }
+
+    .cyan{stroke:var(--line-primary);fill:none}
+    .dim{stroke:var(--line-dim);fill:none}
+    .fine{stroke:var(--line-fine);fill:none}
+    .txt{font-family:Arial,Helvetica,sans-serif;fill:var(--text-primary);letter-spacing:3px}
+    .mono{font-family:Consolas,monospace;fill:var(--text-secondary);letter-spacing:2px}
+    .faint{opacity:.35}
+    .pulse{animation:pulse 3.5s ease-in-out infinite;transform-origin:600px 390px}
+    .rotate{animation:spin 80s linear infinite;transform-origin:600px 390px}
+    .reverse{animation:spin 100s linear infinite reverse;transform-origin:600px 390px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{50%{opacity:.65;transform:scale(1.035)}}
+    @media (prefers-reduced-motion:reduce){.pulse,.rotate,.reverse{animation:none}}
+  </style>
+</defs>
+
+<!-- transparent adaptive background -->
+<rect width="1200" height="800" fill="url(#bgSoft)"/>
+<rect width="1200" height="800" fill="url(#grid)"/>
+
+<!-- Quiet perimeter hardware lines -->
+<g stroke="var(--line-muted)" fill="none" opacity=".34" stroke-width="1.3">
+  <path d="M58 123V68h58M1084 68h58v55M58 677v55h58M1084 732h58v-55"/>
+  <path d="M60 399h82m916 0h82M600 35v55m0 620v55"/>
+  <path d="M175 124h155M870 124h155M175 665h155M870 665h155" stroke-dasharray="5 10"/>
+</g>
+
+<!-- left/right telemetry -->
+<g class="mono" font-size="12">
+  <text x="76" y="185">SYS // ACTIVE</text>
+  <text x="76" y="214" opacity=".65">NEURAL LINK</text>
+  <text x="76" y="233" fill="var(--text-bright)">ESTABLISHED</text>
+  <text x="76" y="555">COGNITIVE MATRIX</text>
+  <text x="76" y="577" opacity=".6">SYNCHRONIZED</text>
+  <text x="933" y="184">HOLOGRAPHIC</text>
+  <text x="933" y="204">INTERFACE 01</text>
+  <text x="933" y="558">CORE STABILITY</text>
+  <text x="933" y="580" fill="var(--text-bright)">99.98%</text>
+</g>
+
+<g fill="var(--line-heavy)" opacity=".55">
+  <rect x="76" y="253" width="118" height="2"/>
+  <rect x="76" y="253" width="70" height="2" filter="url(#glow)"/>
+  <rect x="933" y="222" width="126" height="2"/>
+  <rect x="933" y="601" width="126" height="2"/>
+</g>
+
+<g stroke="var(--line-primary)" fill="none" opacity=".42">
+  <path d="M200 225h75l65 50M200 568h75l65-50M923 225h-58l-65 50M923 568h-58l-65-50"/>
+  <circle cx="340" cy="275" r="3" fill="var(--line-bright)"/>
+  <circle cx="340" cy="518" r="3" fill="var(--line-bright)"/>
+  <circle cx="800" cy="275" r="3" fill="var(--line-bright)"/>
+  <circle cx="800" cy="518" r="3" fill="var(--line-bright)"/>
+</g>
+
+<!-- orbital machinery -->
+<g transform="translate(600 390)">
+  <circle r="299" stroke="var(--line-secondary)" stroke-opacity=".24" fill="none" stroke-width="1"/>
+  <circle r="286" class="dim" stroke-width="1" opacity=".35" stroke-dasharray="2 13"/>
+  <g class="rotate">
+    <circle r="267" class="cyan" opacity=".55" stroke-width="3" stroke-dasharray="180 25 12 45 75 35 8 70 115 40 10 65 90 48"/>
+    <circle r="276" class="fine" stroke-width="1" opacity=".25" stroke-dasharray="3 14"/>
   </g>
-  <!-- Four small application windows share one friendly sign-in companion. -->
-  <g stroke="#526594" stroke-width="2" stroke-linejoin="round">
-    <rect x="32" y="34" width="90" height="70" rx="15" fill="#EAF0FF"/>
-    <path d="M33 53H121"/>
-    <rect x="318" y="34" width="90" height="70" rx="15" fill="#E6F6EF"/>
-    <path d="M319 53H407"/>
-    <rect x="24" y="145" width="90" height="65" rx="15" fill="#FFF1DD"/>
-    <path d="M25 164H113"/>
-    <rect x="326" y="145" width="90" height="65" rx="15" fill="#F1EBFF"/>
-    <path d="M327 164H415"/>
+  <circle r="249" class="dim" opacity=".32" stroke-width="1.3"/>
+  <g class="reverse">
+    <circle r="240" stroke="var(--line-heavy)" stroke-width="15" fill="none" opacity=".32" stroke-dasharray="82 27 5 49 32 82 7 44 110 40 21 68"/>
+    <circle r="240" stroke="var(--line-heavy-2)" stroke-width="2" fill="none" opacity=".72" stroke-dasharray="90 235 130 195 58 800"/>
   </g>
-  <g fill="#8295BF">
-    <circle cx="45" cy="44" r="2"/><circle cx="53" cy="44" r="2"/>
-    <circle cx="331" cy="44" r="2"/><circle cx="339" cy="44" r="2"/>
-    <circle cx="37" cy="155" r="2"/><circle cx="45" cy="155" r="2"/>
-    <circle cx="339" cy="155" r="2"/><circle cx="347" cy="155" r="2"/>
+  <circle r="214" class="cyan" stroke-width="1.5" opacity=".42" stroke-dasharray="2 7"/>
+  <g class="rotate">
+    <circle r="203" stroke="var(--line-primary)" stroke-width="20" fill="none" opacity=".14" stroke-dasharray="110 22 9 105 65 87 7 55"/>
+    <circle r="202" class="fine" stroke-width="2.5" opacity=".62" stroke-dasharray="125 65 16 77 186 52 45 700"/>
   </g>
-  <g fill="#7895EF">
-    <rect x="59" y="65" width="13" height="13" rx="4"/>
-    <rect x="79" y="65" width="13" height="13" rx="4"/>
-    <rect x="59" y="84" width="13" height="9" rx="3"/>
-    <rect x="79" y="84" width="13" height="9" rx="3"/>
+  <circle r="177" class="dim" stroke-width="1.2" opacity=".75"/>
+  <circle r="167" class="cyan" stroke-width="1" opacity=".4" stroke-dasharray="5 8"/>
+  <g class="reverse">
+    <circle r="155" class="cyan" stroke-width="8" opacity=".68" stroke-dasharray="85 41 5 80 112 55 20 500"/>
+    <circle r="144" class="fine" stroke-width="1.6" opacity=".65" stroke-dasharray="90 125 45 63 28 500"/>
   </g>
-  <g stroke="#64AA92" stroke-width="5" stroke-linecap="round">
-    <path d="M346 87V79M362 87V68M378 87V74"/>
+
+  <!-- polygonal intelligence framework -->
+  <path d="M0-128 111-64 111 64 0 128-111 64-111-64Z" class="cyan" stroke-width="1.4" opacity=".65"/>
+  <path d="M0-104 90-52 90 52 0 104-90 52-90-52Z" class="fine" opacity=".25"/>
+  <path d="M0-128V-72M111-64 62-35M111 64 62 35M0 128V72M-111 64-62 35M-111-64-62-35" class="cyan" opacity=".5"/>
+  <circle r="115" fill="var(--disc-fill)" fill-opacity="var(--disc-fill-opacity)"/>
+  <circle r="106" class="fine" stroke-width="2" opacity=".5"/>
+  <circle r="95" fill="url(#core)" opacity=".58" filter="url(#soft)" class="pulse"/>
+
+  <!-- glowing reactor iris -->
+  <g class="pulse">
+    <circle r="82" fill="url(#core)"/>
+    <circle r="76" class="cyan" stroke-width="2" opacity=".65"/>
+    <circle r="62" stroke="var(--line-heavy-2)" fill="var(--inner-fill)" fill-opacity="var(--inner-fill-opacity)" stroke-width="1.8"/>
+    <circle r="49" stroke="var(--line-heavy)" fill="none" stroke-width="5" opacity=".5"/>
+    <circle r="34" fill="var(--line-bright)" fill-opacity=".13" stroke="var(--line-heavy-2)" stroke-width="2"/>
+    <circle r="17" fill="var(--line-heavy-2)" opacity=".85" filter="url(#glow)"/>
+    <circle r="7" fill="var(--center-dot)" fill-opacity="var(--center-dot-opacity)"/>
   </g>
-  <g stroke="#C79B5E" stroke-width="2.5" stroke-linecap="round">
-    <path d="M48 178L52 182L58 175M65 179H90M48 192L52 196L58 189M65 193H82"/>
-  </g>
-  <g stroke="#A28BCB" stroke-width="2.5" stroke-linecap="round">
-    <path d="M349 181H393M349 194H393"/>
-    <circle cx="362" cy="181" r="4" fill="#F1EBFF"/>
-    <circle cx="382" cy="194" r="4" fill="#F1EBFF"/>
-  </g>
-  <!-- Rounded lock, waving arms and a small key badge. -->
-  <path d="M191 102V82A29 29 0 0 1 249 82V102" stroke="#526594" stroke-width="13" stroke-linecap="round"/>
-  <path d="M191 100V82A29 29 0 0 1 249 82V100" stroke="#BCD0FF" stroke-width="8" stroke-linecap="round"/>
-  <path d="M178 137Q153 138 151 116M262 137Q285 138 289 116" stroke="#526594" stroke-width="7" stroke-linecap="round"/>
-  <path d="M201 183L196 207H186M239 183L244 207H254" stroke="#526594" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="174" y="99" width="92" height="88" rx="27" fill="#91ADFF" stroke="#526594" stroke-width="2.5"/>
-  <path d="M188 115Q196 109 207 110" stroke="#DCE6FF" stroke-width="5" stroke-linecap="round"/>
-  <rect x="190" y="126" width="60" height="37" rx="17" fill="#F6F8FF"/>
-  <path d="M204 139V143M236 139V143" stroke="#435780" stroke-width="4" stroke-linecap="round"/>
-  <path d="M215 147Q220 152 225 147" stroke="#435780" stroke-width="2.5" stroke-linecap="round"/>
-  <ellipse cx="200" cy="149" rx="4" ry="2.5" fill="#F3B7BD"/>
-  <ellipse cx="240" cy="149" rx="4" ry="2.5" fill="#F3B7BD"/>
-  <circle cx="265" cy="180" r="20" fill="#FFE6AE" stroke="#526594" stroke-width="2"/>
-  <g stroke="#9B783D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="260" cy="177" r="5"/>
-    <path d="M264 181L273 190M270 187L273 184"/>
-  </g>
-  <g stroke="#A6B8E8" stroke-width="2" stroke-linecap="round">
-    <path d="M157 34V44M152 39H162M293 208V218M288 213H298"/>
-  </g>
-  <circle cx="278" cy="30" r="4" fill="#EBC98F"/>
-  <circle cx="139" cy="219" r="3" fill="#A7CDBD"/>
+  <path d="M-95 0h-47M95 0h47M0-95v-47M0 95v47" class="fine" opacity=".65"/>
+</g>
+
+<!-- micro ticks around circles -->
+<g transform="translate(600 390)" stroke="var(--line-heavy-2)" opacity=".52">
+  <path d="M0-293v-16M293 0h16M0 293v16M-293 0h-16" stroke-width="2.5"/>
+  <path d="M207-207l10-10M207 207l10 10M-207 207l-10 10M-207-207l-10-10" stroke-width="1.5"/>
+</g>
+
+<!-- elegant typographic anchor -->
+<g text-anchor="middle">
+  <text x="600" y="77" class="txt" font-size="14" letter-spacing="7" fill="var(--text-title)">ADVANCED INTELLIGENCE SYSTEM</text>
+  <text x="600" y="734" class="txt" font-size="37" font-weight="300" letter-spacing="13" fill="var(--text-main)">J.A.R.V.I.S.</text>
+  <text x="600" y="760" class="mono" font-size="11" letter-spacing="4" opacity=".72">JUST A RATHER VERY INTELLIGENT SYSTEM</text>
+</g>
+<g fill="var(--text-soft)" opacity=".72" font-family="Consolas,monospace" font-size="10" letter-spacing="2">
+  <text x="76" y="704">PROTOCOL // 7.02</text>
+  <text x="933" y="704">STATUS: ONLINE</text>
+</g>
 </svg>

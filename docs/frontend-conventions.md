@@ -17,7 +17,7 @@
 | `src/router` | 路由、页面权限与导航守卫 |
 | `src/i18n` | 国际化初始化及 `locales/zh-CN.ts`、`locales/en-US.ts` |
 | `src/utils` | 职责单一的工具，如 `loginRedirect.ts`；不恢复杂项工具大文件 |
-| `src/assets/css/main.css` | 基础排版、页面尺寸和真正全局的样式 |
+| `baosys-common-ui/src/styles/main.css` | 唯一的自定义全局样式入口，统一基础排版与布局尺寸 |
 | `tests` | Playwright 交互、认证和回归测试 |
 
 新增业务接口遵循“页面/Store → API 模块 → 请求层”的调用关系。API 文件按业务拆分，不将所有接口堆入 `api/index.ts`；如保留索引文件，仅做导出。仅在确有使用者时建立目录和抽象。
@@ -83,7 +83,7 @@ Manager 承担共享登录及退出流程，加载当前用户和系统目录，
 
 ## 全局样式、主题与实时组件
 
-- 基础布局和排版放在 `main.css`，业务样式放在组件的 `scoped` 样式或后台布局内容作用域内。避免全局覆盖所有 `.arco-select`、`.arco-table` 等组件。
+- 基础布局和排版放在 `@baosys/common-ui/main.css` 及其导入的公共样式中；应用不再维护自己的 `main.css`。业务样式放在组件的 `scoped` 样式内。避免全局覆盖所有 `.arco-select`、`.arco-table` 等组件。
 - 直接使用 Arco 的 `--color-*`、`--primary-*`、`--success-*`、`--danger-*` 等变量，不引入旧式 `--element-*` / `--cardbody-*` 别名或固定明暗色。
 - 主题由 `useTheme()` 管理，使用 `baosys-theme` 和 `body[arco-theme='dark']`。用户设置优先，否则跟随初始化时的系统偏好。
 - Canvas 需要实际颜色值，应读取当前主题。成功、失败、主线等颜色保持业务语义。
@@ -125,8 +125,14 @@ Node 版本遵循 `package.json` 的 engines。浏览器测试默认使用 Edge�
 以下是目前的实现差异，不应被文档误写为已经完全统一：
 
 - Manager 的 `useSystemCatalog.ts` 仍在 composable 内定义目录类型并请求接口；后续修改该模块时可按 API/types 分层拆分，本轮规范化不改变其行为。
-- Manager 菜单当前仍有模板内权限判断。新增权限应避免重复配置，修改 Manager 权限时同时核对菜单和守卫。
+- Manager 通过公共 `RoutedAdminLayout` 从路由 `meta.menu` 与 `requiredPermission` 生成菜单；应用提供权限判断，路由守卫与后端鉴权仍独立执行。
 - Manager 尚未对中英文键结构使用自动校验，修改语言文件时需同时核对两种语言。
 - 现存业务类型名称、Store 文件名及历史路由可保留；不要为了规范一次性改动已对外使用的契约。
 
 项目入口与业务细节见 [Manager README](../baosys-manager-ui/README.md)。接口、安全与跨模块规则继续遵循 [开发约定](conventions.md)。
+
+## 公共 UI 接入
+
+布局、菜单、面包屑使用 `@baosys/common-ui/layout`；页面容器、卡片、筛选栏和详情抽屉使用 `@baosys/common-ui/components`。语言初始化与切换使用 `@baosys/common-ui/i18n`，主题与全屏偏好使用 `@baosys/common-ui/preferences`。已授权系统展示和入口 URL 校验复用 `@baosys/common-ui/pages`。业务页面负责数据、操作和权限，不覆盖公共布局样式。
+
+公共尺寸集中配置于 `baosys-common-ui/src/styles/main.css`，业务表格样式留在 Manager 的 `ManagementTable.vue`。接口及使用示例见 [公共 UI 文档](../baosys-common-ui/README.md)。修改公共包后先在 Manager UI 运行 `npm ci`，再执行构建与浏览器回归，确保使用最新本地依赖。

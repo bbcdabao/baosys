@@ -6,7 +6,7 @@ import { i18n } from '@/i18n'
 import { router } from '@/router'
 
 import App from './App.vue'
-import './assets/css/main.css'
+import '@baosys/common-ui/main.css'
 
 const app = createApp(App)
 const pinia = createPinia()

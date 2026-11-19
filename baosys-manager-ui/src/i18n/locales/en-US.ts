@@ -1,5 +1,6 @@
 export default {
   signOut: {
+    navigationFailed: 'Unable to navigate to sign out. Please retry.',
     brand: 'Account center',
     eyebrow: 'ACCOUNT · SIGN OUT',
     title: 'Signing you out',
@@ -23,10 +24,6 @@ export default {
   },
   common: {
     details: 'Details',
-    fullscreen: 'Enter fullscreen',
-    exitFullscreen: 'Exit fullscreen',
-    fullscreenUnavailable:
-      'Unable to toggle fullscreen. Check whether your browser supports and allows it.',
     query: 'Search',
     reset: 'Reset',
     create: 'Create',
@@ -39,10 +36,6 @@ export default {
     success: 'Operation completed',
     loadFailed: 'Failed to load data',
     serviceUnavailable: 'Service is temporarily unavailable',
-    light: 'Light mode',
-    dark: 'Dark mode',
-    logout: 'Sign out',
-    language: 'Language',
     status: 'Status',
     enabled: 'Enabled',
     disabled: 'Disabled',
@@ -50,7 +43,8 @@ export default {
     offline: 'Offline'
   },
   app: {
-    name: 'BAOSYS',
+    subsystemName: 'Management',
+    name: 'BACKMGT',
     shortName: 'B',
     currentUser: 'Current user'
   },

@@ -1,0 +1,65 @@
+@import './base.css';
+@import '../layout/scrollbars.css';
+@import './workspace.css';
+
+/* Shared visual configuration. Each application imports this entry. */
+:root {
+  --baosys-font-size: 14px;
+  --baosys-header-height: 64px;
+  --baosys-header-padding-x: 24px;
+  --baosys-header-padding-y: 10px;
+  --baosys-sidebar-width: 232px;
+  --baosys-sidebar-collapsed-width: 64px;
+  --baosys-menu-item-height: 40px;
+  --baosys-menu-icon-size: 16px;
+  --baosys-workspace-padding-top: 8px;
+  --baosys-workspace-padding-right: 8px;
+  --baosys-workspace-padding-bottom: 8px;
+  --baosys-workspace-padding-left: 8px;
+  --baosys-workspace-max-width: none;
+  --baosys-section-gap: 18px;
+  --baosys-card-gap: 16px;
+  --baosys-card-gap-large: 24px;
+  --baosys-card-padding: 16px;
+  --baosys-card-radius: var(--border-radius-medium);
+  --baosys-heading-size: 22px;
+  --baosys-toolbar-gap: 12px;
+  --baosys-locale-width: 104px;
+  --baosys-detail-width: 460px;
+  --baosys-detail-gap: 20px;
+  --baosys-border-width: 1px;
+  --baosys-motion-duration: 0.2s;
+  --baosys-scrollbar-size: 8px;
+  --baosys-scrollbar-border: 2px;
+}
+/* Media query breakpoints are edited here, not via CSS variables. */
+@media (max-width: 768px) {
+  :root {
+    --baosys-header-padding-x: 14px;
+    --baosys-workspace-padding-top: 12px;
+    --baosys-workspace-padding-right: 12px;
+    --baosys-workspace-padding-bottom: 12px;
+    --baosys-workspace-padding-left: 12px;
+    --baosys-card-padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-header {
+    flex-wrap: wrap;
+    gap: var(--baosys-toolbar-gap);
+  }
+  .admin-header h1,
+  .user-name {
+    display: none;
+  }
+}
+
+/* Optional route-progress integration; loading the theme does not require NProgress. */
+#nprogress .bar {
+  background: rgb(var(--primary-6));
+}
+#nprogress .spinner-icon {
+  border-top-color: rgb(var(--primary-6));
+  border-left-color: rgb(var(--primary-6));
+}

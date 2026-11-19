@@ -1,5 +1,6 @@
 export default {
   signOut: {
+    navigationFailed: '退出跳转失败，请重试',
     brand: '统一账户中心',
     eyebrow: 'ACCOUNT · SIGN OUT',
     title: '正在退出登录',
@@ -23,9 +24,6 @@ export default {
   },
   common: {
     details: '详情',
-    fullscreen: '进入全屏',
-    exitFullscreen: '退出全屏',
-    fullscreenUnavailable: '无法切换全屏，请检查浏览器是否支持或允许全屏',
     query: '查询',
     reset: '重置',
     create: '新建',
@@ -38,10 +36,6 @@ export default {
     success: '操作成功',
     loadFailed: '数据加载失败',
     serviceUnavailable: '服务暂不可用',
-    light: '亮色模式',
-    dark: '暗黑模式',
-    logout: '退出登录',
-    language: '语言',
     status: '状态',
     enabled: '已启用',
     disabled: '已禁用',
@@ -49,7 +43,8 @@ export default {
     offline: '离线'
   },
   app: {
-    name: 'BAOSYS',
+    subsystemName: '后台管理',
+    name: 'BACKMGT',
     shortName: 'B',
     currentUser: '当前用户'
   },

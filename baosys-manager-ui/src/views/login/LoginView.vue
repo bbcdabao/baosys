@@ -40,8 +40,8 @@
         :src="sharedLoginIllustration"
         alt=""
         aria-hidden="true"
-        width="440"
-        height="240"
+        width="880"
+        height="480"
       />
     </section>
 
@@ -187,7 +187,7 @@ const submit = async (): Promise<void> => {
 .login-illustration {
   display: block;
   width: 100%;
-  max-width: 440px;
+  max-width: 880px;
   height: auto;
   margin-top: 28px;
 }
@@ -282,7 +282,7 @@ const submit = async (): Promise<void> => {
     gap: 12px 20px;
   }
   .login-illustration {
-    width: min(100%, 280px);
+    width: min(100%, 560px);
     margin: 20px auto 0;
   }
   .login-card {

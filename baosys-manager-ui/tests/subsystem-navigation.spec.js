@@ -1,5 +1,43 @@
 import { test, expect } from '@playwright/test'
 
+async function expectAlignedScrollAreas(page) {
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const left = document.querySelector('.sidebar-menu .arco-menu-inner')
+        const right = document.querySelector('.admin-content')
+        const a = left.getBoundingClientRect(),
+          b = right.getBoundingClientRect()
+        return Math.abs(a.top - b.top) < 1 && Math.abs(a.bottom - b.bottom) < 1
+      })
+    )
+    .toBe(true)
+  const geometry = await page.evaluate(() => {
+    const sidebar = document.querySelector('.admin-sider')
+    const toggle = sidebar.querySelector('.sidebar-toggle').getBoundingClientRect()
+    const icons = [...sidebar.querySelectorAll('.arco-menu-icon')].filter(
+      (el) => el.getBoundingClientRect().width > 0
+    )
+    const inner = sidebar.querySelector('.arco-menu-inner')
+    return {
+      overflow: inner.scrollWidth > inner.clientWidth,
+      usableRows: [
+        ...sidebar.querySelectorAll(
+          '.arco-menu-item, .arco-menu-inline-header, .arco-menu-pop-header'
+        )
+      ].every((el) => {
+        const height = el.getBoundingClientRect().height
+        return height === 0 || height >= 40
+      }),
+      aligned: icons.every((el) => {
+        const box = el.getBoundingClientRect()
+        return Math.abs(box.x + box.width / 2 - toggle.x - toggle.width / 2) < 1
+      })
+    }
+  })
+  expect(geometry).toEqual({ overflow: false, usableRows: true, aligned: true })
+}
+
 const prefix = '/api/baosys-manager/v1'
 const systems = [
   {
@@ -63,6 +101,109 @@ async function setup(page, permissions, username = 'existing') {
   })
   return state
 }
+
+test('shared layout preserves navigation, breadcrumbs and header controls', async ({ page }) => {
+  await setup(page, ['MGR', 'MGR:user:list'])
+  await page.addInitScript(() => localStorage.setItem('baosys-theme', 'light'))
+  await page.goto('/baosys-manager/#/users-management')
+  const sidebar = page.locator('.admin-sider')
+  const header = page.locator('.admin-header')
+  await expect(sidebar.locator('.arco-menu-item.arco-menu-selected')).toContainText('用户管理')
+  await expect(sidebar).not.toContainText('登录管理')
+  await expect(header.locator('.arco-breadcrumb-item')).toHaveText([
+    'baosys',
+    '后台管理',
+    '用户管理'
+  ])
+  await expect(header.locator('.arco-breadcrumb-item').last()).toHaveText('用户管理')
+  await expect(sidebar).toHaveCSS('width', '232px')
+  await expectAlignedScrollAreas(page)
+  await expect(sidebar.locator('.arco-layout-sider-trigger')).toHaveCount(0)
+  await expect(sidebar.getByRole('button', { name: '收起菜单' })).toHaveAttribute(
+    'aria-expanded',
+    'true'
+  )
+  expect((await sidebar.locator('.sidebar-toggle').boundingBox()).y).toBeLessThan(64)
+  const lightScrollbar = await page
+    .locator('.admin-content')
+    .evaluate((el) => getComputedStyle(el, '::-webkit-scrollbar-thumb').backgroundColor)
+  await sidebar.locator('.sidebar-toggle').click()
+  await expect(sidebar).toHaveCSS('width', '64px')
+  await expectAlignedScrollAreas(page)
+  await expect(sidebar.getByRole('button', { name: '展开菜单' })).toHaveAttribute(
+    'aria-expanded',
+    'false'
+  )
+  await sidebar.locator('.sidebar-toggle').click()
+  await expect(sidebar).toHaveCSS('width', '232px')
+  await expectAlignedScrollAreas(page)
+  await header
+    .locator('button')
+    .filter({ has: page.locator('.arco-icon-moon-fill') })
+    .click()
+  await expect(page.locator('body')).toHaveAttribute('arco-theme', 'dark')
+  await expect
+    .poll(() =>
+      page
+        .locator('.admin-content')
+        .evaluate((el) => getComputedStyle(el, '::-webkit-scrollbar-thumb').backgroundColor)
+    )
+    .not.toBe(lightScrollbar)
+  await header.getByRole('button', { name: '进入全屏', exact: true }).click()
+  await expect(header.getByRole('button', { name: '退出全屏', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  await header.getByRole('button', { name: '退出全屏', exact: true }).click()
+  await expect(header.getByRole('button', { name: '进入全屏', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'false'
+  )
+  await header.locator('.locale-select').click()
+  await page.getByText('English', { exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en-US')
+  await expect(header.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible()
+  await header.getByRole('button', { name: 'Authorized subsystems', exact: true }).click()
+  await expect(page).toHaveURL(/#\/authorized-systems$/)
+  await expect(sidebar).not.toContainText('Authorized')
+  await expect(header.locator('.arco-breadcrumb-item')).toHaveText([
+    'baosys',
+    'Management',
+    'Authorized subsystems'
+  ])
+})
+
+test('preferences persist and synchronize between same-origin pages', async ({ page, context }) => {
+  await setup(page, ['MGR', 'MGR:user:list'])
+  await page.goto('/baosys-manager/#/authorized-systems')
+  await page.evaluate(() => {
+    localStorage.setItem('baosys-theme', 'light')
+    localStorage.setItem('baosys-fullscreen', 'false')
+  })
+  await page.reload()
+  const second = await context.newPage()
+  await setup(second, ['MGR', 'MGR:user:list'])
+  await second.goto('/baosys-manager/#/authorized-systems')
+  await page.locator('.admin-header').getByRole('button', { name: '暗黑模式', exact: true }).click()
+  await expect(second.locator('body')).toHaveAttribute('arco-theme', 'dark')
+  await second.reload()
+  await expect(second.locator('body')).toHaveAttribute('arco-theme', 'dark')
+  await second.close()
+  const fullscreenButton = page.locator('[data-fullscreen-toggle]')
+  await fullscreenButton.click()
+  await expect(fullscreenButton).toHaveAttribute('aria-pressed', 'true')
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('baosys-fullscreen')))
+    .toBe('true')
+  await page.reload()
+  await expect(fullscreenButton).toHaveAttribute('aria-pressed', 'false')
+  expect(await page.evaluate(() => localStorage.getItem('baosys-fullscreen'))).toBe('true')
+  await page.locator('.brand').click()
+  await expect(fullscreenButton).toHaveAttribute('aria-pressed', 'true')
+  await fullscreenButton.click()
+  await expect(fullscreenButton).toHaveAttribute('aria-pressed', 'false')
+  expect(await page.evaluate(() => localStorage.getItem('baosys-fullscreen'))).toBe('false')
+})
 
 test('CAT-only account reaches fallback and can enter CAT or sign out', async ({ page }) => {
   const state = await setup(page, ['CAT'])
@@ -321,7 +462,10 @@ test('authorized tree groups only granted permissions and preserves system links
     '仅子系统入口权限'
   )
   await expect(
-    page.locator('.arco-menu-item').filter({ hasText: '已授权子系统' }).locator('svg')
+    page
+      .locator('.admin-header')
+      .getByRole('button', { name: '已授权子系统', exact: true })
+      .locator('svg')
   ).toBeVisible()
   const branch = tree
     .locator('.arco-tree-node')
@@ -330,4 +474,138 @@ test('authorized tree groups only granted permissions and preserves system links
   await expect(tree.locator('.permission-node')).toBeHidden()
   await branch.locator('.arco-tree-node-switcher').click()
   await expect(tree.locator('.permission-node')).toBeVisible()
+})
+
+test('fixed scrollbar widths survive extreme viewports, collapse and hover', async ({ page }) => {
+  await setup(page, ['MGR', 'MGR:user:list'])
+  await page.goto('/baosys-manager/#/users-management')
+  await expect(page.locator('.admin-content')).toBeVisible()
+  // Force both regions to overflow independently of backend data volume.
+  await page.evaluate(() => {
+    for (const selector of ['.sidebar-menu .arco-menu-inner', '.admin-content']) {
+      const spacer = document.createElement('div')
+      spacer.style.cssText = 'height: 3000px; width: 1px; flex-shrink: 0'
+      document.querySelector(selector).appendChild(spacer)
+    }
+  })
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 320, height: 320 },
+    { width: 1024, height: 180 }
+  ]) {
+    await page.setViewportSize(viewport)
+    // Deliver matchMedia change events before manually toggling the sidebar.
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    )
+    for (const collapsed of [false, true]) {
+      const toggle = page.locator('.sidebar-toggle')
+      if ((await toggle.getAttribute('aria-expanded')) !== String(!collapsed)) await toggle.click()
+      await expect(page.locator('.admin-sider')).toHaveCSS('width', collapsed ? '64px' : '232px')
+      for (const dark of [false, true]) {
+        await page.evaluate((dark) => {
+          if (dark) document.body.setAttribute('arco-theme', 'dark')
+          else document.body.removeAttribute('arco-theme')
+        }, dark)
+        for (const selector of ['.sidebar-menu .arco-menu-inner', '.admin-content']) {
+          const area = page.locator(selector)
+          await page.mouse.move(0, 0)
+          const measure = () =>
+            area.evaluate((el) => {
+              const style = getComputedStyle(el)
+              const thumb = getComputedStyle(el, '::-webkit-scrollbar-thumb')
+              return {
+                track:
+                  el.offsetWidth -
+                  el.clientWidth -
+                  parseFloat(style.borderLeftWidth) -
+                  parseFloat(style.borderRightWidth),
+                cssWidth: getComputedStyle(el, '::-webkit-scrollbar').width,
+                thumbBorders: [thumb.borderLeftWidth, thumb.borderRightWidth],
+                overflowing: el.scrollHeight > el.clientHeight,
+                hasHeight: el.clientHeight > 0
+              }
+            })
+          const before = await measure()
+          expect(before).toEqual({
+            track: 8,
+            cssWidth: '8px',
+            thumbBorders: ['2px', '2px'],
+            overflowing: true,
+            hasHeight: true
+          })
+          const box = await area.boundingBox()
+          await page.mouse.move(box.x + box.width - 4, box.y + 5)
+          expect(await measure()).toEqual(before)
+          await area.evaluate((el) => {
+            el.scrollTop = el.scrollHeight
+          })
+          expect(await measure()).toEqual(before)
+          await area.evaluate((el) => {
+            el.scrollTop = 0
+          })
+        }
+      }
+    }
+  }
+})
+
+test('extreme viewport never adds a full-height outer scrollbar', async ({ page }) => {
+  await setup(page, ['MGR', 'MGR:user:list'])
+  await page.goto('/baosys-manager/#/users-management')
+  await expect(page.locator('.admin-content')).toBeVisible()
+  for (const viewport of [
+    { width: 240, height: 120 },
+    { width: 320, height: 180 },
+    { width: 1024, height: 180 },
+    { width: 1440, height: 900 }
+  ]) {
+    await page.setViewportSize(viewport)
+    // Deliver matchMedia change events before manually toggling the sidebar.
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    )
+    for (const collapsed of [false, true]) {
+      const toggle = page.locator('.sidebar-toggle')
+      if ((await toggle.getAttribute('aria-expanded')) !== String(!collapsed)) await toggle.click()
+      await expect(page.locator('.admin-sider')).toHaveCSS('width', collapsed ? '64px' : '232px')
+      for (const selector of ['html', 'body', '#app', '.admin-layout', '.admin-main']) {
+        await expect(page.locator(selector)).toHaveCSS('overflow-y', 'hidden')
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(
+        true
+      )
+      await expect(page.locator('.admin-content')).toHaveCSS('overflow-y', 'auto')
+      await expect(page.locator('.sidebar-menu .arco-menu-inner')).toHaveCSS('overflow-y', 'auto')
+    }
+  }
+  await page.goto('/baosys-manager/#/login')
+  await expect(page.locator('.admin-layout')).toHaveCount(0)
+  await expect(page.locator('html')).not.toHaveCSS('overflow-y', 'hidden')
+})
+
+test('shared CSS tokens control shell dimensions and keep scroll areas aligned', async ({
+  page
+}) => {
+  await setup(page, ['MGR', 'MGR:user:list'])
+  await page.goto('/baosys-manager/#/users-management')
+  await expect(page.locator('.admin-header')).toBeVisible()
+  await page.evaluate(() => {
+    const style = document.documentElement.style
+    style.setProperty('--baosys-workspace-max-width', '600px')
+    style.setProperty('--baosys-header-height', '88px')
+    style.setProperty('--baosys-sidebar-width', '280px')
+    style.setProperty('--baosys-sidebar-collapsed-width', '80px')
+    style.setProperty('--baosys-workspace-padding-left', '32px')
+    style.setProperty('--baosys-workspace-padding-right', '20px')
+  })
+  await expect(page.locator('.baosys-page')).toHaveCSS('max-width', '600px')
+  await expect(page.locator('.admin-header')).toHaveCSS('height', '88px')
+  await expect(page.locator('.admin-sider')).toHaveCSS('width', '280px')
+  await expect(page.locator('.admin-content')).toHaveCSS('padding-left', '32px')
+  await expect(page.locator('.admin-content')).toHaveCSS('padding-right', '20px')
+  await expectAlignedScrollAreas(page)
+  await page.locator('.sidebar-toggle').click()
+  await expect(page.locator('.admin-sider')).toHaveCSS('width', '80px')
+  await expectAlignedScrollAreas(page)
 })

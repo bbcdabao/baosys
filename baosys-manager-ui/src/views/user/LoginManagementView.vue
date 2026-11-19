@@ -1,20 +1,19 @@
 <template>
-  <section class="page-section">
-    <div class="page-heading">
-      <div>
-        <p>{{ t('session.description') }}</p>
-      </div>
-      <a-popconfirm
-        v-if="exactUserId && canKick"
-        :content="t('session.kickAllConfirm')"
-        @ok="kickAll"
-      >
-        <a-button status="danger">{{ t('session.kickAll') }}</a-button>
-      </a-popconfirm>
-    </div>
+  <PageContainer>
+    <PageHeader :description="t('session.description')">
+      <template #actions>
+        <a-popconfirm
+          v-if="exactUserId && canKick"
+          :content="t('session.kickAllConfirm')"
+          @ok="kickAll"
+        >
+          <a-button status="danger">{{ t('session.kickAll') }}</a-button>
+        </a-popconfirm>
+      </template>
+    </PageHeader>
 
-    <a-card :bordered="false">
-      <a-form
+    <PageCard :bordered="false">
+      <FilterToolbar
         :model="filters"
         layout="inline"
         class="filter-form"
@@ -43,10 +42,9 @@
             <a-button @click="reset">{{ t('common.reset') }}</a-button>
           </a-space>
         </a-form-item>
-      </a-form>
+      </FilterToolbar>
 
-      <a-table
-        class="management-table"
+      <ManagementTable
         table-layout-fixed
         row-key="id"
         :columns="columns"
@@ -66,11 +64,10 @@
         </template>
         <template #loginAt="{ record }">{{ formatTime(record.loginAt) }}</template>
         <template #expiresAt="{ record }">{{ formatTime(record.expiresAt) }}</template>
-      </a-table>
-    </a-card>
-    <a-drawer
+      </ManagementTable>
+    </PageCard>
+    <DetailsDrawer
       v-model:visible="detailsVisible"
-      :width="460"
       :title="t('session.detailsTitle')"
       :footer="false"
       unmount-on-close
@@ -120,11 +117,19 @@
           </a-button>
         </a-popconfirm>
       </div>
-    </a-drawer>
-  </section>
+    </DetailsDrawer>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
+import ManagementTable from '@/components/user/ManagementTable.vue'
+import {
+  PageContainer,
+  PageHeader,
+  PageCard,
+  FilterToolbar,
+  DetailsDrawer
+} from '@baosys/common-ui/components'
 import type { TableColumnData } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import '@arco-design/web-vue/es/message/style/css.js'
@@ -269,27 +274,6 @@ watch(() => route.fullPath, syncFromRoute, { immediate: true })
 </script>
 
 <style scoped>
-.page-section {
-  display: grid;
-  gap: 18px;
-}
-.page-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.page-heading h2 {
-  margin: 0;
-  color: var(--color-text-1);
-  font-size: 22px;
-}
-.page-heading p {
-  margin: 6px 0 0;
-  color: var(--color-text-3);
-}
-.filter-form {
-  margin-bottom: 18px;
-}
 .filter-form :deep(.arco-input-wrapper) {
   width: 260px;
 }
