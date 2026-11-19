@@ -5,7 +5,7 @@
 /* Shared visual configuration. Each application imports this entry. */
 :root {
   --baosys-font-size: 14px;
-  --baosys-header-height: 64px;
+  --baosys-header-height: 50px;
   --baosys-header-padding-x: 24px;
   --baosys-header-padding-y: 10px;
   --baosys-sidebar-width: 232px;
