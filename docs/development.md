@@ -72,6 +72,8 @@ npm --prefix baosys-manager-ui run dev
 
 ## 配置速查
 
+所有环境变量的集中说明见 [环境变量配置说明](environment-variables.md)。下表保留最常用项及部署入口速查。
+
 实际配置见 [Service application.yml](../baosys-manager/baosys-manager-service/src/main/resources/application.yml) 和 [Web application.yml](../baosys-manager-web/src/main/resources/application.yml)。
 
 | 变量 | 进程 | 默认值或要求 |

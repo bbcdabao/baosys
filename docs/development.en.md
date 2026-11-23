@@ -70,6 +70,8 @@ Open `http://localhost:5173/baosys-manager/`. Vite proxies `/api`, including CSR
 
 ## Configuration reference
 
+See [Environment Variable Reference](environment-variables.en.md) for the centralized list. The table below retains the most common settings and deployment-entry summary.
+
 See [Service application.yml](../baosys-manager/baosys-manager-service/src/main/resources/application.yml) and [Web application.yml](../baosys-manager-web/src/main/resources/application.yml) for actual configuration.
 
 | Variable | Process | Default or requirement |

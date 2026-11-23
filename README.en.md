@@ -57,6 +57,7 @@ The stack includes Java 17, Spring Boot, Spring Cloud Gateway, MyBatis Plus, Pos
 Detailed guides are available in both Chinese and English:
 
 - [Setup and deployment](docs/development.en.md): local startup, required configuration, testing, and packaging.
+- [Environment variable reference](docs/environment-variables.en.md): database, security, catalog, logging, frontend build, and test variables.
 - [System design](docs/system.en.md): request flow, authentication and permissions, APIs, and the database.
 - [Development conventions](docs/conventions.en.md): layering, dependencies, APIs, database conventions, and documentation maintenance.
 
