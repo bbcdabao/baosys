@@ -115,7 +115,7 @@ Artifacts:
 - `baosys-manager/baosys-manager-service/target/baosys-manager.jar`
 - `baosys-manager-web/target/baosys-manager-web.jar`
 
-Deploy each application with `java -jar <application-jar-path>`. The Web JAR includes frontend resources, so Vite is not required. For local packaged execution, restore `MANAGER_PUBLIC_ORIGIN=http://localhost:8080`. For production, use the browser's actual HTTPS origin and enable Secure cookies. Both processes must use the same issuer and reachable JWKS URLs. In containers, use actual network addresses for the database, Service, and JWKS.
+Deploy each application with `java -jar <application-jar-path>`. The Web JAR includes frontend resources, so Vite is not required. For local packaged execution, restore `MANAGER_PUBLIC_ORIGIN=http://localhost:8080`. For production, use the browser's actual HTTPS origin. The shared-login cookies are currently HttpOnly and SameSite=Lax, but the implementation does not set `Secure`; production HTTPS deployments must add a configurable `Secure` cookie attribute and enable it through their deployment configuration. Both processes must use the same issuer and reachable JWKS URLs. In containers, use actual network addresses for the database, Service, and JWKS.
 
 The first deployment runs only V1. After deployment, add V2 and subsequent migrations for schema changes; do not modify an executed V1.
 

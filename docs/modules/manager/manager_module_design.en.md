@@ -91,11 +91,11 @@ User pagination supports fuzzy name search, systemType access filtering, page (d
 
 | DTO | Current fields |
 |---|---|
-| UserCreateRequest | name, pass, permissions, enabled |
+| UserCreateRequest | name, pass, permissions, enabled, defaultSystemType |
 | BrowserLoginRequest | username, password, redirectUrl |
 | BrowserLoginResponse | redirectUrl |
-| UserUpdateRequest | id, name, optional pass, permissions, enabled |
-| UserResponse | id, name, permissions, enabled, status |
+| UserUpdateRequest | id, name, optional pass, permissions, enabled, defaultSystemType |
+| UserResponse | id, name, permissions, enabled, status, defaultSystemType |
 | CurrentUserResponse | userId, username, displayName, permissions |
 | LoginClientResponse | id, loginClient, loginAt |
 | LoginSessionResponse | id, userId, userName, permissions, loginClient, loginAt, expiresAt |
@@ -109,7 +109,7 @@ Shared login accepts username (required, at most 128 characters), password (requ
 
 ## 5. Core business rules
 
-1. Account names are trimmed before writing, at most 128 characters, and globally unique. Database uniqueness protects concurrent writes; duplicate-key errors map to 409.
+1. Account names are trimmed before writing, at most 32 characters, and globally unique. Database uniqueness protects concurrent writes; duplicate-key errors map to 409.
 2. Creation passwords are required and 8–128 characters. A null, empty, or whitespace-only update password leaves it unchanged; a new password remains subject to the 8–128 limit.
 3. permissions is required, but an empty set is valid. Unknown permissions or API permissions without their owning system access are rejected.
 4. Omitted enabled defaults to true on creation and preserves the existing value on update. Disabled accounts cannot log in or refresh.

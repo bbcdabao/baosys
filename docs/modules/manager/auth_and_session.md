@@ -23,7 +23,7 @@ Vue 登录页是 Manager Web 的 `/baosys-manager/#/login?redirect_url=...`。�
 
 登录校验用户名密码及 enabled；用户名先 trim。密码校验由 AccountAuthenticator 在事务外完成；BrowserLoginTransaction 按新旧账户 ID 升序加锁，复查用户名、密码摘要和启用状态，再撤销仍匹配旧 Refresh Cookie 的内部授权并创建新授权及登录记录。失败时整个替换事务回滚。授权类型为 `urn:baosys:grant:shared-login`，使用已注册的 `baosys-web` 客户端设置。
 
-普通返回地址由 `SharedLoginProperties` 校验：必须同主机、同协议，来源为 manager-origin 或 allowed-origins 中的值；拒绝用户信息、登录/API/授权路径等不适合的目标。`SharedLoginNavigation` 仅对配置的 issuer + authorization endpoint 提供精确例外，以恢复 OAuth 授权请求；该地址也必须与登录页同主机、同协议，才能共享 Cookie，不允许片段或用户信息。未传地址时默认返回 `{manager-origin}/users-management`。
+普通返回地址由系统目录中 `ui-base-url` 与 `home-path` 定义的白名单校验：所有入口与 Manager 必须使用相同协议和主机、同一端口范围配置且不能重叠；拒绝用户信息、登录/API/授权路径等不适合的目标。`SharedLoginNavigation` 仅对配置的 issuer + authorization endpoint 提供精确例外，以恢复 OAuth 授权请求；该地址也必须与登录页同主机、同协议并允许共享 Cookie，不允许片段或用户信息。未传地址时进入账户必填的默认子系统；默认子系统不存在、未授予入口或没有已授权系统时进入已授权系统兜底页。
 
 | Cookie | Path | 属性 |
 |---|---|---|
@@ -120,7 +120,6 @@ OAuth 投影有 Refresh Token 时使用其到期时间；尚未兑换的授权�
 | spring.security.oauth2.resourceserver.jwt | 验签 issuer、JWKS、算法与受众 |
 | baosys.authorization.jwk-set-location | 持久化 JWK 文件，环境变量 JWT_JWK_SET_LOCATION |
 | baosys.shared-login.manager-origin | Manager 公开来源，默认 http://localhost:8080 |
-| baosys.shared-login.allowed-origins | 允许登录后返回的同主机、同协议来源列表 |
 | spring.security.gateway.access-rules | 有序路径授权规则 |
 | spring.security.gateway.permit-all-paths | 公开入口路径 |
 

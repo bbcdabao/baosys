@@ -33,6 +33,7 @@ erDiagram
         varchar user_name UK
         varchar user_pass
         text user_permissions
+        varchar default_system_type
         boolean enabled
     }
     USER_LOGIN {
@@ -72,11 +73,12 @@ erDiagram
 | user_name | VARCHAR(128), NOT NULL, UNIQUE | Globally unique username |
 | user_pass | VARCHAR(512), NOT NULL | BCrypt password hash |
 | user_permissions | TEXT, NOT NULL | Sorted comma-separated permissions; an empty set is an empty string |
+| default_system_type | VARCHAR(128), NOT NULL, CHECK (trimmed value is nonempty) | Required default login subsystem code; no database default |
 | enabled | BOOLEAN, NOT NULL, DEFAULT TRUE | Whether login and refresh are allowed |
 | created_at / updated_at | TIMESTAMPTZ, NOT NULL | Creation/update time |
 | created_by / updated_by | VARCHAR(128), NOT NULL | Basic audit markers |
 
-The uniqueness constraint is `uk_user_info_user_name(user_name)`. The application trims usernames before writing; the current ordinary VARCHAR unique constraint is case-sensitive. There is no system_type column; accounts with the same name cannot be created separately per system.
+The uniqueness constraint is `uk_user_info_user_name(user_name)`. The application trims usernames before writing; the current ordinary VARCHAR unique constraint is case-sensitive. The column is `default_system_type`, not a legacy `system_type`; accounts with the same name cannot be created separately per system. Application writes validate that it exists in the current catalog.
 
 Permission writes first undergo strict SystemCatalog validation, then PermissionPersistenceConverter sorts and joins them with commas. Reads split on commas, trim, remove empty entries, and deduplicate. Valid example:
 

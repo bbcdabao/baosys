@@ -33,6 +33,7 @@ erDiagram
         varchar user_name UK
         varchar user_pass
         text user_permissions
+        varchar default_system_type
         boolean enabled
     }
     USER_LOGIN {
@@ -72,11 +73,12 @@ erDiagram
 | user_name | VARCHAR(128)，NOT NULL，UNIQUE | 全局唯一用户名 |
 | user_pass | VARCHAR(512)，NOT NULL | BCrypt 密码摘要 |
 | user_permissions | TEXT，NOT NULL | 排序后的逗号分隔权限；空集合存空字符串 |
+| default_system_type | VARCHAR(128)，NOT NULL，CHECK（去空后非空）| 必填默认登录子系统编码；无数据库默认值 |
 | enabled | BOOLEAN，NOT NULL，DEFAULT TRUE | 是否允许登录和刷新 |
 | created_at / updated_at | TIMESTAMPTZ，NOT NULL | 创建/更新时间 |
 | created_by / updated_by | VARCHAR(128)，NOT NULL | 基础审计标记 |
 
-唯一约束为 `uk_user_info_user_name(user_name)`。应用写入前 trim 用户名，数据库按当前普通 VARCHAR 唯一约束区分大小写。没有 system_type 字段；同名账户不能按系统分别创建。
+唯一约束为 `uk_user_info_user_name(user_name)`。应用写入前 trim 用户名，数据库按当前普通 VARCHAR 唯一约束区分大小写。字段是 `default_system_type`，不是旧式 `system_type`；同名账户不能按系统分别创建。账户更新时应用校验该值必须存在于当前目录。
 
 权限写入先经过 SystemCatalog 严格校验，再由 PermissionPersistenceConverter 排序、逗号连接。读取时按逗号拆分、trim、去空和去重。合法示例：
 

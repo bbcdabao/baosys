@@ -91,11 +91,11 @@ Controller 调用应用服务，应用服务直接编排 Mapper、Assembler 和�
 
 | DTO | 当前字段 |
 |---|---|
-| UserCreateRequest | name、pass、permissions、enabled |
+| UserCreateRequest | name、pass、permissions、enabled、defaultSystemType |
 | BrowserLoginRequest | username、password、redirectUrl |
 | BrowserLoginResponse | redirectUrl |
-| UserUpdateRequest | id、name、可选 pass、permissions、enabled |
-| UserResponse | id、name、permissions、enabled、status |
+| UserUpdateRequest | id、name、可选 pass、permissions、enabled、defaultSystemType |
+| UserResponse | id、name、permissions、enabled、status、defaultSystemType |
 | CurrentUserResponse | userId、username、displayName、permissions |
 | LoginClientResponse | id、loginClient、loginAt |
 | LoginSessionResponse | id、userId、userName、permissions、loginClient、loginAt、expiresAt |
@@ -109,7 +109,7 @@ UserResponse.status 表示是否存在未过期登录记录，enabled 表示账�
 
 ## 5. 核心业务规则
 
-1. 账户名称写入前 trim，最长 128，全局唯一；数据库唯一约束保障并发写入，重复键异常映射为 409。
+1. 账户名称写入前 trim，最长 32，全局唯一；数据库唯一约束保障并发写入，重复键异常映射为 409。
 2. 创建密码非空，长度 8～128；更新密码为 null、空串或纯空白时不修改，有效新密码长度仍为 8～128。
 3. permissions 必须提供，空集合合法；未知权限或缺少所属入口的接口权限被拒绝。
 4. 创建时 enabled 省略默认为 true，更新时省略保留原值；禁用账户不能登录或刷新。

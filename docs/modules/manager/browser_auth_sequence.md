@@ -26,7 +26,7 @@
 
 ## 2. 登录
 
-请求包含 username、password 和可选 redirectUrl。Controller 在认证前检查返回地址，普通目标使用来源白名单；恢复 OAuth 请求只允许配置中的授权端点，拒绝其他来源、路径、用户信息和片段。
+请求包含 username、password 和可选 redirectUrl。Controller 在认证前检查返回地址，普通目标必须落在系统目录的 `ui-base-url` 范围内；恢复 OAuth 请求只允许配置中的授权端点，拒绝其他来源、路径、用户信息和片段。
 
 ```mermaid
 sequenceDiagram

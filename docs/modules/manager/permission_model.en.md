@@ -2,7 +2,7 @@
 
 [简体中文](permission_model.md) | **English**
 
-Usernames are globally unique. One account can have access to multiple systems and their APIs. `user_info.user_permissions` is the persistent source of grants. There is currently no `system_type` column, role model, or tenant model.
+Usernames are globally unique. One account can have access to multiple systems and their APIs. `user_info.user_permissions` is the persistent source of grants. There is no legacy `system_type` column; the separate required `default_system_type` column controls navigation only. Role and tenant models are not implemented.
 
 ## 1. System catalog
 

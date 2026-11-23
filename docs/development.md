@@ -116,7 +116,7 @@ mvn clean verify
 - `baosys-manager/baosys-manager-service/target/baosys-manager.jar`
 - `baosys-manager-web/target/baosys-manager-web.jar`
 
-部署时分别运行 `java -jar <应用Jar路径>`，Web Jar 已包含前端资源，无需 Vite。本地打包运行时把 `MANAGER_PUBLIC_ORIGIN` 改回 `http://localhost:8080`；正式环境设为浏览器实际 HTTPS Origin，并启用 Secure Cookie。两个进程配置相同 issuer 和可访问的 JWKS 地址；容器中将数据库、Service 和 JWKS 地址改为实际网络地址。
+部署时分别运行 `java -jar <应用Jar路径>`，Web Jar 已包含前端资源，无需 Vite。本地打包运行时把 `MANAGER_PUBLIC_ORIGIN` 改回 `http://localhost:8080`；正式环境设为浏览器实际 HTTPS Origin。当前共享登录 Cookie 仍为 HttpOnly、SameSite=Lax，且实现未设置 `Secure`；正式 HTTPS 部署接入前需要在共享 Cookie 实现中增加可配置的 `Secure` 属性，并由实际部署配置启用。两个进程配置相同 issuer 和可访问的 JWKS 地址；容器中将数据库、Service 和 JWKS 地址改为实际网络地址。
 
 首次部署只执行 V1；部署后结构变更新增 V2 及后续迁移，不再改已执行的 V1。
 

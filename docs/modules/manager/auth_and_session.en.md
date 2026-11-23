@@ -23,7 +23,7 @@ The Vue login page is Manager Web's `/baosys-manager/#/login?redirect_url=...`. 
 
 Login validates username, password, and enabled state; usernames are trimmed first. AccountAuthenticator checks passwords outside a transaction. BrowserLoginTransaction locks the old and new accounts in ascending ID order, rechecks username, password hash, and enabled state, then revokes any internal authorization still matching the old Refresh Cookie and creates a new authorization and login record. Failure rolls back the entire replacement transaction. The grant type is `urn:baosys:grant:shared-login`, using the registered `baosys-web` client settings.
 
-Ordinary return addresses are validated by `SharedLoginProperties`: they must share the host and protocol, and the origin must be manager-origin or an entry in allowed-origins. User information and unsuitable targets such as login/API/authorization paths are rejected. `SharedLoginNavigation` provides an exact exception only for the configured issuer + authorization endpoint to resume OAuth requests. That address must also share the login page's host and protocol for cookie sharing, and may contain neither fragments nor user information. Without an address, the default is `{manager-origin}/users-management`.
+Ordinary return addresses are validated against the `ui-base-url` and `home-path` entries in the system catalog. Entries must use the same protocol and host as Manager, use the configured port consistently, and must not overlap. User information and unsuitable targets such as login/API/authorization paths are rejected. `SharedLoginNavigation` provides an exact exception only for the configured issuer + authorization endpoint to resume OAuth requests. That address must also share the login page's host and protocol for cookie sharing and may contain neither fragments nor user information. Without an address, the account's required default subsystem is used; when it is absent, unauthorized, or removed from the catalog, the authorized-systems fallback page is used.
 
 | Cookie | Path | Attributes |
 |---|---|---|
@@ -122,7 +122,6 @@ See [Manager application.yml](../../../baosys-manager/baosys-manager-service/src
 | spring.security.oauth2.resourceserver.jwt | Verification issuer, JWKS, algorithms, audiences |
 | baosys.authorization.jwk-set-location | Persistent JWK file; environment variable JWT_JWK_SET_LOCATION |
 | baosys.shared-login.manager-origin | Public Manager origin; defaults to http://localhost:8080 |
-| baosys.shared-login.allowed-origins | Same-host, same-protocol origins permitted after login |
 | spring.security.gateway.access-rules | Ordered path authorization rules |
 | spring.security.gateway.permit-all-paths | Public entry paths |
 

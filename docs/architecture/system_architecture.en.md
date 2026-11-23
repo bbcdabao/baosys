@@ -14,7 +14,7 @@ flowchart LR
     Manager --> DB[("PostgreSQL / manager schema")]
 ```
 
-The runnable application consists of UI, Manager Web, Manager Service, and PostgreSQL. The default gateway configures only Manager routes; there is no Plant route or Plant service. The default system catalog contains only `MGR`; other projects can register their own systems.
+The runnable application consists of UI, Manager Web, Manager Service, and PostgreSQL. The default gateway configures only Manager routes and no other business-subsystem routes. The default system catalog contains only `MGR`; other projects can register their own systems.
 
 ## 2. Layer responsibilities
 
@@ -70,7 +70,7 @@ The gateway provides `/api/baosys-manager/csrf`; `/baosys-manager/#/login` is th
 
 ## 5. Authentication and authorization flow
 
-Internal browsers submit credentials through the Manager login page. `/v1/browser-auth/login` issues HttpOnly Access/Refresh cookies shared on the same host. Cookies do not distinguish ports. Allowed return origins must satisfy the configured host, protocol, and origin allowlist.
+Internal browsers submit credentials through the Manager login page. `/v1/browser-auth/login` issues HttpOnly Access/Refresh cookies shared on the same host. Cookies do not distinguish ports. Allowed return origins are validated against the system catalog's `ui-base-url` and `home-path`.
 
 The gateway establishes JWT identity from an explicit Authorization header or the Access Cookie. An explicit header takes precedence, with no cookie fallback even if invalid. Authorization then uses the first matching rule in `spring.security.gateway.access-rules`:
 

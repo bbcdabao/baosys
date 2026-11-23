@@ -26,7 +26,7 @@ All three endpoints are public but not exempt from browser CSRF. Before writes, 
 
 ## 2. Login
 
-The request contains username, password, and optional redirectUrl. Before authentication, the controller checks the return URL. Ordinary targets use the origin allowlist; OAuth resume requests permit only the configured authorization endpoint, rejecting other origins, paths, user information, and fragments.
+The request contains username, password, and optional redirectUrl. Before authentication, the controller checks the return URL. Ordinary targets must belong to a `ui-base-url` range declared in the system catalog; OAuth resume requests permit only the configured authorization endpoint, rejecting other origins, paths, user information, and fragments.
 
 ```mermaid
 sequenceDiagram

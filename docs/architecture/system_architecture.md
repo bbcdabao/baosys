@@ -14,7 +14,7 @@ flowchart LR
     Manager --> DB[("PostgreSQL / manager schema")]
 ```
 
-当前可运行闭环由 UI、Manager Web、Manager Service 和 PostgreSQL 组成。默认网关只配置 Manager 路由，没有 Plant 路由或 Plant 服务。默认系统目录仅登记 `MGR`，其他项目按需接入。
+当前可运行闭环由 UI、Manager Web、Manager Service 和 PostgreSQL 组成。默认网关只配置 Manager 路由，没有其他业务子系统路由。默认系统目录仅登记 `MGR`，其他项目按需接入。
 
 ## 2. 分层职责
 
@@ -70,7 +70,7 @@ flowchart TD
 
 ## 5. 认证与授权链路
 
-内部浏览器通过 Manager 登录页提交用户名和密码，由 `/v1/browser-auth/login` 下发同主机共享的 HttpOnly Access/Refresh Cookie。Cookie 不区分端口；允许返回的来源必须满足配置的主机、协议和来源名单。
+内部浏览器通过 Manager 登录页提交用户名和密码，由 `/v1/browser-auth/login` 下发同主机共享的 HttpOnly Access/Refresh Cookie。Cookie 不区分端口；允许返回的来源由系统目录的 `ui-base-url` 和 `home-path` 共同校验。
 
 网关从显式 Authorization 头或 Access Cookie 建立 JWT 身份。显式头优先，即使无效也不回退到 Cookie。随后根据 `spring.security.gateway.access-rules` 按顺序首次匹配授权：
 

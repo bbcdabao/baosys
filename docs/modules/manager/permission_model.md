@@ -2,7 +2,7 @@
 
 **简体中文** | [English](permission_model.en.md)
 
-账户用户名全局唯一，一个账户可以拥有多个系统入口及接口权限。`user_info.user_permissions` 是持久化授权来源；当前没有 `system_type` 列，也没有角色或租户模型。
+账户用户名全局唯一，一个账户可以拥有多个系统入口及接口权限。`user_info.user_permissions` 是持久化授权来源；当前没有旧的 `system_type` 列，有独立的必填 `default_system_type` 导航字段；角色和租户模型尚未实现。
 
 ## 1. 系统目录
 
