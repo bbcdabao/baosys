@@ -27,6 +27,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 
+import baosys.common.web.ReactiveApiResponses;
+
 /**
  * Spring Cloud Gateway 安全配置。
  *
@@ -58,6 +60,7 @@ public class GatewaySecurityConfig {
         var gateway = properties.getGateway();
         var mapper = mappers.getIfAvailable(
             () -> Jackson2ObjectMapperBuilder.json().build());
+
         var errors = new ReactiveApiSecurityHandler(mapper);
         if (gateway.isCsrfEnabled() && (!StringUtils.hasText(gateway.getCsrfPath()) ||
             !gateway.getCsrfPath().matches("/api/[a-zA-Z0-9-]+/csrf") ||
@@ -69,21 +72,27 @@ public class GatewaySecurityConfig {
         if (StringUtils.hasText(gateway.getCsrfPath())) {
             publicPathList.add(gateway.getCsrfPath());
         }
+
         String[] permitAllPaths = publicPathList.toArray(String[]::new);
+
         ServerWebExchangeMatcher publicPaths =
             permitAllPaths.length == 0
                 ? exchange -> ServerWebExchangeMatcher.MatchResult.notMatch()
                 : ServerWebExchangeMatchers.pathMatchers(permitAllPaths);
+
         var protectedApi = new AndServerWebExchangeMatcher(
             ServerWebExchangeMatchers.pathMatchers(API_PATH_PATTERN, "/actuator/**"),
             new NegatedServerWebExchangeMatcher(publicPaths)
         );
+
         var headerBearer = new AuthenticationConverterServerWebExchangeMatcher(
             new ServerBearerTokenAuthenticationConverter()
         );
         // 仅豁免显式携带 Bearer 令牌的 API 请求；浏览器注销仍受 CSRF 保护。
         var bearerApi = new AndServerWebExchangeMatcher(headerBearer, protectedApi);
+
         browser.ifAvailable(config -> config.configure(http));
+
         return http
             .csrf(csrf -> {
                 if (!gateway.isCsrfEnabled()) {
@@ -94,7 +103,7 @@ public class GatewaySecurityConfig {
                 repository.setCookieName(gateway.getCsrfCookieName());
                 repository.setCookiePath("/");
                 csrf
-                    .accessDeniedHandler((exchange, ex) -> baosys.common.web.ReactiveApiResponses.write(exchange, 403, mapper))
+                    .accessDeniedHandler((exchange, ex) -> ReactiveApiResponses.write(exchange, 403, mapper))
                     .csrfTokenRepository(repository)
                     .requireCsrfProtectionMatcher(
                         new AndServerWebExchangeMatcher(
@@ -108,7 +117,6 @@ public class GatewaySecurityConfig {
                 if (permitAllPaths.length > 0) {
                     authorize.pathMatchers(permitAllPaths).permitAll();
                 }
-                authorize.pathMatchers("/actuator/**").hasAuthority("MGR");
                 for (var route : properties.getGateway().getAccessRules()) {
                     // 按配置顺序首次匹配；共享接口只校验登录身份。
                     var path = authorize.pathMatchers(route.getPath());

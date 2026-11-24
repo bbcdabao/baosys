@@ -41,7 +41,6 @@ public class ResourceServerSecurityConfig {
                         .requestMatchers(resource.getPermitAllPaths().toArray(String[]::new))
                         .permitAll();
                 }
-                authorize.requestMatchers("/actuator/**").hasAuthority("MGR");
                 authorize.anyRequest().authenticated();
             })
             .exceptionHandling(config -> config.authenticationEntryPoint(errors).accessDeniedHandler(errors))

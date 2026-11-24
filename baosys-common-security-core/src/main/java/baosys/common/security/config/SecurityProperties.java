@@ -69,7 +69,7 @@ public class SecurityProperties {
     /**
      * 资源服务策略：公开路径之外的请求必须通过 JWT 认证。
      * 具体 API 权限由 {@code @PreAuthorize} 等方法级规则声明；未声明额外规则的接口仅要求认证。
-     * 非公开的 {@code /actuator/**} 运维接口统一要求 MGR 权限。
+     * 公开运维接口由 {@code permit-all-paths} 配置；未公开的接口仅要求认证。
      */
     public static class Resource extends EndpointAccess {}
 

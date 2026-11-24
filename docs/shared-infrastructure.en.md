@@ -57,7 +57,7 @@ The baseline exposes health/info/metrics, hides health details, enables liveness
 
 Gateway probe paths are `/actuator/health/liveness` and `/actuator/health/readiness`.
 Servlet services prepend their context path, for example `/baosys-manager/actuator/health/readiness`.
-Health and info are public; other `/actuator/**` paths require `MGR`, with explicit Bearer authentication supported by gateways.
+Health and info are public; other `/actuator/**` paths do not require system management permission, while non-public endpoints still require authentication. Gateways support explicit Bearer authentication.
 Manager Web additionally retains the read-only gateway endpoint. Do not add metrics to permit-all-paths.
 
 Default probes reflect Spring availability, not the correctness of all external dependencies or business tasks.

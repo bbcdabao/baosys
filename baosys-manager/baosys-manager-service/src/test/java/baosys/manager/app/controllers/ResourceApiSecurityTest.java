@@ -50,10 +50,10 @@ class ResourceApiSecurityTest {
     }
 
     @Test
-    void managementEndpointsRequireManagerPermission() throws Exception {
+    void managementEndpointsRequireAuthenticationWithoutManagerPermission() throws Exception {
         mvc.perform(get("/actuator/metrics")).andExpect(status().isUnauthorized());
         mvc.perform(get("/actuator/metrics").header("Authorization", "Bearer api-only"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isOk());
         mvc.perform(get("/actuator/metrics").header("Authorization", "Bearer entry-only"))
             .andExpect(status().isOk());
     }

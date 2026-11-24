@@ -63,7 +63,7 @@ Manager Web 的额外 gateway 端点采用后续文档覆盖。
 - 暴露 `health,info,metrics`，健康详情默认隐藏，启用 liveness/readiness，指标带 application 标签。
 - Web 网关探针路径为 `/actuator/health/liveness` 和 `/actuator/health/readiness`。
   Servlet 服务路径前面加自己的 context-path，例如 `/baosys-manager/actuator/health/readiness`。
-- 健康检查和 info 允许匿名访问；其余 `/actuator/**` 必须具备 `MGR` 权限，网关支持显式 Bearer 认证。
+- 健康检查和 info 允许匿名访问；其余 `/actuator/**` 不校验系统管理权限，未公开端点仍要求登录，网关支持显式 Bearer 认证。
   Manager Web 额外保留只读 gateway 端点。不要把 metrics 加入 permit-all-paths。
 - 探针默认反映 Spring 应用可用性，不代表所有外部依赖和业务任务均正常。
 
