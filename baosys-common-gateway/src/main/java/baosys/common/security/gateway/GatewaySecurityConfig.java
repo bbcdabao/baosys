@@ -21,6 +21,7 @@ import org.springframework.security.web.server.util.matcher.NegatedServerWebExch
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.util.StringUtils;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import reactor.core.publisher.Mono;
 
@@ -56,7 +57,7 @@ public class GatewaySecurityConfig {
     ) {
         var gateway = properties.getGateway();
         var mapper = mappers.getIfAvailable(
-            () -> org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build());
+            () -> Jackson2ObjectMapperBuilder.json().build());
         var errors = new ReactiveApiSecurityHandler(mapper);
         if (gateway.isCsrfEnabled() && (!StringUtils.hasText(gateway.getCsrfPath()) ||
             !gateway.getCsrfPath().matches("/api/[a-zA-Z0-9-]+/csrf") ||
