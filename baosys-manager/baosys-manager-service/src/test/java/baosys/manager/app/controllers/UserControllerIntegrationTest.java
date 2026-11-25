@@ -196,4 +196,45 @@ class UserControllerIntegrationTest extends PostgreSqlIntegrationTest {
             users.delete(user.id(), 1L);
         }
     }
+
+    @Test
+    void userAndSessionSearchTreatsLikeWildcardsAsLiteralCharacters() throws Exception {
+        String token = adminToken();
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        var plain = users.create(
+            new UserCreateRequest("plain" + suffix, "secure123", Set.of("MGR"), true, "MGR"),
+            1L
+        );
+        var literal = users.create(
+            new UserCreateRequest("lit_a%b\\c" + suffix, "secure123", Set.of("MGR"), true, "MGR"),
+            1L
+        );
+        try {
+            auth.login(new LoginRequest(plain.name(), "secure123", "test"));
+            auth.login(new LoginRequest(literal.name(), "secure123", "test"));
+
+            for (String query : List.of("_a", "%b", "\\c", "_a%b\\c")) {
+                mvc.perform(
+                    get("/v1/users")
+                        .param("name", query)
+                        .header("Authorization", "Bearer " + token)
+                )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.total").value(1))
+                    .andExpect(jsonPath("$.data.items[0].name").value(literal.name()));
+
+                mvc.perform(
+                    get("/v1/login-sessions")
+                        .param("userName", query.toUpperCase(Locale.ROOT))
+                        .header("Authorization", "Bearer " + token)
+                )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.total").value(1))
+                    .andExpect(jsonPath("$.data.items[0].userName").value(literal.name()));
+            }
+        } finally {
+            users.delete(plain.id(), 1L);
+            users.delete(literal.id(), 1L);
+        }
+    }
 }

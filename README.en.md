@@ -33,7 +33,7 @@ The project keeps its scope small. Permissions are currently assigned directly t
 | Administration UI | Vue frontend, Chinese and English, theme switching |
 | Integration conventions | System and permission catalog, independent frontend paths and API prefixes, shared security modules for gateways and resource services |
 
-**This repository currently contains the Manager application and shared modules.** Other business subsystems must be developed and integrated separately. CAT is a reserved catalog entry, not a business application included in this repository. The system configuration page is currently a UI scaffold.
+**This repository currently contains the Manager application and shared modules.** Other business subsystems must be developed and integrated separately. The default system catalog currently registers only MGR. The system configuration page is currently a UI scaffold.
 
 ## Project structure
 

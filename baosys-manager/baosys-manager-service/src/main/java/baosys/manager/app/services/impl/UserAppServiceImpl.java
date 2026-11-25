@@ -25,9 +25,13 @@ import java.util.Objects;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -40,19 +44,41 @@ public class UserAppServiceImpl implements UserAppService {
     private final PermissionChangeAuditMapper permissionChangeAuditMapper;
     private final PasswordHasher passwordHasher;
     private final SystemCatalog catalog;
+    private final TransactionOperations transactions;
 
+    @Autowired
     public UserAppServiceImpl(
         UserInfoMapper userMapper,
         UserLoginMapper loginMapper,
         PermissionChangeAuditMapper permissionChangeAuditMapper,
         PasswordHasher passwordHasher,
-        SystemCatalog catalog
+        SystemCatalog catalog,
+        PlatformTransactionManager transactionManager
+    ) {
+        this(
+            userMapper,
+            loginMapper,
+            permissionChangeAuditMapper,
+            passwordHasher,
+            catalog,
+            new TransactionTemplate(transactionManager)
+        );
+    }
+
+    UserAppServiceImpl(
+        UserInfoMapper userMapper,
+        UserLoginMapper loginMapper,
+        PermissionChangeAuditMapper permissionChangeAuditMapper,
+        PasswordHasher passwordHasher,
+        SystemCatalog catalog,
+        TransactionOperations transactions
     ) {
         this.catalog = catalog;
         this.userMapper = userMapper;
         this.loginMapper = loginMapper;
         this.permissionChangeAuditMapper = permissionChangeAuditMapper;
         this.passwordHasher = passwordHasher;
+        this.transactions = transactions;
     }
 
     @Override
@@ -117,61 +143,52 @@ public class UserAppServiceImpl implements UserAppService {
     }
 
     @Override
-    @Transactional
     public UserResponse create(UserCreateRequest request, long operatorUserId) {
         String username = normalizeName(request.name());
         Set<String> permissions = validatePermissions(request.permissions());
         String defaultSystem = validateDefaultSystem(request.defaultSystemType());
         String encodedPermissions = PermissionPersistenceConverter.encode(permissions);
         boolean enabled = request.enabled() == null || request.enabled();
-        if (userMapper.existsByUserName(username)) {
-            throw new BusinessException("USER_409_001", HttpStatus.CONFLICT, "账户名称已存在");
-        }
+        // 密码哈希属于 CPU 耗时操作，在开启数据库事务前完成，避免占用数据库连接。
+        String passwordHash = passwordHasher.hash(request.pass());
 
-        UserInfoEntity user = new UserInfoEntity();
-        user.setUserName(username);
-        user.setUserPass(passwordHasher.hash(request.pass()));
-        user.setUserPermissions(encodedPermissions);
-        user.setDefaultSystemType(defaultSystem);
-        user.setEnabled(enabled);
-        userMapper.insert(user);
-        auditAuthorizationChange(
-            operatorUserId,
-            user.getId(),
-            "",
-            encodedPermissions,
-            false,
-            enabled
-        );
+        UserResponse response = transactions.execute(status -> {
+            if (userMapper.existsByUserName(username)) {
+                throw new BusinessException("USER_409_001", HttpStatus.CONFLICT, "账户名称已存在");
+            }
+
+            UserInfoEntity user = new UserInfoEntity();
+            user.setUserName(username);
+            user.setUserPass(passwordHash);
+            user.setUserPermissions(encodedPermissions);
+            user.setDefaultSystemType(defaultSystem);
+            user.setEnabled(enabled);
+            userMapper.insert(user);
+            auditAuthorizationChange(
+                operatorUserId,
+                user.getId(),
+                "",
+                encodedPermissions,
+                false,
+                enabled
+            );
+            return UserAssembler.toResponse(user, false);
+        });
         LOGGER.info(
             "module=user action=create userId={} username={} result=success",
-            user.getId(),
+            response.id(),
             username
         );
-        return UserAssembler.toResponse(user, false);
+        return response;
     }
 
     @Override
-    @Transactional
     public UserResponse update(UserUpdateRequest request, long operatorUserId) {
-        UserInfoEntity user = requireUserForUpdate(request.id());
         String username = normalizeName(request.name());
         Set<String> permissions = validatePermissions(request.permissions());
         String defaultSystem = validateDefaultSystem(request.defaultSystemType());
-        String beforePermissions = PermissionPersistenceConverter.encode(
-            PermissionPersistenceConverter.decode(user.getUserPermissions())
-        );
         String afterPermissions = PermissionPersistenceConverter.encode(permissions);
-        boolean beforeEnabled = user.isEnabled();
-        boolean afterEnabled = request.enabled() == null ? beforeEnabled : request.enabled();
-        if (userMapper.existsByUserNameExcludingId(username, request.id())) {
-            throw new BusinessException("USER_409_001", HttpStatus.CONFLICT, "账户名称已存在");
-        }
-
-        boolean passwordChanged = false;
-        boolean authorizationChanged =
-            !Objects.equals(beforePermissions, afterPermissions) || beforeEnabled != afterEnabled;
-        user.setUserName(username);
+        String passwordHash = null;
         if (StringUtils.hasText(request.pass())) {
             if (request.pass().length() < 8 || request.pass().length() > 128) {
                 throw new BusinessException(
@@ -180,35 +197,57 @@ public class UserAppServiceImpl implements UserAppService {
                     "密码长度必须为 8 到 128 个字符"
                 );
             }
-            user.setUserPass(passwordHasher.hash(request.pass()));
-            passwordChanged = true;
+            // 密码哈希属于 CPU 耗时操作，在开启数据库事务与获取账户行锁前完成。
+            passwordHash = passwordHasher.hash(request.pass());
         }
-        user.setUserPermissions(afterPermissions);
-        user.setDefaultSystemType(defaultSystem);
-        user.setEnabled(afterEnabled);
-        userMapper.updateById(user);
-        if (authorizationChanged || passwordChanged) {
-            loginMapper.deleteByUserId(user.getId());
-        }
-        if (authorizationChanged) {
-            auditAuthorizationChange(
-                operatorUserId,
-                user.getId(),
-                beforePermissions,
-                afterPermissions,
-                beforeEnabled,
-                afterEnabled
+        String encodedPassword = passwordHash;
+
+        UserResponse response = transactions.execute(status -> {
+            UserInfoEntity user = requireUserForUpdate(request.id());
+            String beforePermissions = PermissionPersistenceConverter.encode(
+                PermissionPersistenceConverter.decode(user.getUserPermissions())
             );
-        }
+            boolean beforeEnabled = user.isEnabled();
+            boolean afterEnabled = request.enabled() == null ? beforeEnabled : request.enabled();
+            if (userMapper.existsByUserNameExcludingId(username, request.id())) {
+                throw new BusinessException("USER_409_001", HttpStatus.CONFLICT, "账户名称已存在");
+            }
+
+            boolean passwordChanged = encodedPassword != null;
+            boolean authorizationChanged =
+                !Objects.equals(beforePermissions, afterPermissions) || beforeEnabled != afterEnabled;
+            user.setUserName(username);
+            if (passwordChanged) {
+                user.setUserPass(encodedPassword);
+            }
+            user.setUserPermissions(afterPermissions);
+            user.setDefaultSystemType(defaultSystem);
+            user.setEnabled(afterEnabled);
+            userMapper.updateById(user);
+            if (authorizationChanged || passwordChanged) {
+                loginMapper.deleteByUserId(user.getId());
+            }
+            if (authorizationChanged) {
+                auditAuthorizationChange(
+                    operatorUserId,
+                    user.getId(),
+                    beforePermissions,
+                    afterPermissions,
+                    beforeEnabled,
+                    afterEnabled
+                );
+            }
+            return UserAssembler.toResponse(
+                user,
+                loginMapper.countActiveByUserId(user.getId(), now()) > 0
+            );
+        });
         LOGGER.info(
             "module=user action=update userId={} username={} result=success",
-            user.getId(),
+            response.id(),
             username
         );
-        return UserAssembler.toResponse(
-            user,
-            loginMapper.countActiveByUserId(user.getId(), now()) > 0
-        );
+        return response;
     }
 
     @Override

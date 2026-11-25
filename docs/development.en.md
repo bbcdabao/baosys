@@ -90,9 +90,9 @@ See [Service application.yml](../baosys-manager/baosys-manager-service/src/main/
 | `VITE_MANAGER_UI_BASE_URL` | Frontend build | Other subsystems must provide the complete Manager UI base URL; Manager derives it from the current origin and Vite base by default |
 | `BAOSYS_SYSTEMS_CONFIG` | Service | `classpath:baosys-systems.yml`; can be a full external catalog file URI |
 | `GATEWAY_PORT` | Web | `8080` |
-| `MANAGER_SERVICE_URL` | Web | `http://127.0.0.1:9090` |
+| `MANAGER_SERVICE_URL` | Web | `http://localhost:9090` |
 | `JWT_ISSUER` | Both | Both default to `http://localhost:9090/baosys-manager`; no local override needed; keep overrides consistent |
-| `JWT_JWK_SET_URI` | Both | `/baosys-manager/oauth2/jwks`, at localhost:9090 for Service and 127.0.0.1:9090 for Web by default |
+| `JWT_JWK_SET_URI` | Both | Both default to `http://localhost:9090/baosys-manager/oauth2/jwks` |
 
 The catalog is packaged from the repository root at build time. Rebuild after changes, or override it with `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` and restart. Retain `MGR` and its API permissions; every entry needs `ui-base-url` and `home-path`. Each base URL concatenates `BASE_URL` with its `*_UI_URL_SUFFIX`. The MGR base URL's origin must match `MANAGER_PUBLIC_ORIGIN`; `home-path` is relative to the subsystem root. The catalog directly defines the return URL allowlist; `SHARED_LOGIN_ALLOWED_ORIGINS` is no longer used. The platform registers only MGR by default; other subsystems must be deployed and integrated with shared login separately.
 
@@ -128,7 +128,7 @@ V1 creates `cleanup_inactive_user_login_sessions()` but does not schedule it. To
 | Symptom | Check |
 |---|---|
 | Service fails to start | Database connection, JWK file, encoded client secret, and administrator password |
-| Login or refresh returns 403 | Whether browser Origin matches MANAGER_PUBLIC_ORIGIN and the CSRF header is correct |
+| Login or refresh returns 403 | Whether the gateway CSRF cookie and header match when CSRF is enabled |
 | API returns 401 | Issuer consistency, JWKS reachability, cookies, and token expiry |
 | Signed-in user receives 403 from a management API | Whether the account has both MGR and the required API permission |
 | Gateway cannot connect downstream | Whether Service is running and MANAGER_SERVICE_URL is correct |

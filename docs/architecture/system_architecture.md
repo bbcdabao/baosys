@@ -77,7 +77,7 @@ flowchart TD
 1. `/api/baosys-manager/v1/users/me` 和 `/api/baosys-manager/v1/systems` 仅要求登录。
 2. `/api/baosys-manager/**` 要求 `MGR` authority。
 3. 其他未配置的 `/api/**` 拒绝访问。
-4. `permit-all-paths` 中的共享登录接口先按公开路径处理；写请求仍受 CSRF 和服务端 Origin 检查。
+4. `permit-all-paths` 中的共享登录接口先按公开路径处理；开启网关 CSRF（`CSRF_ENABLED=true`，默认关闭）时写请求仍受网关 CSRF 校验（不因显式 Bearer 豁免），内网 Manager Service 不重复校验请求 Origin。
 
 网关清理可伪造的用户/租户身份头，并从已认证 JWT 向下游写入 Bearer。服务再次验签，使用 `@PreAuthorize` 校验具体接口权限。资源服务没有统一的系统入口权限检查。
 
@@ -106,7 +106,7 @@ Flyway 另维护 `flyway_schema_history_manager`。V1 同时创建空闲清理�
 | PostgreSQL | 5432 | 默认数据库 `app_db`，schema `manager` |
 | Vite 开发服务器 | 5173 | 仅前端开发 |
 
-签名密钥由 `JWT_JWK_SET_LOCATION` 指向外部持久化 JWK 文件，OAuth2 客户端密钥由 `OAUTH2_CLIENT_SECRET_HASH` 提供。必须显式统一 `JWT_ISSUER`：当前授权服务器/网关默认是 `baosys-manager`，Manager 资源服务器默认却是 `http://localhost:9090/baosys-manager`，直接使用各自默认值会导致验签 issuer 不一致。
+签名密钥由 `JWT_JWK_SET_LOCATION` 指向外部持久化 JWK 文件，OAuth2 客户端密钥由 `OAUTH2_CLIENT_SECRET_HASH` 提供。`JWT_ISSUER` 在 Manager Service（授权服务器与资源服务器）和 Manager Web 网关中已统一默认为 `http://localhost:9090/baosys-manager`；覆盖部署时须保持两端一致，避免验签 issuer 不一致。
 
 系统与权限目录来自根 [baosys-systems.yml](../../baosys-systems.yml)，构建时复制进 Manager Service，运行时可用 `BAOSYS_SYSTEMS_CONFIG` 指向外部配置。当前默认目录仅包含 MGR。配置变更需要重启加载，没有在线编辑目录 API。
 

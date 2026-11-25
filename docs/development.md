@@ -92,9 +92,9 @@ npm --prefix baosys-manager-ui run dev
 | `VITE_MANAGER_UI_BASE_URL` | 前端构建 | 其他子系统必填 Manager 完整 UI 基址；Manager 默认从当前 Origin 和 Vite base 推导 |
 | `BAOSYS_SYSTEMS_CONFIG` | Service | `classpath:baosys-systems.yml`；可改为完整外部目录文件 URI |
 | `GATEWAY_PORT` | Web | `8080` |
-| `MANAGER_SERVICE_URL` | Web | `http://127.0.0.1:9090` |
+| `MANAGER_SERVICE_URL` | Web | `http://localhost:9090` |
 | `JWT_ISSUER` | 两者 | 默认均为 `http://localhost:9090/baosys-manager`，本地无需设置；覆盖时两者保持一致 |
-| `JWT_JWK_SET_URI` | 两者 | Service 默认 localhost:9090、Web 默认 127.0.0.1:9090 的 `/baosys-manager/oauth2/jwks` |
+| `JWT_JWK_SET_URI` | 两者 | 默认均为 `http://localhost:9090/baosys-manager/oauth2/jwks` |
 
 目录文件构建时从根目录打包；修改后重新构建，或用 `BAOSYS_SYSTEMS_CONFIG=file:/config/baosys-systems.yml` 覆盖并重启。保留 `MGR` 及其接口权限；每项必须配置 `ui-base-url` 和 `home-path`。各系统基址由 `BASE_URL` 与相应 `*_UI_URL_SUFFIX` 拼接，MGR 基址的 Origin 必须与 `MANAGER_PUBLIC_ORIGIN` 一致；`home-path` 相对于子系统根目录；回跳白名单直接来自该目录，不再使用 `SHARED_LOGIN_ALLOWED_ORIGINS`。平台默认仅登记 MGR；其他子系统需单独部署并接入共享登录。
 
@@ -144,7 +144,7 @@ V1 创建 `cleanup_inactive_user_login_sessions()`，但不自动安排执行。
 | 现象 | 检查 |
 |---|---|
 | Service 启动失败 | 数据库连接、JWK 文件、客户端编码密钥，以及管理员密码是否齐全 |
-| 登录或刷新返回 403 | 浏览器 Origin 与 MANAGER_PUBLIC_ORIGIN、CSRF 请求头是否匹配 |
+| 登录或刷新返回 403 | 启用 CSRF 时网关 CSRF Cookie 与请求头是否匹配 |
 | 接口返回 401 | 两端 issuer、JWKS 可达性、Cookie 和 Token 有效期 |
 | 已登录但管理接口返回 403 | 账号是否同时拥有 MGR 和对应接口权限 |
 | 网关连接下游失败 | Service 是否启动、MANAGER_SERVICE_URL 是否正确 |

@@ -15,6 +15,7 @@ import java.util.Set;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 public interface UserLoginMapper extends BaseMapper<UserLoginEntity> {
     @Select("SELECT id FROM user_login WHERE authorization_id=#{authorizationId} AND expires_at>clock_timestamp()")
@@ -44,8 +45,20 @@ public interface UserLoginMapper extends BaseMapper<UserLoginEntity> {
         @Param("agent") String agent, @Param("expiry") OffsetDateTime expiry);
 
     /**
-     * 只返回未过期登录；userId 优先用于精确定位，否则按用户名模糊过滤。
+     * 只返回未过期登录；userId 优先用于精确定位，否则按用户名按字面子串忽略大小写过滤。
      */
+    default IPage<LoginSessionRow> selectActiveSessions(
+        Page<LoginSessionRow> page,
+        Long userId,
+        String userName,
+        OffsetDateTime now
+    ) {
+        String pattern = StringUtils.hasText(userName)
+            ? LikePatterns.contains(userName.trim())
+            : null;
+        return selectActiveSessionsByPattern(page, userId, pattern, now);
+    }
+
     @Select(
         """
         <script>
@@ -62,17 +75,17 @@ public interface UserLoginMapper extends BaseMapper<UserLoginEntity> {
         <if test="userId != null">
            AND ui.id = #{userId}
         </if>
-        <if test="userId == null and userName != null and userName != ''">
-           AND LOWER(ui.user_name) LIKE LOWER(CONCAT('%', #{userName}, '%'))
+        <if test="userId == null and userNamePattern != null and userNamePattern != ''">
+           AND LOWER(ui.user_name) LIKE LOWER(#{userNamePattern}) ESCAPE '\\'
         </if>
          ORDER BY ul.created_at DESC
         </script>
         """
     )
-    IPage<LoginSessionRow> selectActiveSessions(
+    IPage<LoginSessionRow> selectActiveSessionsByPattern(
         Page<LoginSessionRow> page,
         @Param("userId") Long userId,
-        @Param("userName") String userName,
+        @Param("userNamePattern") String userNamePattern,
         @Param("now") OffsetDateTime now
     );
 

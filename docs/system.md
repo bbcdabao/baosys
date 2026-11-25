@@ -27,7 +27,7 @@ Manager API 只提供接口和 DTO；Service 中 `app` 负责 Controller、业�
 
 访问令牌采用 RS256，`aud=def`，业务权限来自 `permissions`，`sub` 为登录记录 ID。签名私钥仅由 Manager Service 加载，公钥通过服务的 `/baosys-manager/oauth2/jwks` 发布。网关通过配置的 JWKS 地址读取公钥。
 
-Cookie 为 host-only、SameSite=Lax；Access 路径为 `/`，Refresh 路径为 `/api/baosys-manager/v1/browser-auth`。登录、刷新和退出均经过 CSRF 校验，Service 还要求写请求 Origin 精确匹配 `MANAGER_PUBLIC_ORIGIN`。
+Cookie 为 host-only、SameSite=Lax；Access 路径为 `/`，Refresh 路径为 `/api/baosys-manager/v1/browser-auth`。开启网关 CSRF（`CSRF_ENABLED=true`，默认关闭）时，登录、刷新和退出均经过网关 CSRF 校验；Manager Service 位于网关后的内网，不重复校验请求 Origin（`MANAGER_PUBLIC_ORIGIN` 用于校验 MGR 目录来源和回跳地址）。
 
 默认访问令牌有效期 30 分钟、刷新期限 30 天，取自应用中 `baosys-web` 客户端的 token 配置。刷新轮换 Refresh Token，保留首次登录的最终到期时间。退出或撤销会话会删除授权和登录记录；用户名、密码、权限、启停变化及删除账号也会撤销关联授权。离线验签不会实时查询撤销状态，已复制的 Access Token 仍可能有效至过期。
 

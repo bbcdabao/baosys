@@ -9,7 +9,7 @@
 1. 用户在任意子系统或 Manager 点击“退出登录”。发起页面必须先导航到配置的 Manager 完整基址下的 `sign-out` 页面，不得先调用登出接口再跳转，也不得只跳转登录页代替登出。
 2. Manager 退出页作为公开路由加载，无须先恢复用户身份。组件挂载后自动执行登出，不要求用户再次点击确认；GET 页面导航本身不执行服务端撤销操作。
 3. 退出页通过 Manager 的认证请求层取得同源认证锁，并请求 `GET /api/baosys-manager/csrf`，使用返回的 `headerName` 与 `token` 准备 CSRF 请求头。
-4. 退出页向同源 `POST /api/baosys-manager/v1/browser-auth/logout` 提交空 JSON 对象 `{}`，携带浏览器 Cookie。网关校验 CSRF，Manager Service 校验请求 Origin。不得为此流程关闭任何一层校验。
+4. 退出页向同源 `POST /api/baosys-manager/v1/browser-auth/logout` 提交空 JSON 对象 `{}`，携带浏览器 Cookie。开启网关 CSRF（`CSRF_ENABLED=true`）时由网关统一校验 CSRF，内网 Manager Service 不重复校验请求 Origin；不得为退出流程单独绕过或削弱网关校验。
 5. 服务端撤销当前 Refresh Cookie 对应的内部授权；成功响应通过 `Set-Cookie` 将两个登录 Token Cookie 的 `Max-Age` 设为 `0`。JavaScript 不读取或自行删除 HttpOnly Token Cookie。
 6. 退出页收到成功响应后，更新认证版本、通知同源标签页并清除前端用户快照，显示完成状态。随后使用路由替换进入 Manager 登录页，避免普通返回操作直接回到刚完成的退出页。当前实现展示完成状态约 1.2 秒，也可点击“前往登录页面”立即进入。
 

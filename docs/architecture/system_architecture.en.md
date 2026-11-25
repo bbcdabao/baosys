@@ -77,7 +77,7 @@ The gateway establishes JWT identity from an explicit Authorization header or th
 1. `/api/baosys-manager/v1/users/me` and `/api/baosys-manager/v1/systems` require authentication only.
 2. `/api/baosys-manager/**` requires the `MGR` authority.
 3. Other unconfigured `/api/**` paths are denied.
-4. Shared login endpoints in `permit-all-paths` are treated as public first; writes remain subject to CSRF and server-side Origin checks.
+4. Shared login endpoints in `permit-all-paths` are treated as public first; when gateway CSRF is enabled (`CSRF_ENABLED=true`, disabled by default), writes remain subject to gateway CSRF validation (not exempted by explicit Bearer headers), while Manager Service runs behind the gateway without repeating request Origin checks.
 
 The gateway removes spoofable user/tenant identity headers and forwards a Bearer token from the authenticated JWT. Service verifies the signature again and checks specific API permissions with `@PreAuthorize`. Resource services do not apply a universal system access permission check.
 
@@ -106,7 +106,7 @@ Other business services should cooperate through public APIs rather than reading
 | PostgreSQL | 5432 | Default database `app_db`, schema `manager` |
 | Vite development server | 5173 | Frontend development only |
 
-`JWT_JWK_SET_LOCATION` points to an external persistent signing JWK file; `OAUTH2_CLIENT_SECRET_HASH` supplies the OAuth2 client secret. Explicitly align `JWT_ISSUER`: the current authorization-server/gateway default is `baosys-manager`, while the Manager resource-server default is `http://localhost:9090/baosys-manager`. Using these defaults together causes issuer validation failures.
+`JWT_JWK_SET_LOCATION` points to an external persistent signing JWK file; `OAUTH2_CLIENT_SECRET_HASH` supplies the OAuth2 client secret. `JWT_ISSUER` defaults to `http://localhost:9090/baosys-manager` across Manager Service (authorization server and resource server) and Manager Web; keep overrides aligned across both services to avoid issuer validation failures.
 
 The system and permission catalog comes from the root [baosys-systems.yml](../../baosys-systems.yml), copied into Manager Service at build time. `BAOSYS_SYSTEMS_CONFIG` can select an external catalog at runtime. The default catalog contains only MGR. Configuration changes require a restart; there is no online catalog editing API.
 

@@ -27,7 +27,7 @@ Manager API provides only contracts and DTOs. Within Service, `app` owns control
 
 Access Tokens use RS256, `aud=def`, permissions from `permissions`, and the login record ID as `sub`. Only Manager Service loads the signing private key; public keys are published at `/baosys-manager/oauth2/jwks`. The gateway retrieves public keys from its configured JWKS URL.
 
-Cookies are host-only with SameSite=Lax. Access uses Path `/`; Refresh uses `/api/baosys-manager/v1/browser-auth`. Login, refresh, and logout all undergo CSRF validation. Service also requires write-request Origin to exactly match `MANAGER_PUBLIC_ORIGIN`.
+Cookies are host-only with SameSite=Lax. Access uses Path `/`; Refresh uses `/api/baosys-manager/v1/browser-auth`. When gateway CSRF is enabled (`CSRF_ENABLED=true`, disabled by default), login, refresh, and logout undergo gateway CSRF validation. Manager Service runs on the internal network behind the gateway and does not repeat request Origin validation (`MANAGER_PUBLIC_ORIGIN` validates the MGR catalog origin and return URLs).
 
 Default Access lifetime is 30 minutes and Refresh lifetime is 30 days, from the `baosys-web` client's token settings. Refresh rotates the Refresh Token while retaining the absolute expiry established at initial login. Logout or session revocation deletes authorization and login records. Username, password, permission, and enabled-state changes, as well as account deletion, also revoke related authorizations. Offline verification does not query revocation in real time; a copied Access Token may remain valid until expiry.
 

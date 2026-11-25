@@ -69,7 +69,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
     ) {
         var query = Wrappers.<UserInfoEntity>lambdaQuery().orderByAsc(UserInfoEntity::getId);
         if (StringUtils.hasText(name)) {
-            query.like(UserInfoEntity::getUserName, name.trim());
+            query.apply("user_name LIKE {0} ESCAPE '\\'", LikePatterns.contains(name.trim()));
         }
         if (systemType != null) {
             query.apply(

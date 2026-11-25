@@ -2,13 +2,18 @@ package baosys.manager.app.services.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import baosys.common.security.password.PasswordHasher;
+import baosys.manager.api.module.payloads.UserCreateRequest;
 import baosys.manager.api.module.payloads.UserUpdateRequest;
+import baosys.manager.api.module.responses.UserResponse;
 import baosys.manager.app.error.BusinessException;
 import baosys.manager.infra.database.entity.PermissionChangeAuditEntity;
 import baosys.manager.infra.database.entity.UserInfoEntity;
@@ -19,6 +24,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionOperations;
 
 class UserAppServiceImplTest {
 
@@ -26,12 +33,14 @@ class UserAppServiceImplTest {
     private final UserLoginMapper loginMapper = mock(UserLoginMapper.class);
     private final PermissionChangeAuditMapper auditMapper = mock(PermissionChangeAuditMapper.class);
     private final PasswordHasher passwordHasher = mock(PasswordHasher.class);
+    private final TransactionOperations transactions = spy(TransactionOperations.withoutTransaction());
     private final UserAppServiceImpl userAppService = new UserAppServiceImpl(
         userMapper,
         loginMapper,
         auditMapper,
         passwordHasher,
-        baosys.manager.app.config.CatalogFixture.load()
+        baosys.manager.app.config.CatalogFixture.load(),
+        transactions
     );
 
     @Test
@@ -206,6 +215,30 @@ class UserAppServiceImplTest {
         );
         verify(loginMapper).deleteByUserId(1001L);
         assertThat(user.getUserPass()).isEqualTo("encoded");
+        var order = inOrder(passwordHasher, transactions, userMapper);
+        order.verify(passwordHasher).hash("new-password");
+        order.verify(transactions).execute(org.mockito.ArgumentMatchers.<TransactionCallback<UserResponse>>any());
+        order.verify(userMapper).findByIdForUpdate(1001L);
+    }
+
+    @Test
+    void shouldHashPasswordBeforeOpeningTransactionOnCreate() {
+        when(passwordHasher.hash("secure123")).thenReturn("encoded");
+        when(userMapper.insert(any(UserInfoEntity.class))).thenAnswer(invocation -> {
+            invocation.<UserInfoEntity>getArgument(0).setId(2001L);
+            return 1;
+        });
+
+        var created = userAppService.create(
+            new UserCreateRequest("alice", "secure123", Set.of("MGR"), true, "MGR"),
+            9001L
+        );
+
+        assertThat(created.id()).isEqualTo(2001L);
+        var order = inOrder(passwordHasher, transactions, userMapper);
+        order.verify(passwordHasher).hash("secure123");
+        order.verify(transactions).execute(org.mockito.ArgumentMatchers.<TransactionCallback<UserResponse>>any());
+        order.verify(userMapper).insert(any(UserInfoEntity.class));
     }
 
     @Test
