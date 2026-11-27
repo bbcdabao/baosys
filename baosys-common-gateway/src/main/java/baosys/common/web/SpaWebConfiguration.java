@@ -10,6 +10,7 @@ import org.springframework.web.reactive.config.WebFluxConfigurer;
 import org.springframework.web.reactive.resource.PathResourceResolver;
 import org.springframework.web.reactive.resource.ResourceResolverChain;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.context.annotation.Bean;
 import reactor.core.publisher.Mono;
 
 /**
@@ -27,7 +28,7 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
         this.index = loader.getResource(properties.getResourceLocation() + "index.html");
     }
 
-    @org.springframework.context.annotation.Bean
+    @Bean
     org.springframework.web.server.WebFilter normalizeUiBase() {
         return (exchange, chain) -> {
             if (exchange.getRequest().getURI().getRawPath().equals(properties.getBasePath())) {
@@ -41,7 +42,7 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
         };
     }
 
-    @org.springframework.context.annotation.Bean
+    @Bean
     org.springframework.web.reactive.function.server.RouterFunction<org.springframework.web.reactive.function.server.ServerResponse> uiIndex() {
         return org.springframework.web.reactive.function.server.RouterFunctions.route()
             .GET(properties.getBasePath() + "/", request -> org.springframework.web.reactive.function.server.ServerResponse.ok()

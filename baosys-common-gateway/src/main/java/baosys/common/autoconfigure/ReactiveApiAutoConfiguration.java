@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.server.WebExceptionHandler;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 /**
  * 响应式业务 API 的默认异常出口。
@@ -19,6 +20,6 @@ public class ReactiveApiAutoConfiguration {
     @ConditionalOnMissingBean
     ReactiveApiExceptionHandler reactiveApiExceptionHandler(ObjectProvider<ObjectMapper> mappers) {
         return new ReactiveApiExceptionHandler(mappers.getIfAvailable(
-            () -> org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build()));
+            () -> Jackson2ObjectMapperBuilder.json().build()));
     }
 }
