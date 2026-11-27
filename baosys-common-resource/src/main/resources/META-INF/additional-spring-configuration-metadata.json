@@ -1,0 +1,47 @@
+{
+  "groups": [
+    {
+      "name": "common.mvc.async-executor",
+      "type": "baosys.common.concurrent.ExecutorProperties",
+      "description": "Configuration properties for the bounded Spring MVC async executor."
+    }
+  ],
+  "properties": [
+    {
+      "name": "common.mvc.async-executor.core-pool-size",
+      "type": "java.lang.Integer",
+      "description": "Core number of threads for the MVC async executor.",
+      "defaultValue": 8
+    },
+    {
+      "name": "common.mvc.async-executor.max-pool-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum allowed number of threads for the MVC async executor.",
+      "defaultValue": 32
+    },
+    {
+      "name": "common.mvc.async-executor.queue-capacity",
+      "type": "java.lang.Integer",
+      "description": "Capacity of the bounded queue for MVC async tasks.",
+      "defaultValue": 256
+    },
+    {
+      "name": "common.mvc.async-executor.keep-alive-seconds",
+      "type": "java.lang.Integer",
+      "description": "Idle thread keep-alive time in seconds.",
+      "defaultValue": 30
+    },
+    {
+      "name": "common.mvc.async-executor.shutdown-timeout-seconds",
+      "type": "java.lang.Integer",
+      "description": "Timeout in seconds to wait for tasks to finish during shutdown.",
+      "defaultValue": 20
+    },
+    {
+      "name": "common.mvc.async-executor.thread-name-prefix",
+      "type": "java.lang.String",
+      "description": "Thread name prefix for MVC async worker threads.",
+      "defaultValue": "mvc-async-"
+    }
+  ]
+}

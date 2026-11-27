@@ -2,9 +2,11 @@ package baosys.common.security.config;
 
 import baosys.common.security.resource.JwtPermissionConverter;
 import baosys.common.security.resource.ResourceServerSecurityConfig;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -16,6 +18,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
  * 编码转换为 Spring Security 的 {@code GrantedAuthority}。该配置面向认证中心和
  * 下游业务服务，用于完成“已登录用户是否有权调用当前接口”的判断。</p>
  */
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableMethodSecurity
 @EnableConfigurationProperties(SecurityProperties.class)
@@ -32,7 +35,7 @@ public class UltraViresCheckConfiguration {
      * {@code @PreAuthorize} 声明。</p>
      */
     @Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
+    @ConditionalOnMissingBean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         return JwtPermissionConverter.create();
     }

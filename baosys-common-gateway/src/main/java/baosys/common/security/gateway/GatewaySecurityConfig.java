@@ -70,7 +70,7 @@ public class GatewaySecurityConfig {
             !gateway.getCsrfCookieName().matches("[a-zA-Z0-9_-]+"))) {
             throw new IllegalArgumentException("Each gateway requires its own csrf-path and csrf-cookie-name");
         }
-        var publicPathList = normalizePermitAllPaths(gateway.getPermitAllPaths());
+        var publicPathList = gateway.normalizedPermitAllPaths("spring.security.gateway.permit-all-paths");
         if (StringUtils.hasText(gateway.getCsrfPath())) {
             publicPathList.add(gateway.getCsrfPath().trim());
         }
@@ -176,19 +176,5 @@ public class GatewaySecurityConfig {
                     )
             )
             .build();
-    }
-
-    private static List<String> normalizePermitAllPaths(List<String> configured) {
-        if (configured == null) {
-            return new ArrayList<>();
-        }
-        var normalized = new ArrayList<String>(configured.size());
-        for (String raw : configured) {
-            if (!StringUtils.hasText(raw)) {
-                throw new IllegalArgumentException("spring.security.gateway.permit-all-paths entries must not be blank");
-            }
-            normalized.add(raw.trim());
-        }
-        return normalized;
     }
 }

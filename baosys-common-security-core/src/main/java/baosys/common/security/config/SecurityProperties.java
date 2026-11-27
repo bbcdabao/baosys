@@ -3,6 +3,7 @@ package baosys.common.security.config;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.StringUtils;
 
 /**
  * 网关与资源服务的安全策略配置，绑定 {@code spring.security} 下的项目扩展属性。
@@ -63,6 +64,23 @@ public class SecurityProperties {
 
         public void setPermitAllPaths(List<String> value) {
             permitAllPaths = value;
+        }
+
+        /**
+         * 校验并规范化 {@code permit-all-paths}，拒绝空白项并去除首尾空白。
+         */
+        public List<String> normalizedPermitAllPaths(String propertyName) {
+            if (permitAllPaths == null) {
+                return new ArrayList<>();
+            }
+            var normalized = new ArrayList<String>(permitAllPaths.size());
+            for (String raw : permitAllPaths) {
+                if (!StringUtils.hasText(raw)) {
+                    throw new IllegalArgumentException(propertyName + " entries must not be blank");
+                }
+                normalized.add(raw.trim());
+            }
+            return normalized;
         }
     }
 

@@ -1,2 +1,3 @@
 baosys.common.autoconfigure.TraceAutoConfiguration
 baosys.common.autoconfigure.MvcAsyncAutoConfiguration
+baosys.common.autoconfigure.ServletApiAutoConfiguration

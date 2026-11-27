@@ -17,22 +17,30 @@ import org.springframework.security.web.access.AccessDeniedHandler;
  */
 public final class ServletApiSecurityHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
     private final ObjectMapper mapper;
+    private final BearerTokenAuthenticationEntryPoint entryPoint = new BearerTokenAuthenticationEntryPoint();
+    private final BearerTokenAccessDeniedHandler accessDeniedHandler = new BearerTokenAccessDeniedHandler();
+
     public ServletApiSecurityHandler(ObjectMapper mapper) { this.mapper = mapper; }
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException ex) throws IOException, ServletException {
         if (response.isCommitted()) return;
-        new BearerTokenAuthenticationEntryPoint().commence(request, response, ex);
-        write(request, response, 401);
+        entryPoint.commence(request, response, ex);
+        write(request, response, resolveStatus(response, HttpServletResponse.SC_UNAUTHORIZED));
     }
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
             AccessDeniedException ex) throws IOException, ServletException {
         if (response.isCommitted()) return;
-        new BearerTokenAccessDeniedHandler().handle(request, response, ex);
-        write(request, response, 403);
+        accessDeniedHandler.handle(request, response, ex);
+        write(request, response, resolveStatus(response, HttpServletResponse.SC_FORBIDDEN));
+    }
+
+    private static int resolveStatus(HttpServletResponse response, int fallbackStatus) {
+        int status = response.getStatus();
+        return status >= 400 && status < 500 ? status : fallbackStatus;
     }
 
     private void write(HttpServletRequest request, HttpServletResponse response, int status) throws IOException {
