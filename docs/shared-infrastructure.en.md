@@ -14,7 +14,7 @@ The prefix must be an absolute, non-root path without a trailing slash. Resource
 The entry document is `index.html` in that directory.
 
 Both prefixed requests and proxy-stripped root requests are supported. A missing trailing slash gets a 308 redirect preserving the raw query.
-GET/HEAD client routes accepting HTML may fall back to the entry document; API, Actuator, OAuth2 and asset paths do not.
+`common.spa.fallback.enabled` defaults to `false` (Hash mode, no client-route fallback). When enabled, GET/HEAD HTML requests without a filename extension fall back to the entry document while always excluding `api`, `actuator`, `assets`, `oauth2`, `login/oauth2`, `logout`, and `csrf`; additional exclusions can be configured via `common.spa.fallback.excluded-paths` (segment match) and `common.spa.fallback.excluded-prefixes` (prefix match).
 Changing the hosting prefix still requires matching Vite/Router bases, proxy rules and login return URLs.
 
 ## Logging

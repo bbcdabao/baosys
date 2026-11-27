@@ -15,12 +15,16 @@ common:
     enabled: true
     base-path: /baosys-manager
     resource-location: classpath:/static/
+    fallback:
+      enabled: true
+      excluded-prefixes:
+        - baosys-
 ```
 
 组件默认不启用；前缀必须是非根绝对路径，不带尾斜杠。
 资源位置支持 `classpath:/` 和 `file:/`，目录末尾自动补 `/`，入口是该目录的 `index.html`。
 同时支持带前缀访问和反向代理剥离前缀后的根路径访问。无尾斜杠的入口以 308 跳转并保留原始查询参数。
-GET/HEAD 且接受 HTML 的客户端路由可以回退到入口；API、Actuator、OAuth2、静态文件等路径不回退。
+`common.spa.fallback.enabled` 默认 `false`（纯 Hash 模式，不回退未命中路径）；开启后，GET/HEAD 且接受 HTML 且无文件扩展名的客户端路由会回退到入口，内置排除 `api`、`actuator`、`assets`、`oauth2`、`login/oauth2`、`logout`、`csrf`，并可通过 `fallback.excluded-paths`（按路径段追加）与 `fallback.excluded-prefixes`（按前缀追加）扩展排除规则。
 修改托管前缀时，仍需同步 Vite base、Router base、反向代理和登录回跳地址。
 
 ## 日志

@@ -65,6 +65,11 @@ common:
     enabled: true
     base-path: /baosys-manager
     resource-location: classpath:/static/
+    fallback:
+      # 默认关闭（纯 Hash 模式）；此处开启以兼容旧 History 链接及书签自动跳转。
+      enabled: true
+      excluded-prefixes:
+        - baosys-
 ---
 # Application overrides follow the shared imported baseline.
 management:

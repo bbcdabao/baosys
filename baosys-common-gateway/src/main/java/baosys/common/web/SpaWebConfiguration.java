@@ -1,40 +1,64 @@
 package baosys.common.web;
 
+import java.net.URI;
+import java.util.LinkedHashSet;
 import java.util.List;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.RouterFunctions;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.resource.PathResourceResolver;
 import org.springframework.web.reactive.resource.ResourceResolverChain;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.context.annotation.Bean;
+import org.springframework.web.server.WebFilter;
 import reactor.core.publisher.Mono;
 
 /**
- * Serves static assets and falls back to the SPA entry point for client routes.
+ * Serves static assets and optionally falls back to the SPA entry point for client routes.
  */
-@org.springframework.boot.autoconfigure.AutoConfiguration
-@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.REACTIVE)
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "common.spa", name = "enabled", havingValue = "true")
-@org.springframework.boot.context.properties.EnableConfigurationProperties(SpaProperties.class)
+@AutoConfiguration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+@ConditionalOnProperty(prefix = "common.spa", name = "enabled", havingValue = "true")
+@EnableConfigurationProperties(SpaProperties.class)
 public class SpaWebConfiguration implements WebFluxConfigurer {
+
+    private static final List<String> BUILTIN_EXCLUDED_PATHS = List.of(
+        "api",
+        "actuator",
+        "assets",
+        "oauth2",
+        "login/oauth2",
+        "logout",
+        "csrf"
+    );
+
     private final SpaProperties properties;
     private final Resource index;
-    public SpaWebConfiguration(SpaProperties properties, org.springframework.core.io.ResourceLoader loader) {
+
+    public SpaWebConfiguration(SpaProperties properties, ResourceLoader loader) {
         this.properties = properties;
         this.index = loader.getResource(properties.getResourceLocation() + "index.html");
     }
 
     @Bean
-    org.springframework.web.server.WebFilter normalizeUiBase() {
+    WebFilter normalizeUiBase() {
         return (exchange, chain) -> {
             if (exchange.getRequest().getURI().getRawPath().equals(properties.getBasePath())) {
                 String query = exchange.getRequest().getURI().getRawQuery();
-                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.PERMANENT_REDIRECT);
-                exchange.getResponse().getHeaders().setLocation(java.net.URI.create(
+                exchange.getResponse().setStatusCode(HttpStatus.PERMANENT_REDIRECT);
+                exchange.getResponse().getHeaders().setLocation(URI.create(
                     properties.getBasePath() + "/" + (query == null ? "" : "?" + query)));
                 return exchange.getResponse().setComplete();
             }
@@ -43,28 +67,52 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
     }
 
     @Bean
-    org.springframework.web.reactive.function.server.RouterFunction<org.springframework.web.reactive.function.server.ServerResponse> uiIndex() {
-        return org.springframework.web.reactive.function.server.RouterFunctions.route()
-            .GET(properties.getBasePath() + "/", request -> org.springframework.web.reactive.function.server.ServerResponse.ok()
+    RouterFunction<ServerResponse> uiIndex() {
+        return RouterFunctions.route()
+            .GET(properties.getBasePath() + "/", request -> ServerResponse.ok()
                 .contentType(MediaType.TEXT_HTML).bodyValue(index))
-            .GET("/", request -> org.springframework.web.reactive.function.server.ServerResponse.ok()
+            .GET("/", request -> ServerResponse.ok()
                 .contentType(MediaType.TEXT_HTML).bodyValue(index))
             .build();
     }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry
+        var registration = registry
             .addResourceHandler(properties.getBasePath() + "/**", "/**")
-            .addResourceLocations(properties.getResourceLocation())
-            .resourceChain(false)
-            .addResolver(new SpaPathResourceResolver(index));
+            .addResourceLocations(properties.getResourceLocation());
+        if (properties.getFallback().isEnabled()) {
+            registration
+                .resourceChain(false)
+                .addResolver(new SpaPathResourceResolver(index, excludedPaths(), excludedPrefixes()));
+        }
+    }
+
+    private List<String> excludedPaths() {
+        var merged = new LinkedHashSet<String>(BUILTIN_EXCLUDED_PATHS);
+        merged.addAll(properties.getFallback().getExcludedPaths());
+        return List.copyOf(merged);
+    }
+
+    private List<String> excludedPrefixes() {
+        return List.copyOf(properties.getFallback().getExcludedPrefixes());
     }
 
     private static final class SpaPathResourceResolver extends PathResourceResolver {
 
-        private final Resource INDEX;
-        SpaPathResourceResolver(Resource index) { this.INDEX = index; }
+        private final Resource index;
+        private final List<String> excludedPaths;
+        private final List<String> excludedPrefixes;
+
+        SpaPathResourceResolver(
+            Resource index,
+            List<String> excludedPaths,
+            List<String> excludedPrefixes
+        ) {
+            this.index = index;
+            this.excludedPaths = excludedPaths;
+            this.excludedPrefixes = excludedPrefixes;
+        }
 
         @Override
         protected Mono<Resource> resolveResourceInternal(
@@ -77,27 +125,21 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
                 .resolveResourceInternal(exchange, requestPath, locations, chain)
                 .switchIfEmpty(
                     Mono.defer(() ->
-                        isClientRoute(exchange, requestPath) && INDEX.isReadable()
-                            ? Mono.just(INDEX)
+                        isClientRoute(exchange, requestPath) && index.isReadable()
+                            ? Mono.just(index)
                             : Mono.empty()
                     )
                 );
         }
 
-        private static boolean isClientRoute(ServerWebExchange exchange, String requestPath) {
+        private boolean isClientRoute(ServerWebExchange exchange, String requestPath) {
             String path = StringUtils.trimLeadingCharacter(requestPath, '/');
 
             return (
                 isSafeMethod(exchange) &&
                 acceptsHtml(exchange) &&
-                !isPathUnder(path, "api") &&
-                !isPathUnder(path, "actuator") &&
-                !isPathUnder(path, "assets") &&
-                !isPathUnder(path, "oauth2") &&
-                !isPathUnder(path, "login/oauth2") &&
-                !isPathUnder(path, "logout") &&
-                !isPathUnder(path, "csrf") &&
-                !path.startsWith("baosys-") &&
+                excludedPaths.stream().noneMatch(prefix -> isPathUnder(path, prefix)) &&
+                excludedPrefixes.stream().noneMatch(path::startsWith) &&
                 !StringUtils.hasText(StringUtils.getFilenameExtension(path))
             );
         }
