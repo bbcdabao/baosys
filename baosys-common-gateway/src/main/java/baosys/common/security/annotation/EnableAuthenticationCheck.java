@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Import;
  * 开启网关侧认证检查。
  *
  * <p>用于 {@code baosys-manager-web} 这类 Spring Cloud Gateway 服务。
- * 开启后网关会校验访问 {@code /api/**} 的 JWT，并把 {@code access_token}
+ * 开启后网关会校验访问 {@code /api/**} 的 JWT，并把 {@code BAOSYS_ACCESS_TOKEN}
  * Cookie 转换成下游服务可识别的 {@code Authorization: Bearer ...} 请求头。</p>
  *
  * <p>该注解适合放在网关应用启动类上。启用后仍需配置

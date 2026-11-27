@@ -5,7 +5,9 @@ import baosys.common.web.TraceWebFilter;
 import io.micrometer.context.ContextRegistry;
 import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.server.WebFilter;
 import reactor.core.publisher.Hooks;
@@ -15,15 +17,19 @@ import reactor.core.publisher.Hooks;
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-@ConditionalOnClass({WebFilter.class, Hooks.class})
+@ConditionalOnClass({WebFilter.class, Hooks.class, ContextRegistry.class})
 public class ReactiveTraceAutoConfiguration {
-    @Bean
-    @ConditionalOnMissingBean
-    TraceWebFilter traceWebFilter() {
+
+    public ReactiveTraceAutoConfiguration() {
         ContextRegistry.getInstance().registerThreadLocalAccessor(TraceIds.MDC_KEY,
             () -> MDC.get(TraceIds.MDC_KEY), value -> MDC.put(TraceIds.MDC_KEY, value),
             () -> MDC.remove(TraceIds.MDC_KEY));
         Hooks.enableAutomaticContextPropagation();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TraceWebFilter traceWebFilter() {
         return new TraceWebFilter();
     }
 }

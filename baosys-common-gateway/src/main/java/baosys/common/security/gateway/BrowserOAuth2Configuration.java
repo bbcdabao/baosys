@@ -1,31 +1,51 @@
 package baosys.common.security.gateway;
 
 import baosys.common.security.resource.JwtPermissionConverter;
-import baosys.common.web.ReactiveApiSecurityHandler;
+import baosys.common.web.ReactiveApiResponses;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.ObjectProvider;
+import io.netty.channel.ChannelOption;
+import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.oauth2.client.*;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultReactiveOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.web.server.*;
+import org.springframework.security.oauth2.client.web.server.DefaultServerOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.server.WebSessionServerOAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.jwt.*;
-import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
-import org.springframework.security.web.server.authentication.logout.*;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.server.WebFilterExchange;
+import org.springframework.security.web.server.authentication.logout.DelegatingServerLogoutHandler;
+import org.springframework.security.web.server.authentication.logout.HttpStatusReturningServerLogoutSuccessHandler;
+import org.springframework.security.web.server.authentication.logout.SecurityContextServerLogoutHandler;
+import org.springframework.security.web.server.authentication.logout.WebSessionServerLogoutHandler;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.*;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 
 /**
  * 浏览器 OAuth2 授权码登录及 WebSession 令牌续期配置，将访问令牌中的业务权限应用于网关请求。
@@ -58,6 +78,10 @@ import reactor.core.publisher.Mono;
 @ConditionalOnProperty(name = "baosys.browser-oauth2.enabled", havingValue = "true")
 public class BrowserOAuth2Configuration {
 
+    private static final Logger log = LoggerFactory.getLogger(BrowserOAuth2Configuration.class);
+    private static final Duration REVOCATION_CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration REVOCATION_RESPONSE_TIMEOUT = Duration.ofSeconds(5);
+
     /**
      * OAuth2 客户端注册信息，包含客户端身份、授权地址及令牌端点。
      */
@@ -68,6 +92,8 @@ public class BrowserOAuth2Configuration {
      */
     private final ReactiveJwtDecoder decoder;
     private final ObjectMapper mapper;
+    private final JwtAuthenticationConverter jwtConverter = JwtPermissionConverter.create();
+    private final WebClient revocationClient;
 
     /**
      * 登录与刷新共享同一会话仓库；此模式下令牌由服务端 WebSession 持有。
@@ -89,12 +115,20 @@ public class BrowserOAuth2Configuration {
     public BrowserOAuth2Configuration(
         ReactiveClientRegistrationRepository registrations,
         ReactiveJwtDecoder decoder,
-        ObjectProvider<ObjectMapper> mappers
+        ObjectProvider<ObjectMapper> mappers,
+        ObjectProvider<WebClient.Builder> webClientBuilders
     ) {
         this.registrations = registrations;
         this.decoder = decoder;
         this.mapper = mappers.getIfAvailable(
-            () -> org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build());
+            () -> Jackson2ObjectMapperBuilder.json().build());
+        HttpClient httpClient = HttpClient.create()
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Math.toIntExact(REVOCATION_CONNECT_TIMEOUT.toMillis()))
+            .responseTimeout(REVOCATION_RESPONSE_TIMEOUT);
+        this.revocationClient = webClientBuilders.getIfAvailable(WebClient::builder)
+            .clone()
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
         manager = new DefaultReactiveOAuth2AuthorizedClientManager(registrations, clients);
         // 使用 Spring 标准授权码/刷新提供器，刷新请求及成功后的仓库更新由框架完成。
         manager.setAuthorizedClientProvider(
@@ -126,8 +160,8 @@ public class BrowserOAuth2Configuration {
      *
      * <ol>
      *   <li><strong>登录：</strong>根据客户端注册信息解析 OAuth2 授权请求，启用授权码登录，
-     *       并使用共享的 {@code clients} 仓库将授权客户端及令牌保存在网关 WebSession 中。</li>
-     *   <li><strong>未认证响应：</strong>将认证入口点设为 HTTP 401，供前端处理需要登录的情况。</li>
+     *       并使用共享的 {@code clients} 仓库将授权客户端及令牌保存在网关 WebSession 中。
+     *       未认证与拒绝访问响应由 {@link GatewaySecurityConfig} 统一配置处理。</li>
      *   <li><strong>API 访问：</strong>在权限判断前执行 {@link #authorizeBrowser}。
      *       该处理器仅对没有显式 {@code Authorization} 头且已有 OAuth2 登录身份的 API 请求，
      *       按需取得或刷新访问令牌，验签并建立携带业务权限的 JWT 身份，供后续权限检查使用。
@@ -145,15 +179,9 @@ public class BrowserOAuth2Configuration {
         http.oauth2Login(login ->
             login.authorizationRequestResolver(resolver).authorizedClientRepository(clients)
         )
-            // 1.登录：需要认证时返回 401，由前端决定如何引导用户登录。
-            .exceptionHandling(errors ->
-                errors.authenticationEntryPoint(
-                    new HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED)
-                )
-            )
-            // 2.校验：此处仅注册回调；请求到达后，在 AUTHORIZATION 权限判断之前准备 JWT 身份。
+            // 1.校验：此处仅注册回调；请求到达后，在 AUTHORIZATION 权限判断之前准备 JWT 身份。
             .addFilterBefore(this::authorizeBrowser, SecurityWebFiltersOrder.AUTHORIZATION)
-            // 3.登出：先撤销远程令牌，再清理本地认证状态和会话；全部成功后返回 204。
+            // 2.登出：先撤销远程令牌，再清理本地认证状态和会话；全部成功后返回 204。
             .logout(logout ->
                 logout
                     .logoutHandler(
@@ -190,9 +218,10 @@ public class BrowserOAuth2Configuration {
             .flatMap(principal ->
                 exchange.getSession().flatMap(session -> {
                     // 轮换后旧 refresh token 不再可用。同一会话的并发请求共享一次在途授权结果，
-                    // 避免重复提交旧令牌；defer 延迟执行，cache 共享结果，结束时移除在途记录。
-                    var authorized = pending.computeIfAbsent(session.getId(), id ->
-                        Mono.defer(() ->
+                    // 避免重复提交旧令牌；defer 延迟执行，cache 共享结果，结束时移除本条在途记录。
+                    var authorized = pending.computeIfAbsent(session.getId(), id -> {
+                        var holder = new AtomicReference<Mono<OAuth2AuthorizedClient>>();
+                        var cached = Mono.defer(() ->
                             manager.authorize(
                                 OAuth2AuthorizeRequest.withClientRegistrationId(
                                     principal.getAuthorizedClientRegistrationId()
@@ -202,9 +231,11 @@ public class BrowserOAuth2Configuration {
                                     .build()
                             )
                         )
-                            .doFinally(signal -> pending.remove(id))
-                            .cache()
-                    );
+                            .doFinally(signal -> pending.remove(id, holder.get()))
+                            .cache();
+                        holder.set(cached);
+                        return cached;
+                    });
                     // 无可用授权客户端时按授权失效处理；取得令牌后仍需验签并提取业务权限。
                     return authorized
                         .switchIfEmpty(
@@ -213,15 +244,25 @@ public class BrowserOAuth2Configuration {
                             )
                         )
                         .flatMap(client -> decoder.decode(client.getAccessToken().getTokenValue()))
-                        .map(jwt -> JwtPermissionConverter.create().convert(jwt))
+                        .map(jwtConverter::convert)
                         // OAuth2 授权异常或 JWT 验证失败：销毁本地会话，并在下方返回 401。
                         // 这里只捕获这两类异常，其他异常（例如部分网络故障）继续向外传播。
-                        .onErrorResume(OAuth2AuthorizationException.class, error ->
-                            session.invalidate().then(Mono.empty())
-                        )
-                        .onErrorResume(JwtException.class, error ->
-                            session.invalidate().then(Mono.empty())
-                        )
+                        .onErrorResume(OAuth2AuthorizationException.class, error -> {
+                            log.warn(
+                                "Browser OAuth2 authorization failed for client {}, invalidating session: {}",
+                                principal.getAuthorizedClientRegistrationId(),
+                                error.getError().getErrorCode()
+                            );
+                            return session.invalidate().then(Mono.empty());
+                        })
+                        .onErrorResume(JwtException.class, error -> {
+                            log.warn(
+                                "Browser OAuth2 access token verification failed for client {}, invalidating session: {}",
+                                principal.getAuthorizedClientRegistrationId(),
+                                error.getMessage()
+                            );
+                            return session.invalidate().then(Mono.empty());
+                        })
                         // 同时替换请求 principal 和 Reactor 安全上下文，供权限检查及令牌转发使用。
                         .map(authentication ->
                             chain
@@ -233,7 +274,7 @@ public class BrowserOAuth2Configuration {
                                 )
                         )
                         .defaultIfEmpty(
-                            Mono.defer(() -> baosys.common.web.ReactiveApiResponses.write(exchange, 401, mapper))
+                            Mono.defer(() -> ReactiveApiResponses.write(exchange, 401, mapper))
                         );
                 })
             )
@@ -248,10 +289,7 @@ public class BrowserOAuth2Configuration {
      * @param authentication 当前认证身份，仅处理 OAuth2 浏览器登录
      * @return 远程撤销的完成信号；非 OAuth2 身份直接完成
      */
-    private Mono<Void> revoke(
-        org.springframework.security.web.server.WebFilterExchange webExchange,
-        org.springframework.security.core.Authentication authentication
-    ) {
+    private Mono<Void> revoke(WebFilterExchange webExchange, Authentication authentication) {
         if (!(authentication instanceof OAuth2AuthenticationToken oauth)) {
             return Mono.empty();
         }
@@ -268,30 +306,30 @@ public class BrowserOAuth2Configuration {
                     .getProviderDetails()
                     .getConfigurationMetadata()
                     .get("revocation_endpoint");
-                if (endpoint == null) {
+                if (!StringUtils.hasText(endpoint)) {
                     return Mono.error(
                         new IllegalStateException("Provider must advertise revocation_endpoint")
                     );
                 }
+                var registration = client.getClientRegistration();
                 var token =
                     client.getRefreshToken() == null
                         ? client.getAccessToken().getTokenValue()
                         : client.getRefreshToken().getTokenValue();
-                return WebClient.create()
-                    .post()
-                    .uri(endpoint)
-                    .headers(headers ->
-                        headers.setBasicAuth(
-                            client.getClientRegistration().getClientId(),
-                            client.getClientRegistration().getClientSecret()
-                        )
-                    )
-                    .body(
-                        BodyInserters.fromFormData("token", token).with(
-                            "token_type_hint",
-                            client.getRefreshToken() == null ? "access_token" : "refresh_token"
-                        )
-                    )
+                var form = BodyInserters.fromFormData("token", token).with(
+                    "token_type_hint",
+                    client.getRefreshToken() == null ? "access_token" : "refresh_token"
+                );
+                var request = revocationClient.post().uri(endpoint);
+                if (StringUtils.hasText(registration.getClientSecret())) {
+                    request = request.headers(headers ->
+                        headers.setBasicAuth(registration.getClientId(), registration.getClientSecret())
+                    );
+                } else {
+                    form = form.with("client_id", registration.getClientId());
+                }
+                return request
+                    .body(form)
                     .retrieve()
                     .toBodilessEntity()
                     .then();

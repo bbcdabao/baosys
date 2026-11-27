@@ -10,9 +10,13 @@ import org.springframework.util.StringUtils;
  */
 @ConfigurationProperties("common.spa")
 public class SpaProperties {
+    private boolean enabled = false;
     private String basePath = "/ui";
     private String resourceLocation = "classpath:/static/";
     private Fallback fallback = new Fallback();
+
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean value) { enabled = value; }
 
     public String getBasePath() { return basePath; }
     public void setBasePath(String value) {

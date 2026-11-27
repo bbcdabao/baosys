@@ -464,6 +464,39 @@ class GatewaySecurityIntegrationTest {
             .value("WWW-Authenticate", value -> assertThat(value).contains("insufficient_scope"));
     }
 
+    @Test
+    void actuatorAllowsPublicProbesAndProtectsSensitiveEndpoints() {
+        webTestClient.get().uri("/actuator/health").exchange().expectStatus().isOk();
+        webTestClient.get().uri("/actuator/info").exchange().expectStatus().isOk();
+
+        for (String path : List.of("/actuator/metrics", "/actuator/gateway/routes")) {
+            webTestClient
+                .get()
+                .uri(path)
+                .exchange()
+                .expectStatus()
+                .isUnauthorized()
+                .expectHeader()
+                .exists("WWW-Authenticate");
+
+            webTestClient
+                .get()
+                .uri(path)
+                .headers(headers -> headers.setBearerAuth("invalid"))
+                .exchange()
+                .expectStatus()
+                .isUnauthorized();
+
+            webTestClient
+                .get()
+                .uri(path)
+                .headers(headers -> headers.setBearerAuth("no-permissions"))
+                .exchange()
+                .expectStatus()
+                .isOk();
+        }
+    }
+
     record CsrfResponse(String headerName, String parameterName, String token) {}
 
     @org.springframework.web.bind.annotation.RestController

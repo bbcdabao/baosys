@@ -1,16 +1,17 @@
 package baosys.common.security.gateway;
 
 import baosys.common.security.config.SecurityProperties;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
-import java.util.Locale;
-import java.util.List;
-import org.springframework.util.StringUtils;
 
 /**
  * 网关 JWT 转发过滤器：清除外部传入的用户、租户身份头，并将当前 JWT 身份中的令牌写入下游请求。
@@ -31,16 +32,23 @@ import org.springframework.util.StringUtils;
  */
 public final class JwtTokenRelayFilter implements GlobalFilter, Ordered {
 
-    private final List<String> identityHeaderNames;
+    private final Set<String> identityHeaderNames;
     private final List<String> identityHeaderPrefixes;
 
     public JwtTokenRelayFilter(SecurityProperties properties) {
         var gateway = properties.getGateway();
-        identityHeaderNames = normalize(gateway.getIdentityHeaderNames());
-        identityHeaderPrefixes = normalize(gateway.getIdentityHeaderPrefixes());
+        identityHeaderNames = normalizeToSet(gateway.getIdentityHeaderNames());
+        identityHeaderPrefixes = normalizeToList(gateway.getIdentityHeaderPrefixes());
     }
 
-    private static List<String> normalize(List<String> values) {
+    private static Set<String> normalizeToSet(List<String> values) {
+        return values == null ? Set.of() : values.stream()
+            .filter(StringUtils::hasText)
+            .map(value -> value.trim().toLowerCase(Locale.ROOT))
+            .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static List<String> normalizeToList(List<String> values) {
         return values == null ? List.of() : values.stream()
             .filter(StringUtils::hasText)
             .map(value -> value.trim().toLowerCase(Locale.ROOT))
@@ -62,40 +70,41 @@ public final class JwtTokenRelayFilter implements GlobalFilter, Ordered {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // 基于原请求构造清理后的 exchange，防止客户端伪造身份头供下游误用。
-        // 清理范围来自 spring.security.gateway 的完整头名和前缀配置。
-        var sanitized = exchange
-            .mutate()
-            .request(builder ->
-                builder.headers(headers ->
-                    headers.keySet().removeIf(name -> {
-                        // HTTP 头名不区分大小写；ROOT 避免服务器语言区域影响大小写转换。
-                        String lower = name.toLowerCase(Locale.ROOT);
-                        return identityHeaderNames.contains(lower) ||
-                            identityHeaderPrefixes.stream().anyMatch(lower::startsWith);
-                    })
-                )
-            )
-            .build();
-        // 从安全流程建立的 principal 获取 JWT；非 JWT 身份会被 ofType 过滤为空。
+        // 单次 mutate 完成身份头清理与 Bearer 头写入，避免已认证请求重复复制请求头。
         return exchange
             .getPrincipal()
             .ofType(JwtAuthenticationToken.class)
-            // 使用当前身份持有的原始 JWT 字符串设置 Bearer 头。
-            // setBearerAuth 覆盖已有 Authorization，确保转发的令牌与当前 JWT 身份一致。
-            .map(jwt ->
-                sanitized
-                    .mutate()
-                    .request(builder ->
-                        builder.headers(headers ->
-                            headers.setBearerAuth(jwt.getToken().getTokenValue())
-                        )
-                    )
-                    .build()
-            )
-            // 无 JWT 时也必须继续执行清理后的请求；flatMap 订阅后续过滤链返回的 Mono。
-            .defaultIfEmpty(sanitized)
+            .map(jwt -> mutateExchange(exchange, jwt.getToken().getTokenValue()))
+            .switchIfEmpty(Mono.fromSupplier(() -> mutateExchange(exchange, null)))
             .flatMap(chain::filter);
+    }
+
+    private ServerWebExchange mutateExchange(ServerWebExchange exchange, String bearerToken) {
+        return exchange
+            .mutate()
+            .request(builder ->
+                builder.headers(headers -> {
+                    headers.keySet().removeIf(this::isForgedIdentityHeader);
+                    if (bearerToken != null) {
+                        headers.setBearerAuth(bearerToken);
+                    }
+                })
+            )
+            .build();
+    }
+
+    private boolean isForgedIdentityHeader(String name) {
+        // HTTP 头名不区分大小写；ROOT 避免服务器语言区域影响大小写转换。
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (identityHeaderNames.contains(lower)) {
+            return true;
+        }
+        for (String prefix : identityHeaderPrefixes) {
+            if (lower.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

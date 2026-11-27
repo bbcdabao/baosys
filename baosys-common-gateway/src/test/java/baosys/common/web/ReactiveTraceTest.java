@@ -36,4 +36,34 @@ class ReactiveTraceTest {
                     .subscribeOn(Schedulers.parallel()).block()).isNull();
             });
     }
+
+    @Test
+    void deduplicatesTraceResponseHeaderOnCommit() {
+        var filter = new TraceWebFilter();
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/test")
+            .header(TraceIds.HEADER_NAME, "single-trace"));
+        filter.filter(exchange, forwarded -> {
+            forwarded.getResponse().getHeaders().add(TraceIds.HEADER_NAME, "downstream-duplicate");
+            return forwarded.getResponse().setComplete();
+        }).block(Duration.ofSeconds(5));
+
+        assertThat(exchange.getResponse().getHeaders().get(TraceIds.HEADER_NAME))
+            .containsExactly("single-trace");
+    }
+
+    @Test
+    void contextPropagationRemainsActiveWhenCustomTraceFilterIsProvided() {
+        new ReactiveWebApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(ReactiveTraceAutoConfiguration.class))
+            .withBean("customTraceWebFilter", TraceWebFilter.class, TraceWebFilter::new)
+            .run(context -> {
+                assertThat(context).hasSingleBean(TraceWebFilter.class);
+                String observed = Mono.delay(Duration.ofMillis(1))
+                    .publishOn(Schedulers.parallel())
+                    .map(ignored -> MDC.get(TraceIds.MDC_KEY))
+                    .contextWrite(ctx -> ctx.put(TraceIds.MDC_KEY, "custom-trace"))
+                    .block(Duration.ofSeconds(5));
+                assertThat(observed).isEqualTo("custom-trace");
+            });
+    }
 }

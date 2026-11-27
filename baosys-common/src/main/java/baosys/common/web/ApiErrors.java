@@ -18,7 +18,9 @@ public final class ApiErrors {
             case 409 -> ApiResponse.failure("CONFLICT", "请求资源已存在", traceId);
             case 415 -> ApiResponse.failure("UNSUPPORTED_MEDIA_TYPE", "请求内容类型不支持", traceId);
             case 429 -> ApiResponse.failure("TOO_MANY_REQUESTS", "请求过于频繁", traceId);
+            case 502 -> ApiResponse.failure("BAD_GATEWAY", "上游服务不可用", traceId);
             case 503 -> ApiResponse.failure("SERVICE_UNAVAILABLE", "服务暂不可用", traceId);
+            case 504 -> ApiResponse.failure("GATEWAY_TIMEOUT", "上游服务响应超时", traceId);
             default -> status >= 500
                 ? ApiResponse.failure("INTERNAL_ERROR", "服务器内部错误", traceId)
                 : ApiResponse.failure("REQUEST_ERROR", "请求失败", traceId);

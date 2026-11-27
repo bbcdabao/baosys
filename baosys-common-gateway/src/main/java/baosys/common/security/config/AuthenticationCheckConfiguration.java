@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 /**
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Import;
  * Spring CSRF 防护，以及 已认证 JWT 的 Bearer 转发过滤器。网关服务
  * 只需要启用该注解并配置公钥，就能获得统一的入口认证能力。</p>
  */
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @EnableConfigurationProperties(SecurityProperties.class)
 @Import({

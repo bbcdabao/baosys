@@ -131,6 +131,38 @@ class JwksContractTest {
         ).isInstanceOf(JwtException.class);
     }
 
+    @Test
+    void timesOutSlowJwksServerAndFailsClosed() throws Exception {
+        var slowServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        slowServer.createContext("/slow-jwks", exchange -> {
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.close();
+        });
+        slowServer.start();
+        try {
+            var slowProperties = new OAuth2ResourceServerProperties();
+            slowProperties.getJwt().setJwkSetUri("http://127.0.0.1:" + slowServer.getAddress().getPort() + "/slow-jwks");
+            slowProperties.getJwt().setIssuerUri("auth-server");
+            var decoder = new ReactiveJwtDecoderConfiguration().createDecoder(
+                slowProperties,
+                org.springframework.web.reactive.function.client.WebClient.builder(),
+                java.time.Duration.ofMillis(200),
+                java.time.Duration.ofMillis(200)
+            );
+            assertThatThrownBy(() ->
+                decoder
+                    .decode(sign(A, claims().build(), "at+jwt", "a", JWSAlgorithm.RS256))
+                    .block(java.time.Duration.ofSeconds(2))
+            ).isInstanceOf(JwtException.class);
+        } finally {
+            slowServer.stop(0);
+        }
+    }
+
     static JWTClaimsSet.Builder claims() {
         return new JWTClaimsSet.Builder()
             .issuer("auth-server")

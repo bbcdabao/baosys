@@ -1,7 +1,12 @@
 package baosys.common.web;
 
+import io.netty.channel.ConnectTimeoutException;
+import io.netty.handler.timeout.ReadTimeoutException;
+import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -9,6 +14,7 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.MethodNotAllowedException;
+import reactor.netty.http.client.PrematureCloseException;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -45,5 +51,40 @@ class ReactiveApiExceptionHandlerTest {
         committed.getResponse().setComplete().block();
         assertThatThrownBy(() -> handler.handle(committed, error).block()).isSameAs(error);
         assertThat(committed.getResponse().getBodyAsString().block()).isEmpty();
+    }
+
+    @Test
+    void mapsUpstreamTransportAndTimeoutErrorsToGatewayStatuses() {
+        for (Throwable badGateway : List.of(
+            new ConnectException("Connection refused"),
+            new UnknownHostException("downstream.internal"),
+            new RuntimeException("wrapped", org.mockito.Mockito.mock(PrematureCloseException.class))
+        )) {
+            var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/upstream"));
+            handler.handle(exchange, badGateway).block();
+            assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+            assertThat(exchange.getResponse().getHeaders().getContentLength()).isPositive();
+            assertThat(exchange.getResponse().getBodyAsString().block()).contains("BAD_GATEWAY");
+        }
+
+        for (Throwable timeout : List.of(
+            new TimeoutException("timed out"),
+            new ConnectTimeoutException("connect timed out"),
+            new RuntimeException("wrapped", ReadTimeoutException.INSTANCE)
+        )) {
+            var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/upstream"));
+            handler.handle(exchange, timeout).block();
+            assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.GATEWAY_TIMEOUT);
+            assertThat(exchange.getResponse().getBodyAsString().block()).contains("GATEWAY_TIMEOUT");
+        }
+    }
+
+    @Test
+    void headRequestsOmitErrorBodyWhilePreservingContentLength() {
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.head("/api/test"));
+        handler.handle(exchange, new RejectedExecutionException("busy")).block();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(exchange.getResponse().getHeaders().getContentLength()).isPositive();
+        assertThat(exchange.getResponse().getBodyAsString().block()).isEmpty();
     }
 }

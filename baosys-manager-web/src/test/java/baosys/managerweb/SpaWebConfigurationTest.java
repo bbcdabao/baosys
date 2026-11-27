@@ -64,12 +64,16 @@ class SpaWebConfigurationTest {
 
     @Test
     void servesPrefixedAndProxyStrippedRoutes() {
-        for (String path : java.util.List.of("/baosys-manager/", "/baosys-manager/users-management",
-            "/baosys-manager/future/nested", "/users-management")) {
+        for (String path : java.util.List.of("/baosys-manager/", "/baosys-manager/index.html",
+            "/baosys-manager/users-management", "/baosys-manager/future/nested", "/users-management")) {
             webTestClient.get().uri(path).accept(MediaType.TEXT_HTML).exchange()
-                .expectStatus().isOk().expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML);
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectHeader().valueEquals("Cache-Control", "no-cache");
         }
-        webTestClient.get().uri("/baosys-manager/assets/test.css").exchange().expectStatus().isOk();
+        webTestClient.get().uri("/baosys-manager/assets/test.css").exchange()
+            .expectStatus().isOk()
+            .expectHeader().valueEquals("Cache-Control", "max-age=3600, public");
         for (String path : java.util.List.of("/baosys-manager/assets/missing.js",
             "/baosys-manager/assets/missing", "/baosys-other/tasks")) {
             webTestClient.get().uri(path).accept(MediaType.TEXT_HTML).exchange().expectStatus().isNotFound();

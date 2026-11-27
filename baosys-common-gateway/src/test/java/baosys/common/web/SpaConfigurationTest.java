@@ -97,4 +97,55 @@ class SpaConfigurationTest {
         assertThatThrownBy(() -> fallback.setExcludedPrefixes(List.of("/"))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> fallback.setExcludedPrefixes(List.of("baosys//x"))).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void appliesStaticResourceCacheControlWhileKeepingIndexNoCache() throws Exception {
+        Files.writeString(resources.resolve("index.html"), "<html>cached-ui</html>");
+        Files.writeString(resources.resolve("app.js"), "const cached = true;");
+        new ReactiveWebApplicationContextRunner().withUserConfiguration(Web.class)
+            .withConfiguration(AutoConfigurations.of(SpaWebConfiguration.class))
+            .withPropertyValues(
+                "common.spa.enabled=true",
+                "common.spa.base-path=/custom",
+                "common.spa.resource-location=" + resources.toUri(),
+                "common.spa.fallback.enabled=true",
+                "spring.web.resources.cache.cachecontrol.max-age=1h",
+                "spring.web.resources.cache.cachecontrol.cache-public=true"
+            )
+            .run(context -> {
+                assertThat(context).hasNotFailed();
+                var client = WebTestClient.bindToApplicationContext(context).build();
+                for (String asset : new String[]{"/custom/app.js", "/app.js"}) {
+                    client.get().uri(asset).exchange()
+                        .expectStatus().isOk()
+                        .expectHeader().valueEquals("Cache-Control", "max-age=3600, public");
+                }
+                for (String entry : new String[]{"/custom/", "/", "/custom/index.html", "/index.html", "/custom/users/1"}) {
+                    client.get().uri(entry).accept(MediaType.TEXT_HTML).exchange()
+                        .expectStatus().isOk()
+                        .expectHeader().valueEquals("Cache-Control", "no-cache")
+                        .expectBody(String.class).isEqualTo("<html>cached-ui</html>");
+                }
+            });
+    }
+
+    @Test
+    void supportsCachePeriodAndReturnsNotFoundWhenIndexIsMissing(@TempDir Path emptyDir) {
+        new ReactiveWebApplicationContextRunner().withUserConfiguration(Web.class)
+            .withConfiguration(AutoConfigurations.of(SpaWebConfiguration.class))
+            .withPropertyValues(
+                "common.spa.enabled=true",
+                "common.spa.base-path=/custom",
+                "common.spa.resource-location=" + emptyDir.toUri(),
+                "spring.web.resources.cache.period=30m"
+            )
+            .run(context -> {
+                assertThat(context).hasNotFailed();
+                var client = WebTestClient.bindToApplicationContext(context).build();
+                for (String entry : new String[]{"/custom/", "/", "/custom/index.html"}) {
+                    client.get().uri(entry).accept(MediaType.TEXT_HTML).exchange()
+                        .expectStatus().isNotFound();
+                }
+            });
+    }
 }

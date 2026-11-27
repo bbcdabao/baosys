@@ -1,15 +1,18 @@
 package baosys.common.web;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,7 +34,7 @@ import reactor.core.publisher.Mono;
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnProperty(prefix = "common.spa", name = "enabled", havingValue = "true")
-@EnableConfigurationProperties(SpaProperties.class)
+@EnableConfigurationProperties({SpaProperties.class, WebProperties.class})
 public class SpaWebConfiguration implements WebFluxConfigurer {
 
     private static final List<String> BUILTIN_EXCLUDED_PATHS = List.of(
@@ -45,10 +48,12 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
     );
 
     private final SpaProperties properties;
+    private final WebProperties webProperties;
     private final Resource index;
 
-    public SpaWebConfiguration(SpaProperties properties, ResourceLoader loader) {
+    public SpaWebConfiguration(SpaProperties properties, WebProperties webProperties, ResourceLoader loader) {
         this.properties = properties;
+        this.webProperties = webProperties;
         this.index = loader.getResource(properties.getResourceLocation() + "index.html");
     }
 
@@ -69,11 +74,21 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
     @Bean
     RouterFunction<ServerResponse> uiIndex() {
         return RouterFunctions.route()
-            .GET(properties.getBasePath() + "/", request -> ServerResponse.ok()
-                .contentType(MediaType.TEXT_HTML).bodyValue(index))
-            .GET("/", request -> ServerResponse.ok()
-                .contentType(MediaType.TEXT_HTML).bodyValue(index))
+            .GET(properties.getBasePath() + "/", request -> indexResponse())
+            .GET(properties.getBasePath() + "/index.html", request -> indexResponse())
+            .GET("/", request -> indexResponse())
+            .GET("/index.html", request -> indexResponse())
             .build();
+    }
+
+    private Mono<ServerResponse> indexResponse() {
+        if (!index.isReadable()) {
+            return ServerResponse.notFound().build();
+        }
+        return ServerResponse.ok()
+            .contentType(MediaType.TEXT_HTML)
+            .cacheControl(CacheControl.noCache())
+            .bodyValue(index);
     }
 
     @Override
@@ -81,11 +96,26 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
         var registration = registry
             .addResourceHandler(properties.getBasePath() + "/**", "/**")
             .addResourceLocations(properties.getResourceLocation());
+        var cache = webProperties.getResources().getCache();
+        CacheControl cacheControl = resolveCacheControl(cache);
+        if (cacheControl != null) {
+            registration.setCacheControl(cacheControl);
+        }
+        registration.setUseLastModified(cache.isUseLastModified());
         if (properties.getFallback().isEnabled()) {
             registration
                 .resourceChain(false)
                 .addResolver(new SpaPathResourceResolver(index, excludedPaths(), excludedPrefixes()));
         }
+    }
+
+    private static CacheControl resolveCacheControl(WebProperties.Resources.Cache cache) {
+        CacheControl cacheControl = cache.getCachecontrol().toHttpCacheControl();
+        if (cacheControl != null && cacheControl.getHeaderValue() != null) {
+            return cacheControl;
+        }
+        Duration period = cache.getPeriod();
+        return period != null ? CacheControl.maxAge(period) : null;
     }
 
     private List<String> excludedPaths() {
@@ -124,11 +154,16 @@ public class SpaWebConfiguration implements WebFluxConfigurer {
             return super
                 .resolveResourceInternal(exchange, requestPath, locations, chain)
                 .switchIfEmpty(
-                    Mono.defer(() ->
-                        isClientRoute(exchange, requestPath) && index.isReadable()
-                            ? Mono.just(index)
-                            : Mono.empty()
-                    )
+                    Mono.defer(() -> {
+                        if (isClientRoute(exchange, requestPath) && index.isReadable()) {
+                            exchange.getResponse().beforeCommit(() -> {
+                                exchange.getResponse().getHeaders().setCacheControl(CacheControl.noCache());
+                                return Mono.empty();
+                            });
+                            return Mono.just(index);
+                        }
+                        return Mono.empty();
+                    })
                 );
         }
 
