@@ -38,7 +38,7 @@ baosys-manager/
 
 The API JAR depends on common-api; spring-web and jakarta.validation-api are optional. It contains public interfaces and DTOs, not controllers, entities, or FeignClient definitions.
 
-Service directly depends on manager-api, common, common-api, common-password, common-security-core, and common-resource. It assembles Spring Authorization Server, Spring Session JDBC, MyBatis Plus, Flyway, and PostgreSQL. common provides error codes, trace IDs and managed executors; Web error handling and tracing live in common-resource and common-gateway; there is no security-issuer module.
+Service directly depends on manager-api, common, common-api, common-security-core, and common-resource. It assembles Spring Authorization Server, Spring Session JDBC, MyBatis Plus, Flyway, and PostgreSQL. common provides error codes, trace IDs and managed executors; Web error handling and tracing live in common-resource and common-gateway; there is no security-issuer module.
 
 ## 2. Calls and responsibilities
 

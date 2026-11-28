@@ -1,6 +1,6 @@
 package baosys.manager.app.config;
 
-import baosys.common.security.password.PasswordHasher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import baosys.manager.infra.database.converter.PermissionPersistenceConverter;
 import baosys.manager.infra.database.entity.PermissionChangeAuditEntity;
 import baosys.manager.infra.database.entity.UserInfoEntity;
@@ -25,21 +25,21 @@ public class DefaultAdminInitializer implements ApplicationRunner {
 
     private final UserInfoMapper userMapper;
     private final PermissionChangeAuditMapper permissionChangeAuditMapper;
-    private final PasswordHasher passwordHasher;
+    private final PasswordEncoder passwordEncoder;
     private final AuthProperties properties;
     private final SystemCatalog catalog;
 
     public DefaultAdminInitializer(
         UserInfoMapper userMapper,
         PermissionChangeAuditMapper permissionChangeAuditMapper,
-        PasswordHasher passwordHasher,
+        PasswordEncoder passwordEncoder,
         AuthProperties properties,
         SystemCatalog catalog
     ) {
         this.catalog = catalog;
         this.userMapper = userMapper;
         this.permissionChangeAuditMapper = permissionChangeAuditMapper;
-        this.passwordHasher = passwordHasher;
+        this.passwordEncoder = passwordEncoder;
         this.properties = properties;
     }
 
@@ -55,7 +55,7 @@ public class DefaultAdminInitializer implements ApplicationRunner {
         UserInfoEntity admin = new UserInfoEntity();
         String permissions = PermissionPersistenceConverter.encode(catalog.grantsFor("MGR"));
         admin.setUserName(username);
-        admin.setUserPass(passwordHasher.hash(password));
+        admin.setUserPass(passwordEncoder.encode(password));
         admin.setUserPermissions(permissions);
         admin.setDefaultSystemType("MGR");
         admin.setEnabled(true);

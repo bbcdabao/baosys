@@ -10,7 +10,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import baosys.common.security.password.PasswordHasher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import baosys.manager.api.module.payloads.UserCreateRequest;
 import baosys.manager.api.module.payloads.UserUpdateRequest;
 import baosys.manager.api.module.responses.UserResponse;
@@ -32,13 +32,13 @@ class UserAppServiceImplTest {
     private final UserInfoMapper userMapper = mock(UserInfoMapper.class);
     private final UserLoginMapper loginMapper = mock(UserLoginMapper.class);
     private final PermissionChangeAuditMapper auditMapper = mock(PermissionChangeAuditMapper.class);
-    private final PasswordHasher passwordHasher = mock(PasswordHasher.class);
+    private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final TransactionOperations transactions = spy(TransactionOperations.withoutTransaction());
     private final UserAppServiceImpl userAppService = new UserAppServiceImpl(
         userMapper,
         loginMapper,
         auditMapper,
-        passwordHasher,
+        passwordEncoder,
         baosys.manager.app.config.CatalogFixture.load(),
         transactions
     );
@@ -201,7 +201,7 @@ class UserAppServiceImplTest {
     void shouldRevokeSessionsAfterPasswordChange() {
         UserInfoEntity user = user("MGR", "MGR:user:list");
         when(userMapper.findByIdForUpdate(1001L)).thenReturn(Optional.of(user));
-        when(passwordHasher.hash("new-password")).thenReturn("encoded");
+        when(passwordEncoder.encode("new-password")).thenReturn("encoded");
         userAppService.update(
             new UserUpdateRequest(
                 1001L,
@@ -215,15 +215,15 @@ class UserAppServiceImplTest {
         );
         verify(loginMapper).deleteByUserId(1001L);
         assertThat(user.getUserPass()).isEqualTo("encoded");
-        var order = inOrder(passwordHasher, transactions, userMapper);
-        order.verify(passwordHasher).hash("new-password");
+        var order = inOrder(passwordEncoder, transactions, userMapper);
+        order.verify(passwordEncoder).encode("new-password");
         order.verify(transactions).execute(org.mockito.ArgumentMatchers.<TransactionCallback<UserResponse>>any());
         order.verify(userMapper).findByIdForUpdate(1001L);
     }
 
     @Test
     void shouldHashPasswordBeforeOpeningTransactionOnCreate() {
-        when(passwordHasher.hash("secure123")).thenReturn("encoded");
+        when(passwordEncoder.encode("secure123")).thenReturn("encoded");
         when(userMapper.insert(any(UserInfoEntity.class))).thenAnswer(invocation -> {
             invocation.<UserInfoEntity>getArgument(0).setId(2001L);
             return 1;
@@ -235,8 +235,8 @@ class UserAppServiceImplTest {
         );
 
         assertThat(created.id()).isEqualTo(2001L);
-        var order = inOrder(passwordHasher, transactions, userMapper);
-        order.verify(passwordHasher).hash("secure123");
+        var order = inOrder(passwordEncoder, transactions, userMapper);
+        order.verify(passwordEncoder).encode("secure123");
         order.verify(transactions).execute(org.mockito.ArgumentMatchers.<TransactionCallback<UserResponse>>any());
         order.verify(userMapper).insert(any(UserInfoEntity.class));
     }

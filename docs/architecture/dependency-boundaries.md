@@ -12,14 +12,13 @@
 
 | 模块 | 当前直接依赖和职责 |
 |---|---|
-| common | common-api、SLF4J、Jackson、基础 Spring beans/core/context；提供错误码、追踪标识、受管执行器和共享资源；不依赖 Servlet/MVC/WebFlux/Reactor/Security |
+| common | common-api、SLF4J、Jackson、基础 Spring beans/core/context/boot、spring-security-crypto；提供错误码、追踪标识、受管执行器、统一 `PasswordEncoder` 自动配置和共享资源；不依赖 Servlet/MVC/WebFlux/Reactor/Security 核心 |
 | common-api | 无第三方依赖，提供 `ApiResponse`、`PageResponse` |
 | common-security-core | Spring Boot 配置属性及 Spring Security JWT/authority 基础能力；不依赖 common-api 或 Web starter |
 | common-resource | security-core、common、common-api、MVC 和 Servlet 安全；包含 Servlet 错误响应、追踪和 MVC 异步配置；Servlet API 为 provided |
 | common-gateway | security-core、common、common-api、Gateway/WebFlux/Reactor、OAuth2；包含响应式错误响应、追踪、context-propagation 和 SPA 托管 |
-| common-password | Spring 配置与 BCrypt 密码能力；不依赖 JWT 或 common-api |
 | manager-api | common-api；spring-web、jakarta.validation-api 为 optional |
-| manager-service | manager-api、common-api、core、resource、password；选择 Servlet、授权服务器、资源服务器、数据库和 Session JDBC 运行环境 |
+| manager-service | manager-api、common-api、core、resource；选择 Servlet、授权服务器、资源服务器、数据库和 Session JDBC 运行环境 |
 | manager-web | common、gateway；选择 Gateway、OAuth2 Client/Resource Server、Actuator 运行环境；LoadBalancer 与 Caffeine 为 runtime |
 
 `baosys-common` 承载跨业务基础实现，Manager Service 和 Manager Web 直接依赖。不提供 `baosys-common-security-issuer` 模块。JWT 签发和授权服务器装配位于 Manager Service 的 `infra/security`。

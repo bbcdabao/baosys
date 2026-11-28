@@ -41,12 +41,11 @@ BaoSys 适合作为个人项目、小团队内部平台、多个后台工具的�
 
 | 模块 | 职责 |
 |---|---|
-| `baosys-common` | 基础工具、追踪标识、执行器、存储 JSON 和公共资源 |
+| `baosys-common` | 基础工具、追踪标识、执行器、存储 JSON、密码编码和公共资源 |
 | `baosys-common-api` | 统一响应与分页协议 |
 | `baosys-common-security-core` | 安全配置、JWT 和权限基础能力 |
 | `baosys-common-resource` | MVC 资源服务安全、错误处理、请求追踪和异步配置 |
 | `baosys-common-gateway` | WebFlux 网关安全、错误处理、请求追踪和 SPA 托管 |
-| `baosys-common-password` | 密码编码与校验 |
 | `baosys-manager/baosys-manager-api` | Manager 接口契约和 DTO |
 | `baosys-manager/baosys-manager-service` | 业务、认证中心和数据库访问，默认 9090 |
 | `baosys-manager-web` | API 网关与前端静态资源宿主，默认 8080 |

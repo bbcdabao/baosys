@@ -12,7 +12,7 @@
 
 - `manager-api` 放接口契约、请求/响应 DTO 和校验注解，不放 Entity、Mapper、Service 实现或完整 starter。
 - `manager-service` 依赖自己的 API。Controller 做输入适配，App Service 编排业务与事务，Infra 实现持久化和安全能力；Controller 不直接调用 Mapper。
-- 公共协议放 `common-api`，基础错误码、追踪标识和执行器放 `baosys-common`；WebFlux 适配与安全放 `baosys-common-gateway`，MVC 适配与安全放 `baosys-common-resource`；security-core 和 password 保持独立，Common 不依赖业务模块。
+- 公共协议放 `common-api`，基础错误码、追踪标识和执行器放 `baosys-common`；WebFlux 适配与安全放 `baosys-common-gateway`，MVC 适配与安全放 `baosys-common-resource`；security-core 保持独立，Common 不依赖业务模块。
 - 网关负责路由、认证和入口权限，不承载业务 CRUD 或直接访问数据库。
 - 源码直接使用的库由本模块 POM 显式声明。根 POM 聚合模块、管理版本，应用模块选择 starter，公共库仅依赖所需框架库。
 - 不依赖其他业务服务的实现 Jar，不对外暴露数据库实体，不为简单业务强行增加领域层。

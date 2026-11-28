@@ -10,9 +10,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import java.time.Clock;
 import baosys.manager.infra.database.mapper.UserLoginMapper;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
-import org.springframework.security.crypto.password.*;
 import org.springframework.security.oauth2.server.authorization.*;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
@@ -86,15 +83,6 @@ public class AuthorizationServerConfiguration {
 
     @Bean
     Clock authClock() { return Clock.systemUTC(); }
-
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        var encoder =
-            (DelegatingPasswordEncoder) PasswordEncoderFactories.createDelegatingPasswordEncoder();
-        // 兼容历史账户无前缀的 BCrypt 密码；新客户端密钥使用 {bcrypt} 前缀。
-        encoder.setDefaultPasswordEncoderForMatches(new BCryptPasswordEncoder());
-        return encoder;
-    }
 
     @Bean
     AccountAuthorizationService authorizationService(

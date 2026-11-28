@@ -39,12 +39,11 @@ The project keeps its scope small. Permissions are currently assigned directly t
 
 | Module | Responsibility |
 |---|---|
-| `baosys-common` | Base utilities, trace IDs, executors, storage JSON and shared resources |
+| `baosys-common` | Base utilities, trace IDs, executors, storage JSON, password encoding and shared resources |
 | `baosys-common-api` | Shared response and pagination contracts |
 | `baosys-common-security-core` | Security configuration, JWT, and permission fundamentals |
 | `baosys-common-resource` | MVC resource security, error handling, request tracing and async configuration |
 | `baosys-common-gateway` | WebFlux gateway security, error handling, request tracing and SPA hosting |
-| `baosys-common-password` | Password encoding and verification |
 | `baosys-manager/baosys-manager-api` | Manager API contracts and DTOs |
 | `baosys-manager/baosys-manager-service` | Business logic, authorization server, and database access; port 9090 by default |
 | `baosys-manager-web` | API gateway and frontend static resource host; port 8080 by default |

@@ -22,7 +22,7 @@ try {
         $dependencies = $lines | Select-Object -Skip 1
         $tree = $dependencies -join "`n"
         if ($check.Empty -and $dependencies) { throw "$($check.Module) must have no runtime dependencies." }
-        foreach ($artifact in ($check.Banned + @('baosys-common-security-gateway', 'baosys-common-security-resource'))) {
+        foreach ($artifact in ($check.Banned + @('baosys-common-security-gateway', 'baosys-common-security-resource', 'baosys-common-password'))) {
             if ($tree -match (':' + [regex]::Escape($artifact) + ':')) {
                 throw "$($check.Module) unexpectedly depends on $artifact."
             }

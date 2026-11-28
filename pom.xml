@@ -32,7 +32,6 @@
     <module>baosys-common-security-core</module>
     <module>baosys-common-resource</module>
     <module>baosys-common-gateway</module>
-    <module>baosys-common-password</module>
     <module>baosys-manager</module>
     <module>baosys-manager-web</module>
   </modules>
@@ -103,11 +102,6 @@
       <dependency>
         <groupId>baosys</groupId>
         <artifactId>baosys-common-gateway</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>baosys</groupId>
-        <artifactId>baosys-common-password</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

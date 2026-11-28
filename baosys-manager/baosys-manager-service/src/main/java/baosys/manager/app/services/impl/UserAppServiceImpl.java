@@ -1,7 +1,7 @@
 package baosys.manager.app.services.impl;
 
 import baosys.common.api.PageResponse;
-import baosys.common.security.password.PasswordHasher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import baosys.manager.api.module.responses.CurrentUserResponse;
 import baosys.manager.api.module.responses.LoginClientResponse;
 import baosys.manager.api.module.payloads.UserCreateRequest;
@@ -42,7 +42,7 @@ public class UserAppServiceImpl implements UserAppService {
     private final UserInfoMapper userMapper;
     private final UserLoginMapper loginMapper;
     private final PermissionChangeAuditMapper permissionChangeAuditMapper;
-    private final PasswordHasher passwordHasher;
+    private final PasswordEncoder passwordEncoder;
     private final SystemCatalog catalog;
     private final TransactionOperations transactions;
 
@@ -51,7 +51,7 @@ public class UserAppServiceImpl implements UserAppService {
         UserInfoMapper userMapper,
         UserLoginMapper loginMapper,
         PermissionChangeAuditMapper permissionChangeAuditMapper,
-        PasswordHasher passwordHasher,
+        PasswordEncoder passwordEncoder,
         SystemCatalog catalog,
         PlatformTransactionManager transactionManager
     ) {
@@ -59,7 +59,7 @@ public class UserAppServiceImpl implements UserAppService {
             userMapper,
             loginMapper,
             permissionChangeAuditMapper,
-            passwordHasher,
+            passwordEncoder,
             catalog,
             new TransactionTemplate(transactionManager)
         );
@@ -69,7 +69,7 @@ public class UserAppServiceImpl implements UserAppService {
         UserInfoMapper userMapper,
         UserLoginMapper loginMapper,
         PermissionChangeAuditMapper permissionChangeAuditMapper,
-        PasswordHasher passwordHasher,
+        PasswordEncoder passwordEncoder,
         SystemCatalog catalog,
         TransactionOperations transactions
     ) {
@@ -77,7 +77,7 @@ public class UserAppServiceImpl implements UserAppService {
         this.userMapper = userMapper;
         this.loginMapper = loginMapper;
         this.permissionChangeAuditMapper = permissionChangeAuditMapper;
-        this.passwordHasher = passwordHasher;
+        this.passwordEncoder = passwordEncoder;
         this.transactions = transactions;
     }
 
@@ -150,7 +150,7 @@ public class UserAppServiceImpl implements UserAppService {
         String encodedPermissions = PermissionPersistenceConverter.encode(permissions);
         boolean enabled = request.enabled() == null || request.enabled();
         // 密码哈希属于 CPU 耗时操作，在开启数据库事务前完成，避免占用数据库连接。
-        String passwordHash = passwordHasher.hash(request.pass());
+        String passwordHash = passwordEncoder.encode(request.pass());
 
         UserResponse response = transactions.execute(status -> {
             if (userMapper.existsByUserName(username)) {
@@ -198,7 +198,7 @@ public class UserAppServiceImpl implements UserAppService {
                 );
             }
             // 密码哈希属于 CPU 耗时操作，在开启数据库事务与获取账户行锁前完成。
-            passwordHash = passwordHasher.hash(request.pass());
+            passwordHash = passwordEncoder.encode(request.pass());
         }
         String encodedPassword = passwordHash;
 

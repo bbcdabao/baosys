@@ -27,7 +27,6 @@ The runnable application consists of UI, Manager Web, Manager Service, and Postg
 | Shared security | common-security-core | Security configuration properties, JWT validation contract, permission conversion, shared cookie constants |
 | MVC infrastructure | common-resource | JWT decoder, resource security, Servlet errors, tracing and MVC async configuration |
 | Gateway infrastructure | common-gateway | Reactive JWT, security chain, CSRF, token relay, errors, tracing, SPA and optional OAuth2 client integration |
-| Passwords | common-password | BCrypt, password interfaces, and auto-configuration |
 
 Manager Service uses `app + infra` layers. Controllers call application services, which orchestrate mappers and infrastructure. `app/services/BrowserAuthAppService` orchestrates shared login; `app/services/impl/BrowserLoginTransaction` handles login completion, refresh, and logout transactions; `infra/security/AccountAuthenticator` checks passwords outside transactions. There is no separate Domain/Agent layer.
 
@@ -49,12 +48,11 @@ flowchart TD
     Service --> CommonApi
     Service --> Core
     Service --> Resource
-    Service --> Password["common-password"]
     Web["manager-web"] --> Gateway
     Web -. "Build and copy dist" .-> UI["manager-ui"]
 ```
 
-The root reactor aggregates six shared modules, the Manager aggregator, and Manager Web. Manager includes API and Service. The Web build plugins integrate the UIs. See [Maven dependency boundaries](dependency-boundaries.en.md) for scopes and verification.
+The root reactor aggregates five shared modules, the Manager aggregator, and Manager Web. Manager includes API and Service. The Web build plugins integrate the UIs. See [Maven dependency boundaries](dependency-boundaries.en.md) for scopes and verification.
 
 ## 4. HTTP path model
 

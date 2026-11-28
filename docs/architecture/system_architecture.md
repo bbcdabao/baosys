@@ -27,7 +27,6 @@ flowchart LR
 | 公共安全 | common-security-core | 安全配置属性、JWT 校验契约、权限转换、共享 Cookie 常量 |
 | MVC 基础设施 | common-resource | JWT decoder、资源服务安全、Servlet 错误处理、追踪和 MVC 异步配置 |
 | 网关基础设施 | common-gateway | 响应式 JWT、安全链、CSRF、Token relay、错误处理、追踪、SPA 和可选 OAuth2 客户端适配 |
-| 密码 | common-password | BCrypt 与密码接口/自动配置 |
 
 Manager Service 使用 `app + infra` 分层：Controller 调用应用服务，应用服务编排 Mapper 和基础设施。共享登录由 `app/services/BrowserAuthAppService` 编排，`app/services/impl/BrowserLoginTransaction` 承担登录完成、刷新和退出事务，`infra/security/AccountAuthenticator` 负责事务外密码校验。当前没有独立 Domain/Agent 层。
 
@@ -49,12 +48,11 @@ flowchart TD
     Service --> CommonApi
     Service --> Core
     Service --> Resource
-    Service --> Password["common-password"]
     Web["manager-web"] --> Gateway
     Web -. "构建并复制 dist" .-> UI["manager-ui"]
 ```
 
-根 Reactor 聚合六个公共模块、Manager 聚合模块和 Manager Web 网关；Manager 包含 API 和 Service。UI 由 Manager Web 构建插件集成。详细作用域和验证方式见 [Maven 依赖边界](dependency-boundaries.md)。
+根 Reactor 聚合五个公共模块、Manager 聚合模块和 Manager Web 网关；Manager 包含 API 和 Service。UI 由 Manager Web 构建插件集成。详细作用域和验证方式见 [Maven 依赖边界](dependency-boundaries.md)。
 
 ## 4. HTTP 路径模型
 

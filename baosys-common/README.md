@@ -1,7 +1,7 @@
 # baosys-common
 
 跨业务应用复用的基础实现，Maven 坐标为 `baosys:baosys-common`。协议模型仍在 `baosys-common-api`；
-基础模块保留 ApiErrors、TraceIds、受管执行器、StorageJson、日志和运维资源，不依赖 Servlet、MVC、WebFlux、Reactor 或 Spring Security。
+基础模块保留 ApiErrors、TraceIds、受管执行器、StorageJson、密码编码自动配置、日志和运维资源，仅依赖 spring-security-crypto，不依赖 Servlet、MVC、WebFlux、Reactor 或 Spring Security 核心。
 Web 适配按应用角色归属：
 
 | 模块 | 实现 |
@@ -9,7 +9,7 @@ Web 适配按应用角色归属：
 | baosys-common-gateway | ReactiveApiExceptionHandler/Responses/SecurityHandler、TraceWebFilter、Reactive 自动配置、SpaWebConfiguration/Properties，以及网关安全 |
 | baosys-common-resource | ApiExceptionHandler、ServletApiSecurityHandler、TraceIdFilter、TraceAutoConfiguration、MvcAsyncAutoConfiguration，以及 MVC 资源服务安全 |
 
-两者依赖基础 common 和 security-core，互不依赖。common-api、security-core、password 保持独立。
+两者依赖基础 common 和 security-core，互不依赖。common-api、security-core 保持独立。
 以下记录跨模块共享的行为契约；Java 包名和配置属性保持兼容，业务 Advice 仅处理业务专有异常。
 
 ## 异常协议
@@ -69,6 +69,12 @@ ManagedBackgroundTask 将阻塞后台服务的启动和停止回调接入 Spring
 使用方必须将这些对象注册为 Bean，不在业务代码自行创建静态线程池。
 
 业务日志统一使用 SLF4J，异常传 Throwable，禁止 printStackTrace 和 System.out。
+
+## 密码编码
+
+设置 `common.password.enabled=true` 后注册唯一的 Spring `PasswordEncoder`，`common.password.strength` 为 BCrypt cost（4～31，默认 10）。
+新密码以 `{bcrypt}` 前缀写入；校验兼容历史无前缀 BCrypt 摘要及 Spring 标准前缀（如 `{noop}`）。
+账户密码写入、登录校验和 OAuth2 客户端密钥共用同一个 Bean；应用提供自己的 `PasswordEncoder` 时自动退让。
 
 ## 测试
 

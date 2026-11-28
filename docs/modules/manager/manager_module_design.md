@@ -38,7 +38,7 @@ baosys-manager/
 
 API Jar 依赖 common-api，spring-web 和 jakarta.validation-api 为 optional。它包含公开接口和 DTO，不包含 Controller、Entity 或 FeignClient。
 
-Service 直接依赖 manager-api、common、common-api、common-password、common-security-core 和 common-resource，并装配 Spring Authorization Server、Spring Session JDBC、MyBatis Plus、Flyway 和 PostgreSQL。common 提供错误码、追踪标识和受管执行器；Web 异常处理与追踪装配分别位于 common-resource 和 common-gateway；当前没有 security-issuer 模块。
+Service 直接依赖 manager-api、common、common-api、common-security-core 和 common-resource，并装配 Spring Authorization Server、Spring Session JDBC、MyBatis Plus、Flyway 和 PostgreSQL。common 提供错误码、追踪标识和受管执行器；Web 异常处理与追踪装配分别位于 common-resource 和 common-gateway；当前没有 security-issuer 模块。
 
 ## 2. 调用与职责
 

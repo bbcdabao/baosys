@@ -12,14 +12,13 @@ The table omits the `baosys-` prefix:
 
 | Module | Current direct dependencies and responsibility |
 |---|---|
-| common | common-api, SLF4J, Jackson and base Spring beans/core/context; error codes, trace IDs, managed executors and shared resources; no Servlet/MVC/WebFlux/Reactor/Security dependency |
+| common | common-api, SLF4J, Jackson, base Spring beans/core/context/boot and spring-security-crypto; error codes, trace IDs, managed executors, the unified `PasswordEncoder` auto-configuration and shared resources; no Servlet/MVC/WebFlux/Reactor/Security-core dependency |
 | common-api | No third-party dependencies; provides `ApiResponse` and `PageResponse` |
 | common-security-core | Spring Boot configuration properties and Spring Security JWT/authority fundamentals; no common-api or Web starter dependency |
 | common-resource | security-core, common, common-api, MVC and Servlet security; Servlet error responses, tracing and MVC async configuration; Servlet API is provided |
 | common-gateway | security-core, common, common-api, Gateway/WebFlux/Reactor and OAuth2; reactive errors, tracing, context-propagation and SPA hosting |
-| common-password | Spring configuration and BCrypt password support; no JWT or common-api dependency |
 | manager-api | common-api; spring-web and jakarta.validation-api are optional |
-| manager-service | manager-api, common-api, core, resource, password; selects Servlet, authorization server, resource server, database, and Session JDBC runtime support |
+| manager-service | manager-api, common-api, core, resource; selects Servlet, authorization server, resource server, database, and Session JDBC runtime support |
 | manager-web | common, gateway; selects Gateway, OAuth2 Client/Resource Server, and Actuator runtime support; LoadBalancer and Caffeine are runtime dependencies |
 
 `baosys-common` provides shared errors, tracing and managed execution. Manager Service and Manager Web depend on it directly. There is no `baosys-common-security-issuer` module. JWT issuance and authorization server assembly live in Manager Service's `infra/security`.
